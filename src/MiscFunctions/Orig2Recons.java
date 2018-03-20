@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Set;
 
 public class Orig2Recons {
 
@@ -77,10 +78,13 @@ public class Orig2Recons {
 			// System.out.println(p + "\t" + includeOrNot.get(vcfPos.indexOf(p)));
 		}
 		// System.out.println(vcfPos.size() + "\t" + includeOrNot.size()); 
+		System.out.println("\nThese are the verified positions...");
 		for (int p : verifiedPos) {
 			for (int h : origVarMap.keySet()) origVarMap.get(h).putIfAbsent(p, 0);
 			System.out.print(p + "\t");
 		}
+		System.out.println();
+
 		System.out.println("\nThese are the original haplotypes...");
 		for (int h : origVarMap.keySet()) {
 			System.out.print("orig_" + h + "\t");
@@ -138,10 +142,15 @@ public class Orig2Recons {
 		HashMap<Integer,String> minDiffHap = new HashMap<Integer,String>();
 		HashMap<Integer,Integer> minDiffNum = new HashMap<Integer,Integer>();
 		HashMap<Integer, ArrayList<Integer>> missedPosLists = new HashMap<Integer, ArrayList<Integer>>(); 
+			// NOTE: Because of the 1-to-1 nature of HashMaps, this actually reports the difference of the last reconstructed 
+			// haplotype in the former keySet, which is unknown. Either way, not actually showing the minDiff reconstruction. 
+		Set<Integer> tmpRecons = reconVarMap.keySet(); 
+		HashMap<Integer,ArrayList<Integer>> allDiffNum = new HashMap<Integer,ArrayList<Integer>>(); 
 		for (int orig : origVarMap.keySet()) {
 			int minHap = 0;
 			int minNum = verifiedPos.size(); 
-			for (int recon : reconVarMap.keySet()) {
+			allDiffNum.put(orig, new ArrayList<Integer>()); 
+			for (int recon : tmpRecons) {
 				int diff = 0; 
 				missedPosLists.put(orig, new ArrayList<Integer>()); 
 				for (int pos : verifiedPos) {
@@ -152,6 +161,7 @@ public class Orig2Recons {
 						missedPosLists.get(orig).add(1);						
 					}
 				}
+				allDiffNum.get(orig).add(diff); 
 				if (diff < minNum) {
 					minHap = recon; 
 					minNum = diff; 
@@ -163,7 +173,8 @@ public class Orig2Recons {
 		System.out.println("\nOriginal_Hap\tClosest_Recons\tNum_Diff");
 		for (int orig : minDiffHap.keySet()) {
 			System.out.print(orig + "\t" + minDiffHap.get(orig) + "\t" + minDiffNum.get(orig) + "\t"); 
-			for (int p : missedPosLists.get(orig)) System.out.print(p + "\t");
+			// for (int p : missedPosLists.get(orig)) System.out.print(p + "\t");
+			for (int d : allDiffNum.get(orig)) System.out.print(d + "\t"); 	
 			System.out.println();
 		}
 	}
