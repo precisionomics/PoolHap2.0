@@ -2,8 +2,6 @@ package PoolHap;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.commons.math3.distribution.BetaDistribution;

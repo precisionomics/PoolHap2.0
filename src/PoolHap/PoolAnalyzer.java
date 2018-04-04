@@ -88,11 +88,12 @@ public class PoolAnalyzer {
 			String method = (currArray.length > 2)? currArray[2]: "md";
 			try
 			{
-				System.out.println("Guessing for pool number " + poolNum + "...");
+				System.out.println("\nGuessing for pool number " + poolNum + "...");
 				knownHapSet.addAll(run(new File(currArray[0]), posArray, sample, method, workers, minisat_path));
-			}
-			finally
-			{
+			} catch (Exception e){
+				e.printStackTrace();
+				System.out.println("The graph-colouring problem for pool number " + poolNum + " is unsatisfiable.");	
+			} finally {
 				workers.shutdownNow();
 				poolNum++;
 			}
@@ -367,36 +368,23 @@ public class PoolAnalyzer {
 		    Rh=IF;
 		    double[] p_new= Algebra.times(Rh,p);
 		    
-		    if(ii%100==0) System.out.println("p_next_raw: ");
+		    if(ii%100==0) System.out.println("freqs_next: ");
 		    if(ii%100==0) for (double freq : p_new) System.out.print(freq + "\t");
-		    if(ii%100==0) System.out.println("\n");
+		    if(ii%100==0) System.out.println();
 
 		    Algebra.normalize_ditribution(p_new);
-		    
-		    if(ii%100==0) System.out.println("p_next_normdist: ");
-		    if(ii%100==0) for (double freq : p_new) System.out.print(freq + "\t");
-		    if(ii%100==0) System.out.println("\n");
-		    
-		    /*
-		    Algebra.rmlow_and_normalize(p_new, 0);
-		    
-		    if(ii%100==0) System.out.println("p_next_rmlow: ");
-		    if(ii%100==0) for (double freq : p_new) System.out.print(freq + "\t");
-		    if(ii%100==0) System.out.println("\n");
-			*/
+		    // Algebra.rmlow_and_normalize(p_new, rare_cutoff/(best_Haps.num_curr_H));
 		    if (delta< epsilon || delta1 < epsilon) break;		
 		    p_record = p.clone();    
 		    p=p_new.clone();      
 		} this.pop_freq= p.clone();
-		for (int j = 0; j < best_Haps.num_curr_H; j++) 
-			for (int k = 0; k < num_pool; k++) 
-				this.inpool_freq[j][k] = this.inpool_freq[j][k] * p_record[j];
 		for (int k = 0; k < num_pool; k++) {
-			int pool_sum = 0; 
-			for (int j = 0; j < best_Haps.num_curr_H; j++) 
-				pool_sum += this.inpool_freq[j][k];
-			for (int j = 0; j < best_Haps.num_curr_H; j++) 
-				this.inpool_freq[j][k] = this.inpool_freq[j][k] / pool_sum;
+			double poolCount = 0; 
+			for (int j = 0; j < best_Haps.num_curr_H; j++) {
+				this.inpool_freq[j][k] = this.inpool_freq[j][k] * p_record[j];
+				poolCount += this.inpool_freq[j][k]; 
+			}
+			for (int j = 0; j < best_Haps.num_curr_H; j++) this.inpool_freq[j][k] = this.inpool_freq[j][k] / poolCount;
 		}
 		for (int f = 0; f < p.length; f++) best_Haps.nodes.get(f).change_my_freq(p[f]);
 		best_Haps.loglikelihood = Algebra.logL_aems(Algebra.times(sigma, num_hap_inpool),
