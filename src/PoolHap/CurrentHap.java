@@ -1,6 +1,8 @@
 package PoolHap; 
 
 import java.io.PrintWriter;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -88,7 +90,18 @@ public class CurrentHap {
 	}
 	
 	public void checkrank_and_fullfill(double freqs_sum){
-		if(this.num_curr_H<this.num_snps)this.fullfill(freqs_sum);
+		if(this.num_curr_H<this.num_snps) {
+			ArrayList<Integer> noSNP = new ArrayList<Integer>();
+			for(int i=0;i<num_snps;i++) {
+				int varPresent = 0; 
+				for(int k=0;k<num_curr_H;k++){
+					varPresent += this.nodes.get(k).hap[i]; // Checks to see if any haplotype has an alternative allele in that variant position. 
+				}
+				if (varPresent == 0) noSNP.add(i); // If it doesn't then that rank will be unfilled.
+			}
+			int rank = this.num_snps - noSNP.size();
+			this.fullfill(freqs_sum, rank, noSNP);
+		}
 		else{
 			double[][] the_H_array=new double[num_curr_H][num_snps];
 			for(int k=0;k<num_curr_H;k++){
@@ -97,19 +110,24 @@ public class CurrentHap {
 			SingularValueDecomposition svd=new SingularValueDecomposition(MatrixUtils.createRealMatrix(the_H_array));
 			double[] sv=svd.getSingularValues();
 			int rank=0;
+			ArrayList<Integer> noSNP = new ArrayList<Integer>();
 			for(int i=0;i<sv.length;i++){
 				if(sv[i]!=0)rank++;
-			}if(rank<num_snps)this.fullfill(freqs_sum);
+				if(sv[i]==0) noSNP.add((int) sv[i]); 
+			}if(rank<num_snps)this.fullfill(freqs_sum,rank,noSNP);
 		}
 	}
 	
-	public void fullfill(double freqs_sum){
+	public void fullfill(double freqs_sum, int rank, ArrayList<Integer> noSNP){
 		 
 		for(int k=0;k<this.num_curr_H;k++)this.nodes.get(k).freq*=(1-freqs_sum);
-		int fillRank = this.num_snps - this.num_curr_H;
+		int fillRank = this.num_snps - rank;
 		for (int p = 0; p < fillRank; p++) {
 			int[] the_new_hap=new int[num_snps];
-			the_new_hap[ThreadLocalRandom.current().nextInt(0,num_snps)]=1;
+			the_new_hap[noSNP.get(p)]=1;	// Fill a 'rank'. 
+			int addVars = ThreadLocalRandom.current().nextInt(0,num_snps);
+			for (int i = 0; i < addVars; i++) the_new_hap[ThreadLocalRandom.current().nextInt(0,num_snps)]=1;
+			if(search_a_hap(the_new_hap)!=-1)continue; 
 			OneHap the_new_node=new OneHap(the_new_hap, freqs_sum/num_snps);
 			this.append(the_new_node);
 		}
@@ -237,18 +255,24 @@ public class CurrentHap {
 	void print(PrintWriter pw){
 		pw.append("haps:\t"+this.num_curr_H+"\tsnps:\t"+this.num_snps+"\n");
 		pw.append("logL\t" + this.loglikelihood + "\n");
+		DecimalFormat df = new DecimalFormat("#.###");
+		df.setRoundingMode(RoundingMode.CEILING);    
 		for(int h=0;h<this.num_curr_H;h++){
-			pw.append("hap_"+h+"\t"+this.nodes.get(h).output("") + "\n");
+			pw.append("hap_"+h+"\t"+this.nodes.get(h).output("",df) + "\n");
 		}
 	}
 	
 	void print_stdout(){
-		for(int h=0;h<this.num_curr_H;h++)System.out.println("hap_"+h+"\t"+this.nodes.get(h).output(""));
+		DecimalFormat df = new DecimalFormat("#.###");
+		df.setRoundingMode(RoundingMode.CEILING);    
+		for(int h=0;h<this.num_curr_H;h++)System.out.println("hap_"+h+"\t"+this.nodes.get(h).output("",df));
 	}
 
 	void print_stdout(double freq_cutoff){
+		DecimalFormat df = new DecimalFormat("#.###");
+		df.setRoundingMode(RoundingMode.CEILING);    
 		for(int h=0;h<this.num_curr_H;h++)
-			if(this.nodes.get(h).freq>freq_cutoff) System.out.println("hap_"+h+"\t"+this.nodes.get(h).output(""));
+			if(this.nodes.get(h).freq>freq_cutoff) System.out.println("hap_"+h+"\t"+this.nodes.get(h).output("",df));
 	}
 	
 	/*
