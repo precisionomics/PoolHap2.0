@@ -40,7 +40,7 @@ public class Main {
 		String time = sdf.format(startDate);
 		System.out.println("The current time is " + time + ".");
 		
-		System.out.println("Reading allele counts from file_data...\n");
+		System.out.println("Reading intra-pool allele frequencies from file_data...\n");
 		BufferedReader br1 = new BufferedReader(new FileReader(file_data)); 
 		String currLine = br1.readLine();
 		String[] tmpVar = currLine.split("\t");

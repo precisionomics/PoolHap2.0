@@ -259,10 +259,15 @@ public class PoolAnalyzer {
 					max_iterations, burn_in, coalescing_mismatch, round, working_folder);
 		}
 		int best_index=0;
-		for(int round=1; round<num_round;round++){
-			if(this.best_Haps_buffer.get(round).loglikelihood>this.best_Haps_buffer.get(best_index).loglikelihood)
-				best_index=round;
-		}this.best_Haps=this.best_Haps_buffer.get(best_index).clone_highfreq(rare_cutoff);		
+		if (num_round == 0) {
+			this.best_Haps = curr_Haps.clone_highfreq(rare_cutoff);
+		} else {
+			for(int round=1; round<num_round;round++){
+				if(this.best_Haps_buffer.get(round).loglikelihood>this.best_Haps_buffer.get(best_index).loglikelihood)
+					best_index=round;
+			}
+			this.best_Haps=this.best_Haps_buffer.get(best_index).clone_highfreq(rare_cutoff); // clone_highfreq(rare_cutoff)
+		}
 	}
 		
 	public void population_freq_rjmcmc(double alpha, double beta_a, double beta_c, double gamma, double c_old, 
@@ -334,67 +339,128 @@ public class PoolAnalyzer {
 		double[] p_record = new double[best_Haps.num_curr_H]; 
 		double[] Rh=p.clone();
 		this.inpool_freq = new double[best_Haps.num_curr_H][num_pool];
-		for(int ii=0;ii<max_iteration;ii++){
+    	double rh1_tmp = 0; 
+    	double rh2_0 = 0; 
+    	double rh2_mean = 0;
+    	double rh_tmp = 0; 
+    	double[] rh2array = new double[this.num_pool];
+    	double[] diffarray = new double[this.num_pool]; 
+    	AEM: for(int ii=0;ii<max_iteration;ii++){
 			this.update_sigma_mu_fixed(p);
-    		if(ii%100==0) System.out.println(ii+":"+Algebra.logL_aems(Algebra.times(sigma, num_hap_inpool),
+    		if(ii%100==0) System.out.println("\n" + ii+":"+Algebra.logL_aems(Algebra.times(sigma, num_hap_inpool),
 					Algebra.times(mu, num_hap_inpool), data));	// !!! Formerly, logL_normal.
 		    SingularValueDecomposition svd=new SingularValueDecomposition(MatrixUtils.createRealMatrix(sigma));
 		    RealMatrix si= svd.getSolver().getInverse();
+	        System.out.println("Inverse sigma matrix:");
+		    double[][] si_tmp = si.getData(); 
+	        for (int r = 0; r < si.getRowDimension(); r++) {
+	        	for (int c = 0 ; c < si.getColumnDimension(); c++) {
+	        		if (Double.isNaN(si_tmp[r][c]))  {
+	        			System.out.println(ii + ": Inverse sigma row " + r + " column " + c + " is NaN.");
+	        		    p=p_record.clone();      
+	        			break AEM;
+	        		}
+	        		System.out.printf("%.5f\t",si_tmp[r][c]); 
+	        		if (Double.isNaN(si_tmp[r][c])) System.out.print("si[" + r + "][" + c + "] is 0. ");
+	        	}
+	        	System.out.println();
+	        }
+	        System.out.println("TMP matrix:");
+	        double[][] tmp=new double[num_pool][num_snp];               //tmp=sweep(A/(2*N),2,omega, "-");
+	        for(int k=0;k<num_pool;k++){
+	        	for(int q=0;q<num_snp;q++){
+	        		tmp[k][q]=data[k][q]/this.num_hap_inpool-mu[q];
+	        		System.out.printf("%.5f\t",tmp[k][q]); 
+		        	// if(ii%100==0 && j==0) System.out.println("tmp[" + k + "][" + q + "] = " + tmp[k][q] + "\t");
+		        	// if (tmp[k][q] == 0)	System.out.print("tmp[" + k + "][" + q + "] is 0. ");
+	        	}
+	        	// if(ii%100==0 && j==0) System.out.println();
+	        	System.out.println();
+	        }
+	        System.out.println("rh2 arrays:");
 		    double[] IF=new double[best_Haps.num_curr_H]; 
 		    for (int j=0;j<best_Haps.num_curr_H;j++){
 		        int[] hh=best_Haps.nodes.get(j).hap;	 
 		        // rh1=exp(-1/(4*N)*t(omega-h)%*%si%*%(omega-h))
 		        double rh1=Math.exp(-1/(4.0*num_hap_inpool)*Algebra.quadratic_form(Algebra.minus(mu, hh), si.getData()));	
 		        // if(ii%100==0 && j==0) System.out.println("j:" + j + "\trh1=" + rh1);
-		        double[][] tmp=new double[num_pool][num_snp];               //tmp=sweep(A/(2*N),2,omega, "-");
-		        for(int k=0;k<num_pool;k++){
-		        	for(int q=0;q<num_snp;q++){
-		        		tmp[k][q]=data[k][q]/num_hap_inpool-mu[q];
-			        	// if(ii%100==0 && j==0) System.out.println("tmp[" + k + "][" + q + "] = " + tmp[k][q] + "\t");
-		        	}
-		        	// if(ii%100==0 && j==0) System.out.println();
-		        }
 		        RealMatrix TMP=MatrixUtils.createRealMatrix(tmp);// rh2=exp(-tmp%*%si%*%(omega-h)-diag( tmp%*%si%*%t(tmp)/2))
-		        double[] rh2=(Algebra.minus(si.preMultiply(TMP).operate(Algebra.minus(mu, hh)),
-		        		Algebra.diag(TMP.multiply(si).multiply(TMP.transpose()).scalarMultiply(0.5).getData()))); // Missing Algebra.exp.
-		        for (int k = 0; k < num_pool; k++) this.inpool_freq[j][k] = rh1 * rh2[k];
+		        double[] rh2=Algebra.exp(Algebra.minus(si.preMultiply(TMP).operate(Algebra.minus(hh, mu)),
+		        		Algebra.diag(TMP.multiply(si).multiply(TMP.transpose()).scalarMultiply(0.5).getData())));
+		    	for (double rh2tmp : rh2) System.out.printf("%.5f\t", rh2tmp);
+		    	System.out.println();
 		        double rh=rh1*Algebra.mean(rh2);
-		        if(ii%100==0 && j==0) System.out.println(j + "\trh1 = " + rh1 + "\tmean_rh2 = " + Algebra.mean(rh2) + "\trh2[0]=" + rh2[0]);
-		        // if(ii%100==0 && j==0) System.out.println("\trh=" + rh);
+		        /* if(j==0) {
+		        	rh1_tmp = rh1; 
+		        	rh2_mean = Algebra.mean(rh2); 
+		        	for (int i = 0; i < rh2.length; i++) {
+		        		rh2array[i] = rh2[i];
+		        		diffarray[i] = (double) hh[i] - mu[i];
+		        	}
+		        	rh_tmp = rh; 
+		        } */
 		        IF[j]=rh; //   IF=c(IF, rh)
+		        for (int k = 0; k < num_pool; k++) this.inpool_freq[j][k] = rh1 * rh2[k];
 		    }
 		    double delta = Algebra.sum(Algebra.abs(Algebra.minus(Rh, IF)));//sum(abs(Rh-IF))
 		    double delta1 =Algebra.sum(Algebra.abs(Algebra.add(Algebra.divide(Rh, IF),-1)));//sum(abs(IF/Rh-1)) 
 		    Rh=IF;
 		    double[] p_new= Algebra.times(Rh,p);
-		    
-		    if(ii%100==0) System.out.println("freqs_next: ");
-		    if(ii%100==0) for (double freq : p_new) System.out.print(freq + "\t");
-		    if(ii%100==0) System.out.println();
-
+		    if(ii%1==0) {
+		    	System.out.printf(ii + "\tdelta = %.5f\tdelta1 = %.5f\n", delta, delta1);
+		    	// System.out.printf("Hap_0\trh1 = %.5f\tmean_rh2 = %.5f\trh = %.5f\n", rh1_tmp, rh2_mean, rh_tmp);
+		    	// for (double rh2tmp : rh2array) System.out.printf("%.5f\t", rh2tmp);
+		    	// System.out.println();
+		    	System.out.print("IF:\t");
+		    	for (double impfac : IF) System.out.printf("%.3f\t", impfac);
+		    	System.out.println();
+		    	System.out.print("p_pre:\t");
+		    	for (double freq : p_new) System.out.printf("%.3f\t", freq);
+		    	System.out.println();
+		    }
 		    Algebra.normalize_ditribution(p_new);
-		    // Algebra.rmlow_and_normalize(p_new, rare_cutoff/(best_Haps.num_curr_H));
-		    if (delta< epsilon || delta1 < epsilon) break;		
+		    Algebra.rmlow_and_normalize(p_new, rare_cutoff/100);
+
+		    if(ii%1==0) System.out.print("p_new:\t");
+		    if(ii%1==0) for (double freq : p_new) System.out.printf("%.3f\t", freq);
+		    if(ii%1==0) System.out.println();
+		    
+		    if (delta < epsilon || delta1 < epsilon) {
+		    	System.out.println(delta + " < " + epsilon + " || " +  delta1 + " < " + epsilon); 
+		    	break;		
+		    }
 		    p_record = p.clone();    
 		    p=p_new.clone();      
 		} this.pop_freq= p.clone();
+		System.out.print("p:\t");
+	    for (double freq : p) System.out.printf("%.3f\t", freq);
+	    System.out.println();
 		for (int k = 0; k < num_pool; k++) {
 			double poolCount = 0; 
 			for (int j = 0; j < best_Haps.num_curr_H; j++) {
-				this.inpool_freq[j][k] = this.inpool_freq[j][k] * p_record[j];
+				this.inpool_freq[j][k] = this.inpool_freq[j][k] * p[j];
 				poolCount += this.inpool_freq[j][k]; 
 			}
 			for (int j = 0; j < best_Haps.num_curr_H; j++) this.inpool_freq[j][k] = this.inpool_freq[j][k] / poolCount;
 		}
 		for (int f = 0; f < p.length; f++) best_Haps.nodes.get(f).change_my_freq(p[f]);
+		int maxIndex = best_Haps.nodes.size() - 1; 
+		for (int i = maxIndex; i >= 0; i--) {
+			if (best_Haps.nodes.get(i).freq == 0) {
+				// System.out.println(i + "\t" + best_Haps.num_curr_H + "\t" + best_Haps.nodes.get(i).freq);
+				best_Haps.delete(i);
+			}			
+		}
+		System.out.println("\nThere are " + best_Haps.num_curr_H + " haplotypes left.");
 		best_Haps.loglikelihood = Algebra.logL_aems(Algebra.times(sigma, num_hap_inpool),
 				Algebra.times(mu, num_hap_inpool), data); 
 	}
 
 	public void print_intrapool(PrintWriter pw) {
 		for(int h=0;h<best_Haps.num_curr_H;h++){
+			if (best_Haps.nodes.get(h).freq == 0) continue; 
 			pw.append("hap_"+h+"\t"+best_Haps.nodes.get(h).output_nofreq("") + "\t");
-			for (int k = 0; k < num_pool; k++) pw.append(this.inpool_freq[h][k]+"\t");
+			for (int k = 0; k < num_pool; k++) pw.format("%.3f\t",this.inpool_freq[h][k]); 
 			pw.append("\n");
 		}
 	}
