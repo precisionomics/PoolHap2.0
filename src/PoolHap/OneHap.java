@@ -1,6 +1,8 @@
 package PoolHap;
 
 import java.util.concurrent.ThreadLocalRandom;
+import java.math.RoundingMode;
+import java.text.DecimalFormat; 
 
 public class OneHap {
 	int[] hap;
@@ -80,10 +82,10 @@ public class OneHap {
 		return recombinants;
 	}
 	
-	String output(String sep){
+	String output(String sep, DecimalFormat df){
 		String out=""+this.hap[0];
 		for(int k=1;k<this.hap.length;k++)out=out+sep+this.hap[k];
-		out=out+"\t"+this.freq;
+		out=out+"\t"+df.format(this.freq);
 		return out;
 	}
 

@@ -45,6 +45,7 @@ public class BAMFormatter {
 		PrintWriter VEFFile = new PrintWriter(BAMPrefix + ".vef"); 
 
 		while (BAMScanner.hasNextLine()) {
+			readCount++; 
 			QNAME = BAMScanner.next().replace(":", "");
 			for (int s = 0; s < 2; s++) {
 				BAMScanner.next(); 	// Skip the FLAG, RNAME.
@@ -179,18 +180,18 @@ public class BAMFormatter {
 			hmMATCH.clear();
 			hmINS.clear();
 			hmDEL.clear(); 
-			readCount++; 
 		}
 		VEFFile.close();
 		BAMScanner.close();
 		double readLength = Double.parseDouble(args[2]); 
 		double fullSeqLength = Double.parseDouble(args[3]);
 		double estNumInd = readCount * readLength / fullSeqLength; 
+		// System.out.println(readCount + " \t" + readLength + " \t" + fullSeqLength+ " \t" + estNumInd);
 		PrintWriter CTFile = new PrintWriter(BAMPrefix + ".ct"); 
 		// System.out.println(hmVarCount.size());
 		for (Integer i : variantSS) {
 			double normalized_varcount = hmVarCount.get(i) / estNumInd; 
-			// System.out.print(normalized_varcount + "\t");
+			// System.out.println(hmVarCount.get(i));
 			CTFile.append(normalized_varcount + "\t"); 
 		}
 		CTFile.append("\n");
