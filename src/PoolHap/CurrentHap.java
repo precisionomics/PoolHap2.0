@@ -80,7 +80,7 @@ public class CurrentHap {
 		}
 	}			
 	
-	public CurrentHap(int[][] current_H, double[] current_freq, int num_snp){
+	public CurrentHap(int[][] current_H, Double[] current_freq, int num_snp){
 		this.num_curr_H=current_H.length;
 		this.num_snps=num_snp;
 		this.nodes=new ArrayList<OneHap>();

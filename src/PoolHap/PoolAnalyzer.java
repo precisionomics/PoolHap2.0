@@ -5,12 +5,12 @@ import PoolHap.GraphUV.SubGraph;
 
 import java.io.BufferedReader;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
+import java.util.Set;
 import java.io.File;
 import java.io.FileReader;
 import java.io.PrintWriter;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -36,10 +36,11 @@ public class PoolAnalyzer {
 	double[][] data;
 	int[][] known_haps; 
 	int num_snp;
-	int num_pool;
+	static int num_pool;
 	int num_all_hap;
 	double[][] inpool_freq;	
 	int num_hap_inpool;
+	static ArrayList<Double> gcInterFreqs;
 	double freq_proportion_unknown; 
 
 	CurrentHap curr_Haps;
@@ -56,9 +57,10 @@ public class PoolAnalyzer {
 		this.num_hap_inpool=M;
 		this.data=data;
 		this.num_snp=data[0].length;
-		this.num_pool=data.length;
+		PoolAnalyzer.num_pool=data.length;
 		this.mu=new double[this.num_snp];
 		this.sigma=new double[this.num_snp][this.num_snp];
+		PoolAnalyzer.gcInterFreqs = new ArrayList<Double>();
 		this.known_haps = graph_colouring(vef_list, posArray, data[0].length, minisat_path);
 		// From trial p0 in PoolHap_Testing.
 		// new int[][]{{0,1,1,0,0,0,0,1,1,1,1,1,0,1,0,1,1,0,1,1,1,1,0,0,0,0,1,0,1,1,1,0,1,1,1,1,0,0,0,0,1,0,0,1,1,0,1,1,1,0,0,0,1,1,0,0,0,1,0,1,1,1,1,1,0,1,0,1,0,1,1,1,1,1,1,1,0,1,1,0,1,1,0,0,1,1,0,1,1,1,1,1},
@@ -74,7 +76,7 @@ public class PoolAnalyzer {
 	}
 
 	public static int[][] graph_colouring(String file_veflist, int[] posArray, int snps, String minisat_path) throws Exception	{
-		HashSet<String> knownHapSet = new HashSet<String>();
+		HashMap<String,Double> knownHapSet = new HashMap<String,Double>();
 		BufferedReader br = new BufferedReader(new FileReader(file_veflist)); 
 		String currLine = br.readLine();
 		int poolNum = 0; 
@@ -89,7 +91,14 @@ public class PoolAnalyzer {
 			try
 			{
 				System.out.println("\nGuessing for pool number " + poolNum + "...");
-				knownHapSet.addAll(run(new File(currArray[0]), posArray, sample, method, workers, minisat_path));
+				// knownHapSet.addAll(
+				HashMap<String,Double> tmpHaps = run(new File(currArray[0]), posArray, sample, method, workers, minisat_path);
+				for (String hapVars : tmpHaps.keySet()) {
+					if (knownHapSet.containsKey(hapVars)) {
+						double tmpFreq = knownHapSet.get(hapVars) + tmpHaps.get(hapVars);
+						knownHapSet.put(hapVars, tmpFreq); 
+					} else knownHapSet.put(hapVars, tmpHaps.get(hapVars)); 
+				}
 			} catch (Exception e){
 				e.printStackTrace();
 				System.out.println("The graph-colouring problem for pool number " + poolNum + " is unsatisfiable.");	
@@ -101,19 +110,21 @@ public class PoolAnalyzer {
 		}
 		br.close();
 		int[][] initialHaps = new int[knownHapSet.size()][snps];
-		Iterator<String> knownHapIt = knownHapSet.iterator();
+		Set<String> knownHaps = knownHapSet.keySet();
+		
 		int currHap = 0;
-	    while (knownHapIt.hasNext()) {
-	    	String[] tmpHap = knownHapIt.next().split(""); 
+	    for (String tmpKey : knownHaps) {
+	    	String[] tmpHap = tmpKey.split(""); 
 	    	for (int i = 0; i < tmpHap.length; i++) {
 	    		initialHaps[currHap][i] = Integer.parseInt(tmpHap[i]);
 	    	}
+	    	gcInterFreqs.add(knownHapSet.get(tmpKey) / num_pool); 
 	    	currHap++; 
 	    }
 	    return initialHaps;
 	}
 
-	private static HashSet<String> run(File input, int[] posArray, 
+	private static HashMap<String,Double> run(File input, int[] posArray, 
 		double sample, String method, ExecutorService workers, String minisat_path) throws Exception
 	{
 		String name = (sample > 1)? input.getName():
@@ -194,7 +205,7 @@ public class PoolAnalyzer {
 
 			db.showSubtypes("vc", subtypes, true);
 			Subtype.saveSubtypes(new File(name+".vc"), subtypes);
-			return Subtype.reportSubtypes(subtypes, posArray);
+			return Subtype.reportSubtypes(subtypes, db, posArray);
 		}
 		return null; 
 	}
@@ -213,7 +224,10 @@ public class PoolAnalyzer {
 		= LoggerFactory.getLogger(Main.class);
 	
 	public void setup_currhaps(int[][] known_haps, double freq_proportion_unknown){
-		this.curr_Haps=new CurrentHap(known_haps, freq_proportion_unknown, this.num_snp);
+		if (PoolAnalyzer.gcInterFreqs.size() != 0) {
+			Double[] gcIPFreqs = PoolAnalyzer.gcInterFreqs.toArray(new Double[PoolAnalyzer.gcInterFreqs.size()]);
+			this.curr_Haps=new CurrentHap(known_haps, gcIPFreqs, this.num_snp); 
+		} else this.curr_Haps=new CurrentHap(known_haps, freq_proportion_unknown, this.num_snp);
 		this.curr_Haps.analyzer=this;
 	}
 	
@@ -266,7 +280,7 @@ public class PoolAnalyzer {
 				if(this.best_Haps_buffer.get(round).loglikelihood>this.best_Haps_buffer.get(best_index).loglikelihood)
 					best_index=round;
 			}
-			this.best_Haps=this.best_Haps_buffer.get(best_index).clone_highfreq(rare_cutoff); // clone_highfreq(rare_cutoff)
+			this.best_Haps=this.best_Haps_buffer.get(best_index).clone_highfreq(rare_cutoff);
 		}
 	}
 		
@@ -419,7 +433,7 @@ public class PoolAnalyzer {
 		    	System.out.println();
 		    }
 		    Algebra.normalize_ditribution(p_new);
-		    Algebra.rmlow_and_normalize(p_new, rare_cutoff/100);
+		    Algebra.rmlow_and_normalize(p_new, 0.001);
 
 		    if(ii%1==0) System.out.print("p_new:\t");
 		    if(ii%1==0) for (double freq : p_new) System.out.printf("%.3f\t", freq);

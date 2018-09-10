@@ -179,7 +179,7 @@ public class Orig2Recons {
 		//    i) gcInterFreqs = (frequency of each haplotype overall)
 		//    ii) gcVarMap = (each haplotype, (called true variant position, reference 0 or alternate 1)
 		//    iii) gcNames = (each haplotype, its name in String form)
-		BufferedReader brOut = new BufferedReader(new FileReader(folder + "stdout.txt_1"));
+		BufferedReader brOut = new BufferedReader(new FileReader(folder + "stdout.txt"));
 		String gcResults = "initial haplotypes spanning";
 		currLine = brOut.readLine(); 
 		while (currLine.indexOf(gcResults) == -1) currLine = brOut.readLine();
@@ -240,7 +240,7 @@ public class Orig2Recons {
 		//    ii) reconVarMap = (each haplotype, (called true variant position, reference 0 or alternate 1)
 		//    iii) reconNames = (each haplotype, its name in String form)
 		//    iv) intrapoolFreqs = (x = haplotypes, y = patients, cell = frequency of haplotype in that patient)
-		BufferedReader brRes = new BufferedReader(new FileReader(folder + "p.all.results_1"));
+		BufferedReader brRes = new BufferedReader(new FileReader(folder + "p.all.results"));
 		for (int l = 0; l < 20; l++) currLine = brRes.readLine(); 
 		int numHaps = Integer.parseInt(currLine.split("\t")[1]);
 		int numReconVars = Integer.parseInt(currLine.split("\t")[3]);
