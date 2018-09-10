@@ -317,6 +317,10 @@ public class ReadsDB {
 			(goldenLoc == null)? null: goldenLoc[0]);
 	}
 	
+	public double totalReads() {
+		return reads.size(); 
+	}
+	
 	private final ArrayList<Read> reads = new ArrayList<>();
 	private final TreeMap<String, Integer>
 		goldenCounts = new TreeMap<>();
