@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.TreeMap;
@@ -75,18 +76,20 @@ public class Subtype {
 		}
 	}
 
-	public static HashSet<String> reportSubtypes(Collection<Subtype> initHapList, int[] posArray) throws Exception
+	public static HashMap<String,Double> reportSubtypes(Collection<Subtype> initHapList, ReadsDB db, int[] posArray) throws Exception
 	{
-		HashSet<String> vefHaplos = new HashSet<String>();
+		HashMap<String,Double> vefHaplos = new HashMap<String,Double>();
 		for (Subtype initHap: initHapList) {
 			StringBuilder varComp = new StringBuilder(0);
 			for (int p : posArray) {
 				if (initHap.pairs.containsKey(p)) varComp.append(initHap.pairs.get(p)); 
 				else varComp.append("0"); 
 			}
-			vefHaplos.add(varComp.toString());
-			System.out.println(varComp.toString());
+			double initHapFreq = db.countSubtypeExclusive(initHap, initHapList) / db.totalReads();
+			vefHaplos.put(varComp.toString(), initHapFreq);
+			System.out.println(varComp.toString() + "\t" + initHapFreq);
 		}
+		System.out.println(); 
 		return vefHaplos; 
 	}
 
