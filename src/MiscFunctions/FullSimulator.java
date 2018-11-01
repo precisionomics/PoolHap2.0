@@ -157,7 +157,8 @@ public class FullSimulator {
 		bv_glob.write("\nFreq");
 		for(int h=0;h<numHaps;h++) bv_glob.write("\t"+globalFreq[h]); // Global freq
 		for(int v=0;v<numVarPos;v++){
-			bv_glob.write("\n0;" + allVarPos.get(v) + ";" + allVarPos.get(v) + ";0:1\t"); // TODO This only allows for biallelic simple loci (single alternate allele) for now. (int h=0;h<numHaps;h++)
+			int oneIndexed = allVarPos.get(v) + 1; 
+			bv_glob.write("\n0;" + oneIndexed + ";" + oneIndexed + ";0:1\t"); // TODO This only allows for biallelic simple loci (single alternate allele) for now. (int h=0;h<numHaps;h++)
 			for(int h=0;h<numHaps;h++) bv_glob.write("\t"+simHapVC[h][v]);
 		}
 		bv_glob.close();
