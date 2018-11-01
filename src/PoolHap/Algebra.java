@@ -21,6 +21,29 @@ public class Algebra {
 		}return result;
 	}
 	
+	public static double[] minus(float[] a1, double[] a2){
+		if(a1.length!=a2.length){
+			System.out.println("Can't carry out minus: a1.length!=a2.length");
+			return null;
+		}
+		double[] result=new double[a1.length];
+		for(int k=0;k<a1.length;k++){
+			result[k]=a1[k]-a2[k];
+		}return result;
+	}
+	
+	public static double[] minus(double[] a1, float[] a2){
+		if(a1.length!=a2.length){
+			System.out.println("Can't carry out minus: a1.length!=a2.length");
+			return null;
+		}
+		double[] result=new double[a1.length];
+		for(int k=0;k<a1.length;k++){
+			result[k]=a1[k]-a2[k];
+		}return result;
+	}
+
+	
 	public static double[] minus(double[] a1, int[] a2){
 		if(a1.length!=a2.length){
 			System.out.println("Can't carry out minus: a1.length!=a2.length");
