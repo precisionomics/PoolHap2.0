@@ -100,7 +100,7 @@ print STDOUT "Converting all patient BAM files to VEF files and assembling patie
 for (my $p = 0; $p < $sim_pts; $p++) { 
 	my $pfile = "$outdir/p$p";
 	system("$syspdir/samtools-0.1.19 view -ho $pfile.bqsr.sam $pfile.bqsr.bam");
- 	system("$javacmd -jar $ownpdir/BAMFormatter.jar $pfile $outdir/p.all.vcf $paramlist[6] $paramlist[35] $outdir");
+ 	system("$javacmd -jar $ownpdir/BAMFormatter.jar $pfile $outdir/p.all.vcf $paramlist[6] $paramlist[35] $outdir $patient_num");
 }
 my $VEFFILE = "$outdir/p.all.vef.list";
 open(my $vw, '>', $VEFFILE) or die "Error: Couldn't open list of VEFs file $outdir/p.all.vef.list.\n";
@@ -112,5 +112,5 @@ close $VEFFILE;
 system("cat $outdir/p\*.ct > $outdir/p.all.ct"); 
 
 # 8) Run the input VEF file through the PoolHap (GC -> rjMCMC -> EM) algorithms. 
-print STDOUT "Reconstructing haplotypes and frequencies using PoolHap2.0...\n\n";
-system("$javacmd -jar $ownpdir/PoolHap2.0.3.jar $outdir $outdir/p.all.vef.list $outdir/p.all.ct $paramlist[18] $paramlist[19] $paramlist[20] $paramlist[21] $paramlist[22] $paramlist[23] $paramlist[24] $paramlist[25] $paramlist[26] $paramlist[27] $paramlist[28] $paramlist[29] $paramlist[30] $paramlist[31] $paramlist[32] $sim_pts $outdir/p.all.pos $paramlist[36]");  
+print STDOUT "Reconstructing haplotypes and frequencies using PoolHapX...\n\n";
+system("$javacmd -jar $ownpdir/PoolHapX.5.jar $outdir $outdir/p.all.vef.list $outdir/p.all.ct $paramlist[18] $paramlist[19] $paramlist[20] $paramlist[21] $paramlist[22] $paramlist[23] $paramlist[24] $paramlist[25] $paramlist[26] $paramlist[27] $paramlist[28] $paramlist[29] $paramlist[30] $paramlist[31] $paramlist[32] $sim_pts $outdir/p.all.pos $paramlist[36]");  

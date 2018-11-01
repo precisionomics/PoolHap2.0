@@ -1,7 +1,9 @@
 package MiscFunctions;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -45,7 +47,7 @@ public class FullSimulator {
 
 		// 2) int[varPos] and int[hap][varPos] = refOrAlt.
 		// Put all of the simulated haplotype information (from the ms simulation)
-		// program into into accessibl objects.
+		// program into into accessible objects.
 		BufferedReader br2 = new BufferedReader(new FileReader(args[1])); 
 		currLine = br2.readLine();
 		int rawNumHaps = Integer.parseInt(currLine.split(" ")[1]); 
@@ -73,12 +75,17 @@ public class FullSimulator {
 		}
 		br2.close();
 		int numHaps = allOrigHaps.size(); 
-		double[][] simHapVC = new double[numHaps][numVarPos]; 
+		// PrintWriter tmp = new PrintWriter(args[4] + "/inpool_vars.txt");
+		int[][] simHapVC = new int[numHaps][numVarPos]; 
 		for (int h = 0; h < numHaps; h++) {
 			String[] tmpHap = allOrigHaps.get(h).split(""); 
-			for (int p = 0; p < numVarPos; p++) 
+			for (int p = 0; p < numVarPos; p++) {
 				simHapVC[h][p] = Integer.parseInt(tmpHap[p]); 
+				// tmp.append(simHapVC[h][p] + "\t");
+			}
+			// tmp.append("\n");
 		}
+		// tmp.close();
 
 		// 3) HashMap<varPos,altAllele>. Simulate mutations on the reference.
 		HashMap<Integer,String> allAltAlleles = new HashMap<Integer,String>();
@@ -114,6 +121,12 @@ public class FullSimulator {
 		// 5) Simulate the patients and give a random number of haplotypes.
 		int numPts = Integer.parseInt(args[5]);	
 		int ptHaps = Integer.parseInt(args[6]); 
+		double[][] origCts = new double[numHaps][numPts];
+		double[][] origFreqs = new double[numHaps][numPts];
+		double[][] poolCts = new double[numVarPos][numPts];
+		double[][] poolFreqs = new double[numVarPos][numPts];
+		double[] globalCt = new double[numHaps]; 
+		double[] globalFreq = new double[numHaps]; 
 		for (int p = 0; p < numPts; p++) {
 			PrintWriter pw = new PrintWriter(args[4] + "/p" + p + ".fa");
 			for (int h = 0; h < ptHaps; h++) {
@@ -121,14 +134,54 @@ public class FullSimulator {
 				while (allOrigCts.get(currHap) == 0) {
 					currHap = ThreadLocalRandom.current().nextInt(0, numHaps);
 				}
+				origCts[currHap][p]++; 
 				pw.append(">Haplotype_" + currHap + " \n");
 				for (String s : allSimHaps.get(currHap)) pw.append(s);
 				pw.append("\n\n"); 
+				for (int v = 0; v < numVarPos; v++) {
+					poolCts[v][p] += simHapVC[h][v]; 
+				}
+				globalCt[currHap]++; 
 				int newCt = allOrigCts.get(currHap) - 1; 
 				allOrigCts.set(currHap, newCt);
 			}
 			pw.close();
+			for (int h = 0; h < numHaps; h++) origFreqs[h][p] = origCts[h][p] / ptHaps;
+			for (int v = 0; v < numVarPos; v++) poolFreqs[v][p] = poolCts[v][p] / ptHaps;
 		}
+		for (int h = 0; h < numHaps; h++) globalFreq[h] = globalCt[h] / rawNumHaps;
+		
+		BufferedWriter bv_glob= new BufferedWriter(new FileWriter(args[4] + "simhaps.inter_freq_vars.txt"));
+		bv_glob.write("Hap_ID");
+		for(int h=0;h<numHaps;h++) bv_glob.write("\t"+h);
+		bv_glob.write("\nFreq");
+		for(int h=0;h<numHaps;h++) bv_glob.write("\t"+globalFreq[h]); // Global freq
+		for(int v=0;v<numVarPos;v++){
+			bv_glob.write("\n0;" + allVarPos.get(v) + ";" + allVarPos.get(v) + ";0:1\t"); // TODO This only allows for biallelic simple loci (single alternate allele) for now. (int h=0;h<numHaps;h++)
+			for(int h=0;h<numHaps;h++) bv_glob.write("\t"+simHapVC[h][v]);
+		}
+		bv_glob.close();
+		
+		BufferedWriter bv_loc= new BufferedWriter(new FileWriter(args[4] + "simhaps.intra_freq.txt"));
+		bv_loc.write("Hap_ID");
+		for(int h=0;h<numHaps;h++) bv_loc.write("\t"+h);
+		bv_loc.write("\n");
+		for(int p=0;p<numPts;p++){
+			bv_loc.write(p + "");
+			for(int h=0;h<numHaps;h++)
+				bv_loc.write("\t"+origFreqs[h][p]);
+			bv_loc.write("\n");
+		}
+		bv_loc.close();
+		
+		BufferedWriter bvp= new BufferedWriter(new FileWriter(args[4] + "simvars.intra_freq.txt"));
+		bvp.write("Var_ID\t");
+		for(int p=0;p<numPts;p++) bvp.write(p + "\t");
+		for(int v=0;v<numVarPos;v++) {
+			bvp.write("\n0;" + allVarPos.get(v) + ";" + allVarPos.get(v) + ";0:1\t"); // TODO This only allows for biallelic simple loci (single alternate allele) for now. 
+			for(int p=0;p<numPts;p++) bvp.write("\t"+poolFreqs[v][p]);
+		}
+		bvp.close();
 	}
 
 	static String simVariant(String refBase, double rateIndels, double extendInsert) {
