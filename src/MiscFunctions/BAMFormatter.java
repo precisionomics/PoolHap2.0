@@ -1,8 +1,11 @@
 package MiscFunctions;
 
+import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 import java.util.Set;
@@ -11,7 +14,7 @@ import java.util.TreeSet;
 
 public class BAMFormatter {
 	
-	public static void main(String[] args) throws FileNotFoundException {
+	public static void main(String[] args) throws IOException {
 		
 		String BAMPrefix = args[0]; 
 		File BAMPath = new File(BAMPrefix + ".bqsr.sam"); 	// args[0] needs to be $pfile. 
@@ -20,9 +23,11 @@ public class BAMFormatter {
 		String currLine = BAMScanner.nextLine(); 
 		// System.out.println(currLine);
 		while (currLine.matches("@(.*)")) {
+			String prevLine = currLine;
 			currLine = BAMScanner.nextLine(); 
+			if (prevLine.contains("PN:")) break;
+			// System.out.println(currLine);
 		}
-		// System.out.println(currLine);
 		String QNAME, CIGAR, SEQ, tempPos = "",currAltAllele;
 		Integer startPOS = 1, posToAdd, currentPos, matchToIndel, endPOS, skipSBases = 0;
 		Character tempChar; 
@@ -30,23 +35,24 @@ public class BAMFormatter {
 		HashMap<Integer, HashMap<Integer,String>> hmMATCH = new HashMap<Integer, HashMap<Integer,String>>();
 		HashMap<Integer, HashMap<Integer,String>> hmINS = new HashMap<Integer, HashMap<Integer,String>>();
 		HashMap<Integer, HashMap<Integer,String>> hmDEL = new HashMap<Integer, HashMap<Integer,String>>();
-		HashMap<Integer,HashMap<String,VarObj>> variantEncoder = VariantMapping(args[1], BAMPrefix, true, args[4]);	// args[1] needs to be $outdir/p.all.vcf.
+		HashMap<Integer,HashMap<String,VarObj>> variantEncoder = VariantMapping(args[1], BAMPrefix, true, args[4], args[5]);	// args[1] needs to be $outdir/p.all.vcf.
 		Set<Integer> keyMATCH, keyINS, keyDEL, variantKS = variantEncoder.keySet(), tempSet, indelKS; 
 		SortedSet<Integer> variantSS = new TreeSet<Integer>();
 		variantSS.addAll(variantKS); 
 		HashMap<Integer,String> defaultHM, tempFinderHM;
 		HashMap<String,VarObj> tempReporterHM; 
-		HashMap<Integer,Integer> hmVarCount = new HashMap<Integer,Integer>(); 
+		/* HashMap<Integer,Integer> hmVarCount = new HashMap<Integer,Integer>(); 
 		for (Integer i : variantSS) {
 			hmVarCount.put(i,0);
 		}
-		int readCount = 0;  
+		int readCount = 0; */
 		
 		PrintWriter VEFFile = new PrintWriter(BAMPrefix + ".vef"); 
-
+		
 		while (BAMScanner.hasNextLine()) {
-			readCount++; 
+			// readCount++; 
 			QNAME = BAMScanner.next().replace(":", "");
+			// System.out.println(QNAME);
 			for (int s = 0; s < 2; s++) {
 				BAMScanner.next(); 	// Skip the FLAG, RNAME.
 			}
@@ -106,10 +112,11 @@ public class BAMFormatter {
 				BAMScanner.next(); 	// Skip the RNEXT, PNEXT, TLEN.
 			}
 			SEQ = BAMScanner.next();
-			endPOS = startPOS + SEQ.length();
+			endPOS = startPOS + SEQ.length() - 1;
 			currentPos = startPOS; 
 			// 4. Test the following to see if the SEQ-parsing code works properly, and the proper bases are assigned to the correct Hash Maps. 
 			for (int s = skipSBases; s < SEQ.length(); s++) {	// Skip all of the bases that were soft-clipped but still reported at the beginning of SEQ. In the event there is no 'S' in the CIGAR string, this is 0 and we start reporting from the end of SEQ.  
+				// System.out.println(s + "\t" + currentPos);
 				if (keyMATCH.contains(currentPos)) {
 					hmMATCH.get(currentPos).put(1,SEQ.substring(s,s+1));
 					currentPos++; 
@@ -127,19 +134,30 @@ public class BAMFormatter {
 					}
 				}
 			}
+			
+			/* for (int i : keyMATCH) {
+				System.out.println(i + "\t" + hmMATCH.get(i));
+			} */
 			skipSBases = 0; // Reset the 'start' position of SEQ-processing to 0 in case there aren't any S-es in the next CIGAR string. 
 			
 			StringBuilder readInfo = new StringBuilder(); 
+			// System.out.println(startPOS + "\t" + endPOS);
 			for (Integer VCFVarPos : variantSS.subSet(startPOS,endPOS+1)) {	// subSet method is (inclusive,exclusive)
+				// System.out.println(VCFVarPos); 
 				tempReporterHM = variantEncoder.get(VCFVarPos);
 				if (keyMATCH.contains(VCFVarPos)) {
 					currAltAllele = hmMATCH.get(VCFVarPos).get(1);
+					// System.out.println(currAltAllele);
 					if (tempReporterHM.containsKey(currAltAllele)) {
 						currVarObj = tempReporterHM.get(currAltAllele);
 						// VEFFile.print(currVarObj.intM + "=" + currVarObj.varCode + ";");
 						readInfo.append(currVarObj.intM + "=" + currVarObj.varCode + ";");
-						hmVarCount.put(VCFVarPos, hmVarCount.get(VCFVarPos) + 1);
-					}
+						// hmVarCount.put(VCFVarPos, hmVarCount.get(VCFVarPos) + 1);
+					} else {
+						readInfo.append(VCFVarPos + "=0;"); // Fixed as of 10282018. Noted by CC that in some reads, variant positions in those reads were not being annotated.
+						//System.out.println(VCFVarPos + " done");	// Realized that the 'else' clause was in the wrong place i.e.: alleles  =/= alternate (i.e: the reference) 
+					}												// were not noted when they existed. 
+					// System.out.println("match");
 				} else if (keyINS.contains(VCFVarPos)) {
 					tempFinderHM = hmINS.get(VCFVarPos);
 					indelKS = tempFinderHM.keySet(); 
@@ -149,9 +167,13 @@ public class BAMFormatter {
 							currVarObj = tempReporterHM.get(currAltAllele);
 							// VEFFile.print(currVarObj.intM + "=" + currVarObj.varCode + ";");
 							readInfo.append(currVarObj.intM + "=" + currVarObj.varCode + ";");
-							hmVarCount.put(VCFVarPos, hmVarCount.get(VCFVarPos) + 1);
+							// hmVarCount.put(VCFVarPos, hmVarCount.get(VCFVarPos) + 1);
+						} else {
+							readInfo.append(VCFVarPos + "=0;");
+							// System.out.println(VCFVarPos + " done");
 						}
 					}
+					// System.out.println("ins");
 				} else if (keyDEL.contains(VCFVarPos)) {
 					tempFinderHM = hmDEL.get(VCFVarPos);
 					indelKS = tempFinderHM.keySet(); 
@@ -161,11 +183,14 @@ public class BAMFormatter {
 							currVarObj = tempReporterHM.get(currAltAllele);
 							// VEFFile.print(currVarObj.intM + "=" + currVarObj.varCode + ";");
 							readInfo.append(currVarObj.intM + "=" + currVarObj.varCode + ";");
-							hmVarCount.put(VCFVarPos, hmVarCount.get(VCFVarPos) + 1);
+							// hmVarCount.put(VCFVarPos, hmVarCount.get(VCFVarPos) + 1);
+						} else {
+							readInfo.append(VCFVarPos + "=0;");
+							// System.out.println(VCFVarPos + " done");
 						}
+						// System.out.println("del");
 					}
 				}
-				else readInfo.append(VCFVarPos + "=0;");			
 			}
 			// System.out.println(readInfo.toString());
 			if (readInfo.toString().isEmpty()) {
@@ -175,6 +200,7 @@ public class BAMFormatter {
 				hmDEL.clear(); 
 				continue;
 			}
+			// System.out.println(readInfo);
 			VEFFile.println(QNAME + ":\t" + readInfo + "\t//\t" + startPOS + "\t" + endPOS); 
 			BAMScanner.nextLine(); 	// Skip the QUAL.
 			hmMATCH.clear();
@@ -183,7 +209,7 @@ public class BAMFormatter {
 		}
 		VEFFile.close();
 		BAMScanner.close();
-		double readLength = Double.parseDouble(args[2]); 
+		/* double readLength = Double.parseDouble(args[2]); 
 		double fullSeqLength = Double.parseDouble(args[3]);
 		double estNumInd = readCount * readLength / fullSeqLength; 
 		// System.out.println(readCount + " \t" + readLength + " \t" + fullSeqLength+ " \t" + estNumInd);
@@ -196,13 +222,14 @@ public class BAMFormatter {
 		}
 		CTFile.append("\n");
 		CTFile.close();
+		*/
 	}
 	
-	private static HashMap<Integer,HashMap<String,VarObj>> VariantMapping(String VCFFile, String BAMPrefix, boolean biallelic, String outdir) throws FileNotFoundException { 
+	private static HashMap<Integer,HashMap<String,VarObj>> VariantMapping(String VCFFile, String BAMPrefix, boolean biallelic, String outdir, String pts) throws IOException { 
 		
 		File VCFPath = new File(VCFFile); 
 		Scanner VCFScanner = new Scanner(VCFPath); 	 
-		VCFScanner.useDelimiter("\t"); // In Linux, the separator is a '\t', while in Windows, it is a ','.
+		// VCFScanner.useDelimiter("\t||\n"); // In Linux, the separator is a '\t', while in Windows, it is a ','.
 		String currLine = VCFScanner.nextLine();
 		// System.out.println(currLine);
 		while (!currLine.contains("#CHROM")) {
@@ -217,9 +244,15 @@ public class BAMFormatter {
 		HashMap<String,VarObj> varEncAtPos; 
 		HashMap<Integer,HashMap<String,VarObj>> variantEncoder = new HashMap<Integer,HashMap<String,VarObj>>();
 		VarObj altAlleleAtPos; 
-		while (VCFScanner.hasNextLine()) {
+		ArrayList<double[]> poolFreqs = new ArrayList<double[]>();
+		ArrayList<Integer> posTracker = new ArrayList<Integer>();
+		int v = 0; 
+		int numPts = Integer.parseInt(pts);
+		while (VCFScanner.hasNext()) {
 			VCFScanner.next();
 			pos = VCFScanner.nextInt();
+			posTracker.add(pos);
+			// System.out.println(pos);
 			PosFile.append(pos + "\t");
 			varEncAtPos = new HashMap<String,VarObj>(); // This HashMap is specific to each variant position, and will be 'cleared' at each line of the VCF. 
 			variantEncoder.put(pos,varEncAtPos);
@@ -236,11 +269,32 @@ public class BAMFormatter {
 				if (biallelic == true) break; 	// If PoolHap has not been adjusted for 3+ alleles. 
 			}  
 			variantCode = 1;	// Reset for the next patient-specific variant position.
-			VCFScanner.nextLine(); 
+			for (int i = 0; i < 4; i++)	{
+				VCFScanner.next();	// Skip QUAL, FILTER, INFO, FORMAT.
+			}
+			poolFreqs.add(new double[numPts]); 
+			for (int p = 0; p < numPts; p++) {
+				String[] varCts = VCFScanner.next().split(":")[1].split(",");	// This is the AD of the GT:AD:DP:GQ:PL of the p0 block of genotypes. 
+				double ref = Double.parseDouble(varCts[0]); 
+				double alt = Double.parseDouble(varCts[1]); 
+				poolFreqs.get(v)[p] = alt / (ref + alt); 
+				// System.out.println(poolFreqs.get(v)[p]);
+			}
+			v++; 
 		}
 		VCFScanner.close();
 		altAlleleScanner.close();
 		PosFile.close();
+		
+		BufferedWriter bvp= new BufferedWriter(new FileWriter(outdir + "/p.all.ct"));
+		bvp.write("Var_ID\t"); 
+		for(int p=0;p<numPts;p++) bvp.write(p + "\t");
+		for(int a=0;a<v;a++) {
+			bvp.write("\n0;" + posTracker.get(a) + ";" + posTracker.get(a) + ";0:1\t"); // TODO This only allows for biallelic simple loci (single alternate allele) for now. 
+			for(int p=0;p<numPts;p++) bvp.write(poolFreqs.get(a)[p] + "\t");
+		}
+		bvp.close();
+		
 		return variantEncoder;
 	}
 }
