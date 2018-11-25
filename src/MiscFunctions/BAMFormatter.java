@@ -1,12 +1,16 @@
 package MiscFunctions;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.SortedSet;
@@ -16,8 +20,128 @@ public class BAMFormatter {
 	
 	public static void main(String[] args) throws IOException {
 		
-		String BAMPrefix = args[0]; 
-		File BAMPath = new File(BAMPrefix + ".bqsr.sam"); 	// args[0] needs to be $pfile. 
+		String outdir = args[0]; 
+		Integer numPts = Integer.parseInt(args[2]);
+		Boolean simmode = Boolean.parseBoolean(args[3]);
+		HashSet<Integer> trueVarPos = new HashSet<Integer>(); 
+		if (simmode) {
+			trueVarPos = simvarsReader(outdir + "/simvars.intra_freq.txt", numPts); 
+		}
+		PrintWriter VEFList = new PrintWriter(outdir + "p.all.vef.list"); 
+		HashMap<Integer,HashMap<String,VarObj>> variantEncoder = VariantMapping(args[1], true, outdir, numPts, simmode, trueVarPos);	// args[1] needs to be $outdir/p.all.vcf.
+		for (int p = 0; p < numPts; p++) {
+			VEFMaker(outdir + "/p" + p, variantEncoder);
+			VEFList.println(outdir + "/p" + p + ".vef"); 
+		}
+		VEFList.close();
+	}
+	
+	private static HashSet<Integer> simvarsReader(String simvarsFile, int numPts) throws IOException {
+		BufferedReader SVReader = new BufferedReader(new FileReader(simvarsFile)); 
+		String currLine = SVReader.readLine();	// Skip the first line.
+		currLine = SVReader.readLine();
+		HashSet<Integer> trueVarPos = new HashSet<Integer>();  
+		svRead: while (currLine != null) {
+			String[] fullLine = currLine.split("\t"); // 0;211;211;0:1		0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0
+			for (int p = 2; p <= numPts + 1; p++) {
+				if (Double.parseDouble(fullLine[p]) == 0)  {
+					currLine = SVReader.readLine();
+					continue svRead;
+				}
+			}
+			int truePos = Integer.parseInt(fullLine[0].split(";")[1]); 
+			trueVarPos.add(truePos); 	
+			currLine = SVReader.readLine();
+		}
+		SVReader.close();
+		return trueVarPos;
+	}
+
+	private static HashMap<Integer,HashMap<String,VarObj>> VariantMapping(String VCFFile, boolean biallelic, String outdir, 
+			int numPts, Boolean simmode, HashSet<Integer> trueVarPos) throws IOException { 
+		
+		File VCFPath = new File(VCFFile); 
+		Scanner VCFScanner = new Scanner(VCFPath); 	 
+		// VCFScanner.useDelimiter("\t||\n"); // In Linux, the separator is a '\t', while in Windows, it is a ','.
+		String currLine = VCFScanner.nextLine();
+		// System.out.println(currLine);
+		while (!currLine.contains("#CHROM")) {
+			currLine = VCFScanner.nextLine();
+		}
+		// System.out.println(currLine);
+		PrintWriter PosFile = new PrintWriter(outdir + "/p.all.pos"); 
+		Integer pos;
+		Scanner altAlleleScanner = new Scanner("");
+		String variantNow;
+		Integer variantCode = 1;  
+		HashMap<String,VarObj> varEncAtPos; 
+		HashMap<Integer,HashMap<String,VarObj>> variantEncoder = new HashMap<Integer,HashMap<String,VarObj>>();
+		VarObj altAlleleAtPos; 
+		ArrayList<double[]> poolFreqs = new ArrayList<double[]>();
+		ArrayList<Integer> posTracker = new ArrayList<Integer>();
+		int v = 0; 
+		while (VCFScanner.hasNext()) {
+			VCFScanner.next();
+			pos = VCFScanner.nextInt();
+			if (simmode)
+				if (!trueVarPos.contains(pos)) {
+					VCFScanner.nextLine();
+					continue;	// If this is not a true variant position, skip it.
+				}
+			posTracker.add(pos);
+			// System.out.println(pos);
+			PosFile.append(pos + "\t");
+			varEncAtPos = new HashMap<String,VarObj>(); // This HashMap is specific to each variant position, and will be 'cleared' at each line of the VCF. 
+			variantEncoder.put(pos,varEncAtPos);
+			for (int s = 0; s < 2; s++) {
+				VCFScanner.next(); 
+			} 
+			altAlleleScanner = new Scanner(VCFScanner.next());	// This Scanner runs through the String containing all of the alternate allele(s). There is at least one. 
+			altAlleleScanner.useDelimiter(",");
+			while(altAlleleScanner.hasNext()) {					// In case of highly polymorphic (>=2 alternate alleles) positions.
+				variantNow = altAlleleScanner.next().replace("\"","");
+				altAlleleAtPos = new VarObj(pos,variantCode);	// This is the information that will be reported when the alternate allele at this position in the read is accessed.
+				varEncAtPos.put(variantNow,altAlleleAtPos);			// The information is mapped to the alternate allele. 
+				variantCode++;										// The code corresponding to the alternate allele is incremented so no two alternate alleles in the same location have the same code.
+				if (biallelic == true) break; 	// If PoolHap has not been adjusted for 3+ alleles. 
+			}  
+			variantCode = 1;	// Reset for the next patient-specific variant position.
+			for (int i = 0; i < 4; i++)	{
+				VCFScanner.next();	// Skip QUAL, FILTER, INFO, FORMAT.
+			}
+			poolFreqs.add(new double[numPts]); 
+			for (int p = 0; p < numPts; p++) {
+				String[] varCts = VCFScanner.next().split(":")[1].split(",");	// This is the AD of the GT:AD:DP:GQ:PL of the p0 block of genotypes. 
+				double ref = Double.parseDouble(varCts[0]); 
+				double alt = Double.parseDouble(varCts[1]); 
+				poolFreqs.get(v)[p] = alt / (ref + alt); 
+				// System.out.println(poolFreqs.get(v)[p]);
+			}
+			for (int p = 1; p < 10; p++) VCFScanner.next(); 
+			v++; 
+		}
+		VCFScanner.close();
+		altAlleleScanner.close();
+		PosFile.close();
+		
+		BufferedWriter bvp= new BufferedWriter(new FileWriter(outdir + "/p.all.ct"));
+		bvp.write("Var_ID\t"); 
+		for(int p=0;p<numPts;p++) bvp.write(p + "\t");
+		for(int a=0;a<v;a++) {
+			bvp.write("\n0;" + posTracker.get(a) + ";" + posTracker.get(a) + ";0:1\t"); // TODO This only allows for biallelic simple loci (single alternate allele) for now. 
+			for(int p=0;p<numPts;p++) bvp.write(poolFreqs.get(a)[p] + "\t");
+		}
+		bvp.close();
+		
+		return variantEncoder;
+	}
+	
+	private static void VEFMaker(String BAMPrefix, HashMap<Integer,HashMap<String,VarObj>> variantEncoder) throws FileNotFoundException {
+		Set<Integer> keyMATCH, keyINS, keyDEL, variantKS = variantEncoder.keySet(), tempSet, indelKS; 
+		SortedSet<Integer> variantSS = new TreeSet<Integer>();
+		variantSS.addAll(variantKS); 
+
+		File BAMPath = new File(BAMPrefix + ".bqsr.sam"); 
 		Scanner BAMScanner = new Scanner(BAMPath);
 		BAMScanner.useDelimiter("\t");
 		String currLine = BAMScanner.nextLine(); 
@@ -35,10 +159,6 @@ public class BAMFormatter {
 		HashMap<Integer, HashMap<Integer,String>> hmMATCH = new HashMap<Integer, HashMap<Integer,String>>();
 		HashMap<Integer, HashMap<Integer,String>> hmINS = new HashMap<Integer, HashMap<Integer,String>>();
 		HashMap<Integer, HashMap<Integer,String>> hmDEL = new HashMap<Integer, HashMap<Integer,String>>();
-		HashMap<Integer,HashMap<String,VarObj>> variantEncoder = VariantMapping(args[1], BAMPrefix, true, args[4], args[5]);	// args[1] needs to be $outdir/p.all.vcf.
-		Set<Integer> keyMATCH, keyINS, keyDEL, variantKS = variantEncoder.keySet(), tempSet, indelKS; 
-		SortedSet<Integer> variantSS = new TreeSet<Integer>();
-		variantSS.addAll(variantKS); 
 		HashMap<Integer,String> defaultHM, tempFinderHM;
 		HashMap<String,VarObj> tempReporterHM; 
 		/* HashMap<Integer,Integer> hmVarCount = new HashMap<Integer,Integer>(); 
@@ -209,95 +329,8 @@ public class BAMFormatter {
 		}
 		VEFFile.close();
 		BAMScanner.close();
-		/* double readLength = Double.parseDouble(args[2]); 
-		double fullSeqLength = Double.parseDouble(args[3]);
-		double estNumInd = readCount * readLength / fullSeqLength; 
-		// System.out.println(readCount + " \t" + readLength + " \t" + fullSeqLength+ " \t" + estNumInd);
-		PrintWriter CTFile = new PrintWriter(BAMPrefix + ".ct"); 
-		// System.out.println(hmVarCount.size());
-		for (Integer i : variantSS) {
-			double normalized_varcount = hmVarCount.get(i) / estNumInd; 
-			// System.out.println(hmVarCount.get(i));
-			CTFile.append(normalized_varcount + "\t"); 
-		}
-		CTFile.append("\n");
-		CTFile.close();
-		*/
 	}
-	
-	private static HashMap<Integer,HashMap<String,VarObj>> VariantMapping(String VCFFile, String BAMPrefix, boolean biallelic, String outdir, String pts) throws IOException { 
-		
-		File VCFPath = new File(VCFFile); 
-		Scanner VCFScanner = new Scanner(VCFPath); 	 
-		// VCFScanner.useDelimiter("\t||\n"); // In Linux, the separator is a '\t', while in Windows, it is a ','.
-		String currLine = VCFScanner.nextLine();
-		// System.out.println(currLine);
-		while (!currLine.contains("#CHROM")) {
-			currLine = VCFScanner.nextLine();
-		}
-		// System.out.println(currLine);
-		PrintWriter PosFile = new PrintWriter(outdir + "/p.all.pos"); 
-		Integer pos;
-		Scanner altAlleleScanner = new Scanner("");
-		String variantNow;
-		Integer variantCode = 1;  
-		HashMap<String,VarObj> varEncAtPos; 
-		HashMap<Integer,HashMap<String,VarObj>> variantEncoder = new HashMap<Integer,HashMap<String,VarObj>>();
-		VarObj altAlleleAtPos; 
-		ArrayList<double[]> poolFreqs = new ArrayList<double[]>();
-		ArrayList<Integer> posTracker = new ArrayList<Integer>();
-		int v = 0; 
-		int numPts = Integer.parseInt(pts);
-		while (VCFScanner.hasNext()) {
-			VCFScanner.next();
-			pos = VCFScanner.nextInt();
-			posTracker.add(pos);
-			// System.out.println(pos);
-			PosFile.append(pos + "\t");
-			varEncAtPos = new HashMap<String,VarObj>(); // This HashMap is specific to each variant position, and will be 'cleared' at each line of the VCF. 
-			variantEncoder.put(pos,varEncAtPos);
-			for (int s = 0; s < 2; s++) {
-				VCFScanner.next(); 
-			} 
-			altAlleleScanner = new Scanner(VCFScanner.next());	// This Scanner runs through the String containing all of the alternate allele(s). There is at least one. 
-			altAlleleScanner.useDelimiter(",");
-			while(altAlleleScanner.hasNext()) {					// In case of highly polymorphic (>=2 alternate alleles) positions.
-				variantNow = altAlleleScanner.next().replace("\"","");
-				altAlleleAtPos = new VarObj(pos,variantCode);	// This is the information that will be reported when the alternate allele at this position in the read is accessed.
-				varEncAtPos.put(variantNow,altAlleleAtPos);			// The information is mapped to the alternate allele. 
-				variantCode++;										// The code corresponding to the alternate allele is incremented so no two alternate alleles in the same location have the same code.
-				if (biallelic == true) break; 	// If PoolHap has not been adjusted for 3+ alleles. 
-			}  
-			variantCode = 1;	// Reset for the next patient-specific variant position.
-			for (int i = 0; i < 4; i++)	{
-				VCFScanner.next();	// Skip QUAL, FILTER, INFO, FORMAT.
-			}
-			poolFreqs.add(new double[numPts]); 
-			for (int p = 0; p < numPts; p++) {
-				String[] varCts = VCFScanner.next().split(":")[1].split(",");	// This is the AD of the GT:AD:DP:GQ:PL of the p0 block of genotypes. 
-				double ref = Double.parseDouble(varCts[0]); 
-				double alt = Double.parseDouble(varCts[1]); 
-				poolFreqs.get(v)[p] = alt / (ref + alt); 
-				// System.out.println(poolFreqs.get(v)[p]);
-			}
-			v++; 
-		}
-		VCFScanner.close();
-		altAlleleScanner.close();
-		PosFile.close();
-		
-		BufferedWriter bvp= new BufferedWriter(new FileWriter(outdir + "/p.all.ct"));
-		bvp.write("Var_ID\t"); 
-		for(int p=0;p<numPts;p++) bvp.write(p + "\t");
-		for(int a=0;a<v;a++) {
-			bvp.write("\n0;" + posTracker.get(a) + ";" + posTracker.get(a) + ";0:1\t"); // TODO This only allows for biallelic simple loci (single alternate allele) for now. 
-			for(int p=0;p<numPts;p++) bvp.write(poolFreqs.get(a)[p] + "\t");
-		}
-		bvp.close();
-		
-		return variantEncoder;
 	}
-}
 
 class VarObj {
 

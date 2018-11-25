@@ -283,7 +283,7 @@ public class HapConfig {
 			bw.write("\n");
 			for(int p=0;p<this.num_pools;p++){
 				bw.write(this.pool_IDs[p]);
-				for(int h=0;h<this.num_global_hap;h++)	// TODO Report error! Formerly, this.num_pools.
+				for(int h=0;h<this.num_global_hap;h++)
 					bw.write("\t"+this.in_pool_haps_freq[h][p]);
 				bw.write("\n");
 			}

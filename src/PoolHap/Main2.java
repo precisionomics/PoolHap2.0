@@ -68,8 +68,10 @@ public class Main2 {
 
 		System.out.println("Guessing initial haplotypes from the VEF files using the graph-colouring algorithm...\n");
 		PoolSolver pool=new PoolSolver(data, posArray, est_ind, file_veflist, minisat_path);
+		/* The following block has been commented out to run GC reporting only. 		
 		System.out.println("There are " + pool.initial_Haps.num_global_hap + " initial haplotypes spanning " + pool.initial_Haps.num_loci + " variant positions.");
 		pool.initial_Haps.write_global_stdout(); 
+		*/
 		Date gcDate = new Date(System.currentTimeMillis());
 		long finSection = gcDate.getTime() - startDate.getTime(); 
 		int seconds = (int) (finSection / 1000) % 60 ;
@@ -77,6 +79,7 @@ public class Main2 {
 		int hours = (int) (((finSection / (1000*60*60)) % 60));
 		System.out.println("Graph colouring has taken " + hours + " hours, " + minutes + " minutes, and " + seconds + " seconds.");
 
+		/*
 		System.out.println("\nRefining initial haplotypes and their frequencies using the rjMCMC algorithm..."); 
 		pool.population_freq_rjmcmc_multirun(num_round, max_iterations, burn_in, alpha, beta_a, beta_c, gamma, 
 				c_old, c_new, p_add, coalescing_mismatch, rare_cutoff);
@@ -133,19 +136,19 @@ public class Main2 {
 		pw.append("num iter aem = " + max_iteration_aem + "\n\n");
 				
 		pw.append("+======BEST_INTERPOOL=======+\n");
+		pw.close();	// Previously, BufferedWriter in append mode wasn't writing to the file. Is this because there is an existing writer to the file?
 		pool.best_Haps.write_global_file_string(working_folder + "/p.all.results", true);
-		
+		pw = new PrintWriter(working_folder + "/p.all.results");		
 		pw.append("\n");
 		
 		pw.append("+======BEST_INTRAPOOL=======+\n");
-		pool.best_Haps.write_inpool(working_folder + "/p.all.results", true);
-		pw.append("\n");
-		
 		pw.close();
+		pool.best_Haps.write_inpool(working_folder + "/p.all.results", true);
+
 		startDate = new Date(System.currentTimeMillis());
 		time = sdf.format(startDate);
 		System.out.print("Finished. The current time is " + time + ".");
-		pw.close();
+		*/
 	}
 	
 }
