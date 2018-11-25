@@ -1,8 +1,10 @@
 package PoolHap;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -51,7 +53,7 @@ public class PoolSolver {
 		this.mu=new double[this.num_snp];
 		this.sigma=new double[this.num_snp][this.num_snp];
 		this.initial_Haps = gc(vef_list, posArray, this.num_snp, this.num_pool, minisat_path);
-		this.initial_Haps.solver = this;
+		// this.initial_Haps.solver = this;	// This has been commented out to run GC reporting only. 
 	}
 
 	/*
@@ -61,6 +63,8 @@ public class PoolSolver {
 	 */
 	public static HapConfig gc(String file_veflist, int[] posArray, int snps, int num_pool, String minisat_path) throws Exception	{
 		HashMap<String,Double> knownHapSet = new HashMap<String,Double>();
+		ArrayList<String> gcOutputHaps = new ArrayList<String>(); // GC reporting only. 
+		ArrayList<double[]> gcOutputFreqs = new ArrayList<double[]>(); // GC reporting only. 
 		BufferedReader br = new BufferedReader(new FileReader(file_veflist)); 
 		String currLine = br.readLine();
 		int poolNum = 0; 
@@ -80,8 +84,15 @@ public class PoolSolver {
 				for (String hapVars : tmpHaps.keySet()) {
 					if (knownHapSet.containsKey(hapVars)) {
 						double tmpFreq = knownHapSet.get(hapVars) + tmpHaps.get(hapVars);
-						knownHapSet.put(hapVars, tmpFreq); 
+						knownHapSet.put(hapVars, tmpFreq);
 					} else knownHapSet.put(hapVars, tmpHaps.get(hapVars)); 
+					// The below lines are for GC reporting only. 
+					if (!gcOutputHaps.contains(hapVars)) {
+						gcOutputHaps.add(hapVars);
+						gcOutputFreqs.add(new double[num_pool]); 
+					}
+					gcOutputFreqs.get(gcOutputHaps.indexOf(hapVars))[poolNum] = tmpHaps.get(hapVars); 
+					// The above lines are for GC reporting only. 
 				}
 			} catch (Exception e){
 				e.printStackTrace();
@@ -97,6 +108,7 @@ public class PoolSolver {
 		double[] initialFreqs = new double[knownHapSet.size()]; 
 		Set<String> knownHaps = knownHapSet.keySet();
 		
+		/* The following block has been commented out to run GC reporting only. 
 		int currHap = 0;
 	    for (String tmpKey : knownHaps) {
 	    	String[] tmpHap = tmpKey.split(""); 
@@ -106,14 +118,43 @@ public class PoolSolver {
 	    	initialFreqs[currHap] = (knownHapSet.get(tmpKey) / num_pool); 
 	    	currHap++; 
 	    }
+	    */
 	    
 	    LocusAnnotation[] locusInfo = new LocusAnnotation[posArray.length]; 
 	    for (int p = 0; p < posArray.length; p++) {
 	    	locusInfo[p] = new LocusAnnotation(false, 0, posArray[p], posArray[p], new String[]{"0","1"}); 
 	    }
-	    HapConfig initialConfig = new HapConfig(initialHaps, initialFreqs, null, locusInfo, num_pool, null, null); 
 		
+		// The below lines are for GC reporting only. 
+		int num_gc = gcOutputHaps.size(); 
+		BufferedWriter bw1= new BufferedWriter(new FileWriter(new File("gchaps.inter_freqs_vars.txt")));
+		bw1.write("Hap_ID");
+		for(int h=0;h<num_gc;h++) bw1.write("\t"+h);
+		bw1.write("\nFreq");
+		for(int h=0;h<num_gc;h++) bw1.write("\t"+0);	// No inter-pool frequencies for any of the haplotypes. 
+		bw1.write("\n");
+		for(int l=0;l<snps;l++){
+			bw1.write(locusInfo[l].output2string());
+			for(int h=0;h<num_gc;h++) bw1.write("\t"+gcOutputHaps.get(h).split("")[l]);
+			bw1.write("\n");
+		} bw1.close();
+
+		BufferedWriter bw2= new BufferedWriter(new FileWriter(new File("gchaps.intra_freqs.txt")));
+		bw2.write("Hap_ID");
+		for(int h=0;h<num_gc;h++) bw2.write("\t"+h);
+		bw2.write("\n");
+		for(int p=0;p<poolNum;p++){
+			bw2.write(p + "");
+			for(int h=0;h<num_gc;h++) bw2.write("\t"+gcOutputFreqs.get(h)[p]);
+			bw2.write("\n");
+		} bw2.close();
+		// The above lines are for GC reporting only. 
+	    
+		/* The following block has been commented out to run GC reporting only. 		
+	    HapConfig initialConfig = new HapConfig(initialHaps, initialFreqs, null, locusInfo, num_pool, null, null); 
 	    return initialConfig;
+	    */
+		return null;
 	}
 	
 	/*
@@ -203,7 +244,7 @@ public class PoolSolver {
 
 				db.showSubtypes("vc", subtypes, true);
 				Subtype.saveSubtypes(new File(name+".vc"), subtypes);
-				return Subtype.reportSubtypes(subtypes, db, posArray);
+				return Subtype.reportSubtypes(subtypes, db, posArray, "unknown");
 			}
 			return null; 
 		}

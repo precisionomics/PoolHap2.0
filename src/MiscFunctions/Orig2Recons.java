@@ -58,7 +58,7 @@ public class Orig2Recons {
 
 		ArrayList<Double> analysisReporter = new ArrayList<Double>(); 
 		// 1) Two records made from the ms-generated list of true variants for each haplotype.
-		//		i) origPosMap = (variant position, called or not)
+		//		i) origPosMap = (variant position, called or not)								// TODO Get this from simhaps.inter_freq_var.txt
 		//		ii) origVarMap = (each haplotype, (variant position, alternate allele i.e.: 1)
 		BufferedReader br1 = new BufferedReader(new FileReader(folder + "simhaps.mutations.txt"));
 		HashMap<Integer,Boolean> origPosMap = new HashMap<Integer,Boolean>();
@@ -142,7 +142,7 @@ public class Orig2Recons {
 		}
 		
 		// 4) Three records made from the FullSimulator-generated FastA of each patient's haplotype composition.
-		//	  i and ii) origCts and origFreqs = (x = haplotypes, y = patients, cells = quantity of haplotypes)
+		//	  i and ii) origCts and origFreqs = (x = haplotypes, y = patients, cells = quantity of haplotypes) // TODO Get this from simhaps.inter_freq_var.txt
 		//    iii) origInterFreqs = (frequency of each haplotype in total)
 		double[][] origCts = new double[origVarMap.keySet().size()][numPts];
 		double[][] origFreqs = new double[origVarMap.keySet().size()][numPts];
