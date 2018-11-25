@@ -75,14 +75,16 @@ public class Subtype {
 		}
 	}
 
-	public static HashMap<String,Double> reportSubtypes(Collection<Subtype> initHapList, ReadsDB db, int[] posArray) throws Exception
+	public static HashMap<String,Double> reportSubtypes(Collection<Subtype> initHapList, ReadsDB db, int[] posArray, String mode) throws Exception
 	{
 		HashMap<String,Double> vefHaplos = new HashMap<String,Double>();
 		for (Subtype initHap: initHapList) {
 			StringBuilder varComp = new StringBuilder(0);
 			for (int p : posArray) {
 				if (initHap.pairs.containsKey(p)) varComp.append(initHap.pairs.get(p)); 
-				else varComp.append("0"); 
+				else 
+					if (mode.equals("std")) varComp.append("0");
+					else varComp.append("*"); 
 			}
 			double initHapFreq = db.countSubtypeExclusive(initHap, initHapList) / db.totalReads();
 			vefHaplos.put(varComp.toString(), initHapFreq);

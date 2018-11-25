@@ -13,7 +13,7 @@ while(<PARAMFILE>) {
 }
 close PARAMFILE; 
 
-print STDOUT "Goal: Reconstruct haplotypes and frequencies from randomly simulated patient haplotypes of the HIV HXB2 pol polyprotein gene (3012 bp).\n";
+print STDOUT "Goal: Reconstruct haplotypes and frequencies from randomly simulated patient haplotypes of the HIV HXB2 whole genome (9712 bp).\n"; # <v0.4: ol polyprotein gene
 print STDOUT "Reading parameters from input file...\n";
 my $hdir = $paramlist[0];
 my $syspdir = $paramlist[1];
@@ -22,10 +22,10 @@ my $refseq = $paramlist[12];
 my $javacmd = "$ownpdir/jre1.8.0_181/bin/java"; 
 my $gatkcmd = "$javacmd -jar $syspdir/gatk-4.0.5.1/gatk-package-4.0.5.1-local.jar"; 
 # Cannot use the default system JRE because even though commandline Java is showing version 8, Slurm is accessing a different default Java which is likely <8. 
-# system("/usr/bin/perl -pi -e 's/\r\n/\n/g' $hdir/$refseq");
-# system("$syspdir/samtools-0.1.19 faidx $hdir/$refseq"); 
+# system("/usr/bin/perl -pi -e 's/\r\n/\n/g' $hdir/$refseq"); 
+# system("$syspdir/samtools-0.1.19 faidx $hdir/$refseq"); # INDEX
 my $refname = (split /\./, "$refseq")[0]; 
-# system("$javacmd -jar $syspdir/picard.jar CreateSequenceDictionary R=$hdir/$refseq O=$hdir/$refname.dict"); 
+# system("$javacmd -jar $syspdir/picard.jar CreateSequenceDictionary R=$hdir/$refseq O=$hdir/$refname.dict"); # INDEX
 my $outdir = "$paramlist[37]"; 
 my $prefix = "$outdir/simhaps"; 
 print STDOUT "The output directory is $outdir.\n\n";
@@ -50,19 +50,21 @@ for (my $p = 0; $p < $sim_pts; $p++) {
 
 	# 2b) Simulate patient-specific FastQs using DWGSIM.
 	print STDOUT "Making patient $p FASTQ files using DWGSIM...\n";
-	system("$ownpdir/DWGSIM-master/dwgsim $pfile.fa $pfile -e $paramlist[3] -E $paramlist[4] -C $paramlist[5] -1 $paramlist[6] -2 $paramlist[7] -r 0 -F $paramlist[9] -H -o $paramlist[11]");
+	system("$ownpdir/DWGSIM-master/dwgsim $pfile.fa $pfile -e $paramlist[3] -E $paramlist[4] -C $paramlist[5] -1 $paramlist[6] -2 $paramlist[7] -r 0 -F $paramlist[9] -H -o $paramlist[11] -d 150 -s 15.000");
 
 	# 3) Align the simulated reads to a reference sequence, and sort the BAM file.
 	print STDOUT "\nMaking sorted patient $p BAM files using BWA and Samtools...\n";
-	# system("$syspdir/bwa-0.7.15 index $hdir/$refseq");
+	# system("$syspdir/bwa-0.7.15 index $hdir/$refseq"); # INDEX
 	system("gunzip $pfile.bwa.read1.fastq.gz");
 	system("gunzip $pfile.bwa.read2.fastq.gz");
 	system("$syspdir/bwa-0.7.15 mem -R '\@RG\tID:bwa\tLB:HIVlib\tPL:ILLUMINA\tSM:p$p\tPU:HWI' $hdir/$refseq $pfile.bwa.read1.fastq $pfile.bwa.read2.fastq | $syspdir/samtools-0.1.19 view -Shub - > $pfile.bam");
-	system("$syspdir/samtools-0.1.19 sort $pfile.bam $pfile.srt");
-	
+	system("$syspdir/samtools-0.1.19 sort $pfile.bam $pfile.bqsr"); # with MarkDuplicates, $pfile.srt
+
+=begin
 	# 4) Mark all duplicated reads in the sorted BAM file.
 	print STDOUT "\nMarking duplicates in sorted patient $p BAM files using Picard...\n";
 	system("$javacmd -jar $syspdir/picard.jar MarkDuplicates I=$pfile.srt.bam O=$pfile.bqsr.bam  M=$outdir/p$p_mdup_metrics.txt"); # With BQSR, $pfile.mdup.bam
+=cut
 	system("$syspdir/samtools-0.1.19 index $pfile.bqsr.bam"); # With BQSR, $pfile.mdup.bam
 
 	# 5a) Call variants using GATK HaplotypeCaller in gVCF mode.
@@ -92,24 +94,18 @@ system("$gatkcmd CombineGVCFs -R $hdir/$refseq $gVCFs -O $outdir/p.all.g.vcf");
 
 # 6b) Join all of the patient-specific gVCFs in the joint gVCFs using GenotypeGVCFs.
 print STDOUT "\nMerging all patient gVCF files using GATK GenotypeGVCFs...\n\n";
-system("$gatkcmd GenotypeGVCFs -R $hdir/$refseq -V $outdir/p.all.g.vcf -ploidy $paramlist[16] -new-qual -O $outdir/p.all.raw.vcf"); 
-system("$gatkcmd SelectVariants -R $hdir/$refseq -V $outdir/p.all.raw.vcf -select \"AF > $aflimit\" -O $outdir/p.all.vcf");
+system("$gatkcmd GenotypeGVCFs -R $hdir/$refseq -V $outdir/p.all.g.vcf -ploidy $paramlist[16] -O $outdir/p.all.raw.vcf"); # -new-qual
+system("$gatkcmd SelectVariants -R $hdir/$refseq -V $outdir/p.all.raw.vcf -O $outdir/p.all.vcf"); # -select \"AF > $aflimit\" 
 
 # 7) Convert each patient-specific BAM file to SAM (i.e.: text), then VEF files. 
 print STDOUT "Converting all patient BAM files to VEF files and assembling patient allele counts...\n\n";
 for (my $p = 0; $p < $sim_pts; $p++) { 
 	my $pfile = "$outdir/p$p";
 	system("$syspdir/samtools-0.1.19 view -ho $pfile.bqsr.sam $pfile.bqsr.bam");
- 	system("$javacmd -jar $ownpdir/BAMFormatter.jar $pfile $outdir/p.all.vcf $paramlist[6] $paramlist[35] $outdir $patient_num");
 }
-my $VEFFILE = "$outdir/p.all.vef.list";
-open(my $vw, '>', $VEFFILE) or die "Error: Couldn't open list of VEFs file $outdir/p.all.vef.list.\n";
-for (my $p = 0; $p < $sim_pts; $p++) {
-	print $vw "$outdir/p$p.vef\n"; 
-}
-close $vw;
-close $VEFFILE;
-system("cat $outdir/p\*.ct > $outdir/p.all.ct"); 
+
+my $simmode = "true";
+system("$javacmd -jar $ownpdir/BAMFormatter.jar $outdir $outdir/p.all.vcf $sim_pts $simmode");
 
 # 8) Run the input VEF file through the PoolHap (GC -> rjMCMC -> EM) algorithms. 
 print STDOUT "Reconstructing haplotypes and frequencies using PoolHapX...\n\n";

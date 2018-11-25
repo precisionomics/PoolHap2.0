@@ -151,7 +151,7 @@ public class FullSimulator {
 		}
 		for (int h = 0; h < numHaps; h++) globalFreq[h] = globalCt[h] / rawNumHaps;
 		
-		BufferedWriter bv_glob= new BufferedWriter(new FileWriter(args[4] + "simhaps.inter_freq_vars.txt"));
+		BufferedWriter bv_glob= new BufferedWriter(new FileWriter(args[4] + "/simhaps.inter_freq_vars.txt"));
 		bv_glob.write("Hap_ID");
 		for(int h=0;h<numHaps;h++) bv_glob.write("\t"+h);
 		bv_glob.write("\nFreq");
@@ -163,7 +163,7 @@ public class FullSimulator {
 		}
 		bv_glob.close();
 		
-		BufferedWriter bv_loc= new BufferedWriter(new FileWriter(args[4] + "simhaps.intra_freq.txt"));
+		BufferedWriter bv_loc= new BufferedWriter(new FileWriter(args[4] + "/simhaps.intra_freq.txt"));
 		bv_loc.write("Hap_ID");
 		for(int h=0;h<numHaps;h++) bv_loc.write("\t"+h);
 		bv_loc.write("\n");
@@ -175,11 +175,12 @@ public class FullSimulator {
 		}
 		bv_loc.close();
 		
-		BufferedWriter bvp= new BufferedWriter(new FileWriter(args[4] + "simvars.intra_freq.txt"));
+		BufferedWriter bvp= new BufferedWriter(new FileWriter(args[4] + "/simvars.intra_freq.txt"));
 		bvp.write("Var_ID\t");
 		for(int p=0;p<numPts;p++) bvp.write(p + "\t");
 		for(int v=0;v<numVarPos;v++) {
-			bvp.write("\n0;" + allVarPos.get(v) + ";" + allVarPos.get(v) + ";0:1\t"); // TODO This only allows for biallelic simple loci (single alternate allele) for now. 
+			int oneIndexed = allVarPos.get(v) + 1; 
+			bvp.write("\n0;" + oneIndexed + ";" + oneIndexed + ";0:1\t"); // TODO This only allows for biallelic simple loci (single alternate allele) for now. 
 			for(int p=0;p<numPts;p++) bvp.write("\t"+poolFreqs[v][p]);
 		}
 		bvp.close();
