@@ -1,3 +1,16 @@
+### How to run PHX v0.6:
+Suggestion: I would run this in Eclipse because everything is set up for in-Eclipse testing. There are two JAVA files, suffixed with `_Testing` that output a lot of stuff to performance logs, in case that's useful. You can switch in code from that to the original version as needed.
+0) Make your own version of the file_paths.txt (example is in the directory sample_input_data) to point PHX to your `*.`in GC raw haplotype files.
+1) Add all external jars to the build (all are in the external_jars folder).
+2) Add the directory containing config_v0_6.properties (in the directory sample_input_data) to the build as an external classpath. 
+3) Set the input/output file and directory names in the class MainTest. 
+
+### How to measure PHX reconstruction accuracy:
+I have written a program called Orig2Recons (in the MiscFunctions project subfolder) that compares original haplotypes to the closest reconstructed haplotype. There are two functions that look very similar (OutputReporter and ResultsReporter) that were designed to give us the accuracy of the in-pool and between-pool frequency. The descriptions of the inputs are at the top of the JAVA file. Please note that this was designed for output from much older versions of PHX i.e.: they do not take output files that we have designed now. There will have to be a significant amount of refactoring to retrofit Orig2Recons for our current type of output. The input file for the original haplotypes, simhaps.mutations.txt, should remain the same. 
+NOTE: Versions of the original haplotype file that contain only 67 variants have not been made i.e.: the original haplotypes contain 100 variant positions. This shouldn't be a problem. I think I designed Orig2Recons to handle this as I have considered variant error from the very beginning of the design. But please check just in case!
+
+=== DEPRECATED ===
+
 # PoolHapX and Auxiliary Functions 
 
 ========================================================================================
