@@ -7,13 +7,16 @@ import java.io.FileWriter;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.commons.math3.distribution.BetaDistribution;
-import org.apache.commons.math3.exception.NumberIsTooSmallException;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.SingularValueDecomposition;
+
+import PoolHap.LocusAnnotation;
+import PoolHap.PoolSolver2;
 
 public class HapConfig {
 	
@@ -59,17 +62,20 @@ public class HapConfig {
 	// Main structures
 	public String[] hap_IDs;				// #global_hap
 	public String[][] global_haps_string; 	// #global_hap x #loci: haplotypes that ever show up in the total population. String coded 
-	public float[][] global_haps; 			// #global_hap x #loci: haplotypes that ever show up in the total population. floating number coded. 
+	public double[][] global_haps; 			// #global_hap x #loci: haplotypes that ever show up in the total population. floating number coded. 
 	public double[] global_haps_freq; 		// #global_hap
 	public String[] pool_IDs;				// #pools 		
 	public double[][] in_pool_haps_freq;	// #global_hap x #pools  
 	public LocusAnnotation[] locusInfo; 	// #loci. Note that a locus can be a SNP or a region. 
+	public double[][] inpool_site_freqs;	// #loci x #pools; Added by Quan Dec. 2018.
+	public int[] region=null;				// 2: region_start, region_end (these are indexes, only assigned when a regional HapConfig is formed) 			
 	// Summary statistics
 	public double[] mu;						// The 'average' allele at each position i.e. average haplotype Average frequency of alternate allele.
 	public double[][] sigma;				// The variance-covariance matrix for each position.
 	public double logL; 					// The log-likellihood of this HapConfig explaining the observed variant data.
+	public int est_ind_pool; 				// Estimated number of individuals per pool (for now, assumed same per pool but easily extended). Used to calculate logL.
 	// Link to the solving method
-	PoolSolver solver;
+	PoolSolver2 solver;
 	
 	// Constructors
 	
@@ -78,30 +84,50 @@ public class HapConfig {
 	 * This constructor is useful in the divide & conquer algorithm.
 	 */
 	public HapConfig(String[][] global_haps_string, double[] global_haps_freq, // *** int[][] in_poll_haps deleted, int num_pools added.
-			double[][] in_pool_haps_freq, LocusAnnotation[] locusInfo, int num_pools, String[] hap_IDs, String[] pool_IDs){
+			double[][] in_pool_haps_freq, double[][] inpool_site_freqs, LocusAnnotation[] locusInput, 
+			int num_pools, String[] hap_IDs, String[] pool_IDs, int est_ind_pool){
 		this.num_global_hap=global_haps_freq.length;
-		this.num_loci=global_haps_string[0].length;
+		this.num_loci=locusInput.length;
 		this.global_haps_freq=global_haps_freq.clone();
-		this.global_haps_string=global_haps_string.clone();
-		for(int k=0;k<this.num_global_hap;k++)
-			this.global_haps_string[k]=global_haps_string[k].clone();
-		if(in_pool_haps_freq!=null){ // *** Matched format as above. 
-			this.in_pool_haps_freq=in_pool_haps_freq.clone();
-			for(int j=0;j<this.num_global_hap;j++)
-				for(int k=0;k<this.num_loci;k++)
-					this.in_pool_haps_freq[j][k]=in_pool_haps_freq[j][k];
-		}else{ // if no intra-pool frequencies provided, start at 0. 
-			this.in_pool_haps_freq = new double[this.num_global_hap][this.num_loci]; 
-		}
-		this.locusInfo=locusInfo.clone();  // note that this is not a deep-clone. But we assume that the locusInfo won't be changed in the algorithm.
+		Boolean setID = false;
 		if(hap_IDs!=null){ // *** Changed from this.hap_IDs (global) to hap_IDs (parameter)  
 			this.hap_IDs=hap_IDs.clone();
 		}else{ // if no IDs assigned, use indexes.
 			this.hap_IDs = new String[this.num_global_hap];
-			for(int k=0;k<this.num_global_hap;k++) {
-				this.hap_IDs[k]=k+"";
-			}
+			setID = true;
 		}
+		this.global_haps_string=global_haps_string.clone();
+		for(int k=0;k<this.num_global_hap;k++) {
+			this.global_haps_string[k]=global_haps_string[k].clone();
+			if (setID)
+				this.hap_IDs[k] = Arrays.toString(global_haps_string[k]);
+		}
+		if(in_pool_haps_freq!=null){ // *** Matched format as above. 
+			this.in_pool_haps_freq=in_pool_haps_freq.clone();
+			for(int j=0;j<this.num_global_hap;j++)
+				for(int k=0;k<this.num_pools;k++)
+					this.in_pool_haps_freq[j][k]=in_pool_haps_freq[j][k];
+		}else{ // if no intra-pool frequencies provided, start at 0. 
+			this.in_pool_haps_freq = new double[this.num_global_hap][this.num_pools]; 
+		}
+		if(inpool_site_freqs!=null){
+			this.inpool_site_freqs=inpool_site_freqs.clone();
+		}
+		this.locusInfo=locusInput;  // Originally, clone(), which is not a deep-clone. But we assume that the locusInfo won't be changed in the algorithm.
+		// System.out.print("\n" + locusInput.length + "\t" + this.num_loci + "\t" + this.locusInfo.length);
+		/*
+		/for (int v = 0; v < this.num_loci; v++) {
+			System.out.println(v);
+			System.out.println("HapConfig constructor input:\t" + locusInput[v].alleles_coding);
+			this.locusInfo[v].alleles_coding = new HashMap<String, Float>();
+			System.out.println("HapConfig constructor pre:\t" + this.locusInfo[v].alleles_coding.size());
+			for (String k : locusInput[v].alleles_coding.keySet()) {
+				System.out.println("setting:\t" + locusInput[v].alleles_coding.get(k));
+				this.locusInfo[v].alleles_coding.put(k, locusInput[v].alleles_coding.get(k));
+			}
+			System.out.println("HapConfig constructor post:\t" + this.locusInfo[v].alleles_coding.size());
+		} // Need to specifically copy the mappings over to the new locus storage object. Shallow copy alone doesn't work.
+		*/
 		this.construct_hapID2index_map();
 		this.encoding_haps(); // initialize this.global_haps;
 		this.num_pools=num_pools;
@@ -112,6 +138,7 @@ public class HapConfig {
 			for(int k=0;k<this.num_pools;k++)
 				this.pool_IDs[k]=k+"";
 		}
+		this.est_ind_pool = est_ind_pool; 
 	}
 	
 	/*
@@ -195,12 +222,16 @@ public class HapConfig {
 	 *    
 	 */
 	public void encoding_haps(){
-		this.global_haps=new float[this.num_global_hap][this.num_loci];
-		// System.out.println(this.num_global_hap  +"\t" + this.num_loci);
+		this.global_haps=new double[this.num_global_hap][this.num_loci];
+		// System.out.println("\n" + this.num_global_hap  +"\t" + this.num_loci);
+		// System.out.println("\nEncoded:" + this.locusInfo[0].alleles_coding.size());
 		for(int h=0;h<this.num_global_hap;h++){
 			for(int l=0;l<this.num_loci;l++){
 				// System.out.println(h + "\t" + l + "\t" + this.global_haps_string[h][l] + "\t" + this.locusInfo[l].alleles_coding.get(this.global_haps_string[h][l]));
-				this.global_haps[h][l]=this.locusInfo[l].alleles_coding.get(this.global_haps_string[h][l]);
+				this.global_haps[h][l]=
+						this.locusInfo[l].
+						alleles_coding.
+						get(this.global_haps_string[h][l]);
 			}
 		}
 	}
@@ -281,10 +312,12 @@ public class HapConfig {
 			for(int h=0;h<this.num_global_hap;h++)
 				bw.write("\t"+this.hap_IDs[h]);
 			bw.write("\n");
+			// System.out.println(this.in_pool_haps_freq.length + "\t" + this.in_pool_haps_freq[0].length);
 			for(int p=0;p<this.num_pools;p++){
 				bw.write(this.pool_IDs[p]);
-				for(int h=0;h<this.num_global_hap;h++)
-					bw.write("\t"+this.in_pool_haps_freq[h][p]);
+				for(int h=0;h<this.num_global_hap;h++)	// TODO Report error! Formerly, this.num_pools.
+					if (this.in_pool_haps_freq[h].length == 0) bw.write("\t0");
+					else bw.write("\t"+this.in_pool_haps_freq[h][p]);
 				bw.write("\n");
 			}
 			bw.close();
@@ -308,7 +341,7 @@ public class HapConfig {
 	 * Updates the composition of the main global variables when a set of new haplotypes are added.
 	 * @param The variant composition of new haplotypes and how much frequency to allot them.  
 	 */
-	public void addHaps(ArrayList<float[]> list_add_haps, double freqs_sum, int old_hap_index) {
+	public void addHaps(ArrayList<double[]> list_add_haps, double freqs_sum, int old_hap_index, int pool) {
 		// System.out.println(this.num_global_hap + "\t" + this.num_loci); 
 		int num_new_haps = list_add_haps.size();
 		int tot_new_haps = this.num_global_hap + num_new_haps; 
@@ -319,32 +352,39 @@ public class HapConfig {
 			tmp_hap_IDs[h]=this.hap_IDs[h];
 		}
 		for(int h=this.num_global_hap;h<tot_new_haps;h++) {
-			float[] tmp_new_hap = list_add_haps.get(h - this.num_global_hap); 
-			tmp_hap_IDs[h]=h + "";
-			for (int l = 0; l < this.num_loci; l++)
-				tmp_global_haps_string[h][l] = Integer.toString(Math.round(tmp_new_hap[l])); 
+			double[] tmp_new_hap = list_add_haps.get(h - this.num_global_hap); 
+			String tmp_id = "";
+			for (int l = 0; l < this.num_loci; l++) {
+				String tmp_var = Long.toString(Math.round(tmp_new_hap[l]));
+				tmp_global_haps_string[h][l] = tmp_var; 
+				tmp_id += tmp_var;
+			}
+			tmp_hap_IDs[h] = tmp_id;
 		}
 		this.global_haps_string = tmp_global_haps_string.clone(); 
 		this.hap_IDs = tmp_hap_IDs.clone(); 
 		
-		double[] tmp_global_haps_freq = new double[tot_new_haps];
-		if (old_hap_index == -1) {
+		if (old_hap_index == -1) {	// This module is called in checkrank_and_fulfill. The actual in-pool frequencies will be assigned shortly based on global_haps_freq.
+			double[] tmp_global_haps_freq = new double[tot_new_haps];
 			for(int h=0;h<this.num_global_hap;h++)
 				tmp_global_haps_freq[h]=this.global_haps_freq[h] * (1 - freqs_sum);
 			for(int h=this.num_global_hap;h<tot_new_haps;h++)
 				tmp_global_haps_freq[h] = (double) freqs_sum / num_new_haps;
-		} else {
+			this.in_pool_haps_freq = new double[tot_new_haps][this.num_pools]; 
+			this.global_haps_freq = tmp_global_haps_freq.clone();
+		} else {	// This module is called in mutate_or_coealesce. The global frequencies don't matter. Only the in-pool frequencies are updated. 
+			double[][] tmp_in_pool_freq = new double[tot_new_haps][this.num_pools]; 
 			for(int h=0;h<this.num_global_hap;h++) {
 				if (h == old_hap_index)
-					tmp_global_haps_freq[h]=this.global_haps_freq[h] - freqs_sum; 	
+					tmp_in_pool_freq[h][pool] =  this.in_pool_haps_freq[h][pool] - freqs_sum; 
 				else 
-					tmp_global_haps_freq[h]=this.global_haps_freq[h];
+					tmp_in_pool_freq[h][pool] = this.in_pool_haps_freq[h][pool];
 			}
-			tmp_global_haps_freq[this.num_global_hap] = freqs_sum;	// The last one is the global frequency of the new haplotype.
+			this.in_pool_haps_freq = new double[tot_new_haps][this.num_pools];
+			for(int h=0;h<tot_new_haps;h++)
+				this.in_pool_haps_freq[h][pool] = tmp_in_pool_freq[h][pool];
 		}
-		this.global_haps_freq = tmp_global_haps_freq.clone(); 
-		this.num_global_hap=this.global_haps_freq.length;
-
+		this.num_global_hap=tot_new_haps;
 		this.construct_hapID2index_map();
 		this.encoding_haps(); // initialize this.global_haps;
 	}
@@ -353,7 +393,7 @@ public class HapConfig {
 	 * Updates the composition of the main global variables when existing haplotypes are removed.
 	 * @param Whether to remove the haplotype or not, and the total number to remove.  
 	 */
-	public void remHaps(boolean[] list_rem_haps, int num_rem_haps) {
+	public void remHaps(boolean[] list_rem_haps, int num_rem_haps, boolean mcmc) {
 		int tot_new_haps = this.num_global_hap - num_rem_haps; 
 		// System.out.println(tot_new_haps + "\t" + this.num_global_hap + "\t" + num_rem_haps); 
 		String[][] tmp_global_haps_string = new String[tot_new_haps][this.num_loci];
@@ -374,10 +414,35 @@ public class HapConfig {
 		this.hap_IDs = tmp_hap_IDs.clone();
 		double[] tmp_global_haps_freq = new double[tot_new_haps];
 		int new_hap = 0;
-		for(int h=0;h<this.num_global_hap;h++) {
-			if (list_rem_haps[h]) continue;
-			tmp_global_haps_freq[new_hap] = this.global_haps_freq[h] / tmp_tot_freq;
-			new_hap++; 
+		if (mcmc) {
+			double[][] tmp_in_pool_freq = new double[tot_new_haps][this.num_pools]; 
+			for (int p = 0; p < this.num_pools; p++) {
+				double tmp_pool_freq = 0; 
+				for(int h=0;h<this.num_global_hap;h++) {
+					if (list_rem_haps[h]) continue;
+					tmp_pool_freq += this.in_pool_haps_freq[h][p]; 
+					// System.out.println(tmp_pool_freq);
+				}
+				new_hap = 0;
+				for(int h=0;h<this.num_global_hap;h++) {
+					if (list_rem_haps[h]) continue;
+					tmp_in_pool_freq[new_hap][p] = this.in_pool_haps_freq[h][p] / tmp_pool_freq; 
+					new_hap++;
+				}
+			}
+			this.in_pool_haps_freq = new double[tot_new_haps][this.num_pools];
+			for(int h=0;h<tot_new_haps;h++) {
+				for (int p = 0; p < this.num_pools; p++) {
+					this.in_pool_haps_freq[h][p] = tmp_in_pool_freq[h][p];
+				}
+			}
+		} else {
+			for(int h=0;h<this.num_global_hap;h++) {
+				if (list_rem_haps[h]) continue;
+				tmp_global_haps_freq[new_hap] = this.global_haps_freq[h] / tmp_tot_freq;
+				new_hap++; 
+			}
+			this.in_pool_haps_freq = new double[tot_new_haps][this.num_pools];
 		}
 		this.global_haps_freq = tmp_global_haps_freq.clone(); 
 		this.num_global_hap=this.global_haps_freq.length;
@@ -389,7 +454,7 @@ public class HapConfig {
 	 * Checks the rank of the initial haplotypes to make sure that every primitive locus is represented.
 	 * @param How much frequency to allot new haplotypes if they're needed.  
 	 */
-	public void checkrank_and_fullfill(double freqs_sum){
+	public void checkrank_and_fullfill(double freqs_sum, int p){
 		ArrayList<Integer> noSNP = new ArrayList<Integer>();
 		if(this.num_global_hap<this.num_loci) {
 			for(int l=0;l<num_loci;l++) {
@@ -415,7 +480,10 @@ public class HapConfig {
 				if(sv[i]==0) noSNP.add((int) sv[i]); 
 			}if(rank<num_loci)this.fulfill(freqs_sum,rank,noSNP);
 		}
-		this.update_sigma_mu_logL();
+		for(int h=0;h<this.num_global_hap;h++){
+			this.in_pool_haps_freq[h][p] = this.global_haps_freq[h];
+		}
+		this.update_sigma_mu_logL(p);
 	}
 	
 	/*
@@ -426,16 +494,16 @@ public class HapConfig {
 		 
 		for(int k=0;k<this.num_global_hap;k++) this.global_haps_freq[k] *= (1-freqs_sum);
 		int fillRank = this.num_loci - rank;
-		ArrayList<float[]> list_add_haps = new ArrayList<float[]>();
+		ArrayList<double[]> list_add_haps = new ArrayList<double[]>();
 		for (int p = 0; p < fillRank; p++) {
-			float[] new_hap=new float[this.num_loci];
+			double[] new_hap=new double[this.num_loci];
 			new_hap[noSNP.get(p)]=1;	// Fill a 'rank'. 
 			int addVars = ThreadLocalRandom.current().nextInt(0,(int) (num_loci / 2));	// To 'thin out' the new haplotypes being created. 
 			for (int i = 0; i < addVars; i++) new_hap[ThreadLocalRandom.current().nextInt(0,num_loci)]=1;
 			if(search_a_hap(new_hap, list_add_haps) == -1) // If this proposed haplotype doesn't exist yet.
 				list_add_haps.add(new_hap); 
 		} 
-		addHaps(list_add_haps, freqs_sum, -1); 
+		addHaps(list_add_haps, freqs_sum, -1, -1); 
 	}
 	
 	/*
@@ -443,10 +511,10 @@ public class HapConfig {
 	 * @param Variant composition of the proposed haplotype. The list of proposed haplotypes.
 	 * @return The index of an identical-match haplotype. -1 if no match.  
 	 */
-	public int search_a_hap(float[] hap, ArrayList<float[]> list_add_haps){
+	public int search_a_hap(double[] hap, ArrayList<double[]> list_add_haps){
 		for(int h=0;h<list_add_haps.size(); h++){
 			boolean match=true;
-			float[] the_candidate=list_add_haps.get(h);
+			double[] the_candidate=list_add_haps.get(h);
 			for(int l=0;l<this.num_loci;l++){
 				if(hap[l]!=the_candidate[l]){
 					match=false; break;
@@ -460,11 +528,11 @@ public class HapConfig {
 	 * @param Variant composition of the proposed haplotype. If the mutant has been created already, 'avoid' this index. avoid = -1 if the haplotype has not been added yet. 
 	 * @return The index of an identical-match haplotype. -1 if no match.  
 	 */
-	public int search_a_hap(float[] hap, int avoid){
+	public int search_a_hap(double[] hap, int avoid){
 		for(int h=0;h<this.num_global_hap;h++){
 			if (h == avoid) continue;
 			boolean match=true;
-			float[] the_candidate=this.global_haps[h];
+			double[] the_candidate=this.global_haps[h];
 			for(int l=0;l<this.num_loci;l++){
 				if(hap[l]!=the_candidate[l]){
 					match=false; break;
@@ -481,10 +549,12 @@ public class HapConfig {
 	 */
 	public void update_sigma_mu_logL(){
 		this.mu=new double[this.num_loci];
-	    for(int l=0;l<this.num_loci;l++){
+	    // System.out.println("\nmu:"); 
+		for(int l=0;l<this.num_loci;l++){
 	    	for(int h=0;h<this.num_global_hap;h++){		    
 	    		this.mu[l]=this.mu[l]+this.global_haps[h][l]*this.global_haps_freq[h];
 	    	}
+    		// System.out.print(this.mu[l] + "\t");
 	    } 
 	    double[][] eta=new double[this.num_loci][this.num_loci];
 	    for(int l1=0;l1<this.num_loci;l1++){
@@ -494,21 +564,25 @@ public class HapConfig {
 	 		     }
 			 }
 	    }
+	    // System.out.println("\n\nsigma:"); 
 	    this.sigma=new double[this.num_loci][this.num_loci]; // TODO Update the sigma function to use LDx
 	    for(int q1=0;q1<this.num_loci;q1++){
 	    	 for(int q2=0;q2<this.num_loci;q2++){
 	    		 this.sigma[q1][q2]=eta[q1][q2]-this.mu[q1]*this.mu[q2];
+	    		 // System.out.print(this.sigma[q1][q2] + "\t");
 	    	 }
+	    	 // System.out.println();
 	    }
-	    this.logL=Algebra.logL_aems(Algebra.times(this.sigma, solver.est_ind_pool), Algebra.times(this.mu, solver.est_ind_pool), solver.data);
+	    this.logL=Algebra.logL_aems(this.sigma, this.mu, this.inpool_site_freqs);
+	    // Got rid of Algebra.times(this.sigma, this.est_ind_pool), Algebra.times(this.mu, this.est_ind_pool) because everything is in frequencies.
 	}
-	
+
 	/*
 	 * Returns haplotypes that are above a certain frequency cutoff.
 	 * @param the frequency cutoff.
 	 */
-	public HapConfig clone(double freq_cutoff){
-		if (freq_cutoff == 0) return this;
+	public HapConfig clone(double freq_cutoff, Boolean mcmc){
+		if (freq_cutoff == 0) return new HapConfig(this.global_haps_string, this.global_haps_freq, this.in_pool_haps_freq, this.inpool_site_freqs, this.locusInfo, this.num_pools, this.hap_IDs, this.pool_IDs, this.est_ind_pool);
 		boolean[] list_rem_haps = new boolean[this.num_global_hap];
 		int num_rem_haps = 0; 
 		for (int h = 0; h < this.num_global_hap; h++) {
@@ -517,41 +591,69 @@ public class HapConfig {
 				num_rem_haps++;
 			}
 		}
-		remHaps(list_rem_haps, num_rem_haps); 
-		this.update_sigma_mu_logL();
-		return this;
+		remHaps(list_rem_haps, num_rem_haps, mcmc); 
+		return new HapConfig(this.global_haps_string, this.global_haps_freq, this.in_pool_haps_freq, this.inpool_site_freqs, this.locusInfo, this.num_pools, this.hap_IDs, this.pool_IDs, this.est_ind_pool);
 	}
 
+	// This calculator outputs the mu, sigma, and logL of the haplotype set for a single pool. Used in the PoolSolver2 rjMCMC function. 
+	public void update_sigma_mu_logL(int p){
+		this.mu=new double[this.num_loci];
+	    for(int l=0;l<this.num_loci;l++){
+	    	for(int h=0;h<this.num_global_hap;h++){		    
+	    		this.mu[l]=this.mu[l]+this.global_haps[h][l]*this.in_pool_haps_freq[h][p];
+	    	}
+	    } 
+	    double[][] eta=new double[this.num_loci][this.num_loci];
+	    for(int l1=0;l1<this.num_loci;l1++){
+	    	 for(int l2=0;l2<this.num_loci;l2++){
+	    		 for(int h=0;h<this.num_global_hap;h++){
+	 		    	eta[l1][l2]+=(this.global_haps[h][l1]*this.global_haps[h][l2]*this.in_pool_haps_freq[h][p]);
+	 		     }
+			 }
+	    }
+	    this.sigma=new double[this.num_loci][this.num_loci]; // TODO Update the sigma function to use LDx
+	    for(int q1=0;q1<this.num_loci;q1++){
+	    	 for(int q2=0;q2<this.num_loci;q2++){
+	    		 this.sigma[q1][q2]=eta[q1][q2]-this.mu[q1]*this.mu[q2];
+	    	 }
+	    }
+	    double[] this_pool_freqs = new double[this.num_loci];
+	    for(int q = 0; q < this.num_loci; q++) this_pool_freqs[q] = this.inpool_site_freqs[q][p];
+	    this.logL=Algebra.logL_rjmcmc(this.sigma, this.mu, this_pool_freqs);
+	}
+	
 	/*
 	 * Returns either a successful or failed update to the existing global haplotype frequencies.
 	 * @param First three are beta distribution (transition probability) parameters. iter determines whether or not to sample haplotypes randomly. The last two are for mu/sigma/logL updates.
 	 * @return 1 for a successful update, -1 for a failed update. 
 	 */
-	int update_freqs(double beta_a, double beta_c, double alpha, int iter){	// !!!
+	int update_freqs(double beta_a, double beta_c, double alpha, int iter, int p){	// !!!
 		int[] indices = new int[2]; 
 		if ((iter % 3) == 0) {	// Every third iteration, sample two haplotypes completely randomly according to index.
 			indices = this.sample_two_haps();	
 		} else {	// Otherwise, sample two haplotypes according to their frequencies (higher = more likely to be picked).
-			indices = this.sample_two_haps_prob();
+			indices = this.sample_two_haps_prob(p);
 		}
-		double ori_freq_1 = this.global_haps_freq[indices[0]];
-		double ori_freq_2 = this.global_haps_freq[indices[1]]; // Backup for returning to the original of rejected. 
+		double ori_freq_1 = this.in_pool_haps_freq[indices[0]][p];
+		double ori_freq_2 = this.in_pool_haps_freq[indices[1]][p]; // Backup for returning to the original of rejected. 
 	    BetaDistribution beta_dist=new BetaDistribution(beta_a+ori_freq_1*beta_c, beta_a+ ori_freq_2*beta_c);	// TODO Why is the transition matrix a beta distribution? Why do the parameters change with the frequencies selected?   
 	    double proportion = beta_dist.sample(); 		//gsl_ran_beta(rng,beta_a+p[i1]*beta_c,beta_a+p[i2]*beta_c);
-	    this.global_haps_freq[indices[0]] = ori_freq_1 * proportion;	// Haplotype 1 donates part of its frequency to haplotype 2. 
-	    this.global_haps_freq[indices[1]] = ori_freq_2 + ori_freq_1 * (1 - proportion);	// Note that this is different than hippo. Which for some reason uses (ori_freq_1 + ori_freq_2) * proportion. 
-	    double new_freq_1 = this.global_haps_freq[indices[0]]; 
-	    double new_freq_2 = this.global_haps_freq[indices[1]]; 
+	    this.in_pool_haps_freq[indices[0]][p] = ori_freq_1 * proportion;	// Haplotype 1 donates part of its frequency to haplotype 2. 
+	    this.in_pool_haps_freq[indices[1]][p] = ori_freq_2 + ori_freq_1 * (1 - proportion);	// Note that this is different than hippo. Which for some reason uses (ori_freq_1 + ori_freq_2) * proportion. 
+	    double new_freq_1 = this.in_pool_haps_freq[indices[0]][p]; 
+	    double new_freq_2 = this.in_pool_haps_freq[indices[1]][p]; 
 	    double tmp_logl = this.logL; 
-	    this.update_sigma_mu_logL();	// v0.5 this.logL is <v0.4 logl2.
+	    this.update_sigma_mu_logL(p);	// v0.5 this.logL is <v0.4 logl2.
 	    double logHR=this.logL - tmp_logl;	
 	    BetaDistribution beta_dist2=new BetaDistribution(beta_a+new_freq_1*beta_c,beta_a+new_freq_2*beta_c);  
 	    double prop_dens = 0;	// !!!
 	    try {	// This was included because when the original frequency of haplotype 2 was too small, beta_dist2.logDensity returned NaN because it couldn't use a number so close to 0.
-	    	double below_min = 0; 
+	    	double below_min = Math.pow(10, -10); 
 	    	if (ori_freq_2 > Math.pow(10, -17)) below_min = ori_freq_2; 
+	    	// System.out.println("ori_freq_2 = " + ori_freq_2 + "\t\tbelow_min = " + below_min);
 	    	prop_dens = beta_dist2.logDensity(ori_freq_1/(ori_freq_1+below_min))-beta_dist.logDensity(new_freq_1/(new_freq_1+new_freq_2));
-	    } catch (NumberIsTooSmallException e) {
+	    	// System.out.println("prop_dens = " + prop_dens);
+	    } catch (NumberFormatException e) {
 	    }
 	    logHR=logHR+prop_dens;    
 	    logHR+=(alpha-1)*(Math.log(new_freq_1)+Math.log(new_freq_2)-Math.log(ori_freq_1)-Math.log(ori_freq_2)); // TODO Why is there an additional scaling parameter? 
@@ -559,13 +661,12 @@ public class HapConfig {
 	    	logHR+=Math.log(new_freq_1)+Math.log(new_freq_2)+Math.log(1-ori_freq_2)+Math.log(1-ori_freq_1)-(Math.log(1-new_freq_1)+Math.log(1-new_freq_2)+Math.log(ori_freq_2)+Math.log(ori_freq_1));
 	    }
 		if( (!(Double.isNaN(this.logL))) && Math.log(ThreadLocalRandom.current().nextDouble())<=logHR){//proposal accepted
-			if(this.logL > solver.logL_best) solver.logL_best = this.logL;
 			return 1;
 		}
 		else{//proposal rejected
-		    this.global_haps_freq[indices[0]] = ori_freq_1;	
-		    this.global_haps_freq[indices[1]] = ori_freq_2;	
-		    this.update_sigma_mu_logL();	// Restore old values of mu, sigma, and logL. This might slow the MCMC down a lot. 
+		    this.in_pool_haps_freq[indices[0]][p] = ori_freq_1;	
+		    this.in_pool_haps_freq[indices[1]][p] = ori_freq_2;	
+		    this.update_sigma_mu_logL(p);	// Restore old values of mu, sigma, and logL. This might slow the MCMC down a lot. 
 		    return 0;
 		}		
 	}
@@ -590,17 +691,17 @@ public class HapConfig {
 	 * The second haplotype is selected randomly from the rest of the haplotypes. 
 	 * @return The indices of frequency-selected global haplotypes. Donor is first.
 	 */
-	int[] sample_two_haps_prob(){	// !!!
+	int[] sample_two_haps_prob(int p){	// !!!
 		double cumul_lim1 = ThreadLocalRandom.current().nextDouble();	// Real number between 0 and 1; 'floor' of maximum cumulative frequency.
 		int i1 = 0, i2 = 0; 
-		double cumul_freq = this.global_haps_freq[i1];
+		double cumul_freq = this.in_pool_haps_freq[i1][p];
 		while ((cumul_lim1 > cumul_freq) && (i1 < (this.num_global_hap - 1))) {
 			i1++; 
-			cumul_freq += this.global_haps_freq[i1];		
+			cumul_freq += this.in_pool_haps_freq[i1][p];		
 		}
-		double cumul_lim2 = ThreadLocalRandom.current().nextDouble() * (1 - this.global_haps_freq[i1]);
+		double cumul_lim2 = ThreadLocalRandom.current().nextDouble() * (1 - this.in_pool_haps_freq[i1][p]);
 		if (i1 == 0) i2 = 1;
-		cumul_freq = this.global_haps_freq[i2]; 
+		cumul_freq = this.in_pool_haps_freq[i2][p]; 
 		while ((cumul_lim2 > cumul_freq) && (i2 < (this.num_global_hap - 1))) {
 			i2++; 
 			if (i2 == i1) i2++; 
@@ -608,7 +709,7 @@ public class HapConfig {
 				i2--;
 				i1--; 
 			}
-			cumul_freq += this.global_haps_freq[i2]; 
+			cumul_freq += this.in_pool_haps_freq[i2][p]; 
 		}
 		return new int[] {i1, i2};
 	}
@@ -618,23 +719,22 @@ public class HapConfig {
 	 * @param The last two are for mu/sigma/logL updates.
 	 * @return 1 for a successful update, -1 for a failed update. 
 	 */
-	int mutate_a_hap(){
+	int mutate_a_hap(int p){
 		int hap_index=this.sample_one_hap(); // TODO Does this happen anywhere else? If not, get rid of it!
 		int loc_index = this.generate_mutant(hap_index, -1);
-		float[] tmp_hap = new float[this.num_loci]; 
+		double[] tmp_hap = new double[this.num_loci]; 
 		for (int l = 0; l < this.num_loci; l++) tmp_hap[l] = this.global_haps[hap_index][l]; 
 		if(search_a_hap(tmp_hap, loc_index)!=-1)return 0;
 	    double tmp_logl = this.logL; 
-	    this.update_sigma_mu_logL();	// v0.5 this.logL is <v0.4 logl2.
+	    this.update_sigma_mu_logL(p);	// v0.5 this.logL is <v0.4 logl2.
 
 		double logHR = this.logL - tmp_logl; // This is the log-likehood only because the transition probabilities are the same.
 		if( (!(Double.isNaN(this.logL))) && Math.log(ThreadLocalRandom.current().nextDouble())<=logHR){//proposal accepted
-			if(this.logL > solver.logL_best) solver.logL_best = this.logL;
 			return 1;
 		}
 		else{//proposal rejected
 			this.generate_mutant(hap_index, loc_index);
-		    this.update_sigma_mu_logL();	// Restore old values of mu, sigma, and logL. This might slow the MCMC down a lot. 
+		    this.update_sigma_mu_logL(p);	// Restore old values of mu, sigma, and logL. This might slow the MCMC down a lot. 
 			return 0;
 		}	
 	}
@@ -659,16 +759,16 @@ public class HapConfig {
 		} else {	// If the mutation proposal fails, revert to the original haplotype.
 			loc_index = revert;
 		}
-		float mut_allele = Math.abs(this.global_haps[hap_index][loc_index] - 1); 
-		this.global_haps_string[hap_index][loc_index] = Integer.toString(Math.round(mut_allele));
+		double mut_allele = Math.abs(this.global_haps[hap_index][loc_index] - 1); 
+		this.global_haps_string[hap_index][loc_index] = Long.toString(Math.round(mut_allele));
 		this.global_haps[hap_index][loc_index] = mut_allele;	// Don't need to re-encode all haplotypes for a single locus change.
 		return loc_index; 
 	}
 
-	float[] generate_mutant(int hap_index){
+	double[] generate_mutant(int hap_index){
 		int loc_index = (int) (ThreadLocalRandom.current().nextDouble() * this.num_loci);			
-		float mut_allele = Math.abs(this.global_haps[hap_index][loc_index] - 1); 
-		float[] tmp_hap = this.global_haps[hap_index].clone();
+		double mut_allele = Math.abs(this.global_haps[hap_index][loc_index] - 1); 
+		double[] tmp_hap = this.global_haps[hap_index].clone();
 		tmp_hap[loc_index] = mut_allele;
 		return tmp_hap;
 	}
@@ -679,71 +779,69 @@ public class HapConfig {
 	 * @return 0 if nothing done, 1 if mutated, -1 if mutant rejected, 2 if coalesced, -2 if coalescence rejected.  
 	 */
 	// TODO Figure out all of the derivations here.
-	int add_mutant_or_coalesce(double alpha, double p_add, double gamma, int coalescing_mismatch){
+	int add_mutant_or_coalesce(double alpha, double p_add, double gamma, int coalescing_mismatch, int p){
 		int hap_index = this.sample_one_hap();
 		boolean proceed_mut;
 		if(this.num_global_hap<=2)proceed_mut=true;
 		else proceed_mut = ThreadLocalRandom.current().nextDouble() < p_add;
 		if(proceed_mut){
-			double proportion = solver.new_old_haps_beta.sample(); // Move some frequency from the old hap to the new one. 
-			double ori_freq = this.global_haps_freq[hap_index];
-			float[] tmp_hap = generate_mutant(hap_index); 
+			double proportion = this.solver.new_old_haps_beta.sample(); // Move some frequency from the old hap to the new one. 
+			double ori_freq = this.in_pool_haps_freq[hap_index][p];
+			double[] tmp_hap = generate_mutant(hap_index); 
 			if(search_a_hap(tmp_hap, -1)!=-1){return 0;}
-			ArrayList<float[]> tmp_list = new ArrayList<float[]>();	// This might slow it down by a lot by creating a new ArrayList of size 1.
+			ArrayList<double[]> tmp_list = new ArrayList<double[]>();	// This might slow it down by a lot by creating a new ArrayList of size 1.
 			tmp_list.add(tmp_hap); 
-			this.addHaps(tmp_list, ori_freq * proportion, hap_index);
+			this.addHaps(tmp_list, ori_freq * proportion, hap_index, p);
 
 			double tmp_logl = this.logL; 
-		    this.update_sigma_mu_logL();	// v0.5 this.logL is <v0.4 logl2.
+		    this.update_sigma_mu_logL(p);	// v0.5 this.logL is <v0.4 logl2.
 			double logHR = this.logL - tmp_logl;
 		    logHR-=gamma;	// TODO why is this yet another scaling constant? 
 
-		    logHR+=(alpha-1)*(Math.log(this.global_haps_freq[hap_index])+Math.log(this.global_haps_freq[this.num_global_hap - 1])-Math.log(ori_freq)); // TODO Seems to be part of the prior for p, along w/ log-likelihood
-		    logHR+=-Math.log(this.num_global_hap)+Math.log(1-p_add)+Math.log(coalescing_probability(hap_index, this.num_global_hap-1, coalescing_mismatch));//inverse transition probability
-		    logHR+=Math.log((this.num_global_hap-1)*this.num_loci*1.0)-Math.log(solver.new_old_haps_beta.density(proportion)); //transition probability
+		    logHR+=(alpha-1)*(Math.log(this.in_pool_haps_freq[hap_index][p])+Math.log(this.in_pool_haps_freq[this.num_global_hap - 1][p])-Math.log(ori_freq)); // TODO Seems to be part of the prior for p, along w/ log-likelihood
+		    logHR+=-Math.log(this.num_global_hap)+Math.log(1-p_add)+Math.log(coalescing_probability(hap_index, this.num_global_hap - 1, coalescing_mismatch, p));//inverse transition probability
+		    logHR+=Math.log((this.num_global_hap-1)*this.num_loci*1.0)-Math.log(this.solver.new_old_haps_beta.density(proportion)); //transition probability
 		    logHR+=Math.log(ori_freq); //|Jacobian|    
 		    
 			if( (!(Double.isNaN(this.logL))) && Math.log(ThreadLocalRandom.current().nextDouble())<=logHR){//proposal accepted
-				if(this.logL > solver.logL_best) solver.logL_best = this.logL;
 				return 1;
 			}
 			else{//proposal rejected
-				this.global_haps_freq[hap_index]=ori_freq;
+				this.in_pool_haps_freq[hap_index][p]=ori_freq;
 				boolean[] list_rem_hap = new boolean[this.num_global_hap];
 				list_rem_hap[this.num_global_hap - 1] = true;
-				remHaps(list_rem_hap, 1);
+				remHaps(list_rem_hap, 1, true);
 				return -1;
 			}	
 		}else{ //coalesce index with the closest hap.
 			double[] sampling_prob=new double[1];
 			int coal_index=seek_coalescence(hap_index, coalescing_mismatch, sampling_prob);
 			if(coal_index==-1)return 0; // no hap selected, return 0.
-			double ori_freq_1=this.global_haps_freq[hap_index];
-			double ori_freq_2=this.global_haps_freq[coal_index];
-			this.global_haps_freq[hap_index]=0;
-			this.global_haps_freq[coal_index]+=ori_freq_1;
+			double ori_freq_1=this.in_pool_haps_freq[hap_index][p];
+			double ori_freq_2=this.in_pool_haps_freq[coal_index][p];
+			this.in_pool_haps_freq[hap_index][p]=0;
+			this.in_pool_haps_freq[coal_index][p]+=ori_freq_1;
 			// calculating new logL:
 			double tmp_logl = this.logL; 
-		    this.update_sigma_mu_logL();	// v0.5 this.logL is <v0.4 logl2.
+		    this.update_sigma_mu_logL(p);	// v0.5 this.logL is <v0.4 logl2.
 			double logHR = this.logL - tmp_logl;
 
 		    logHR+=gamma;
-		    logHR+=(alpha-1)*(Math.log(this.global_haps_freq[coal_index])-Math.log(ori_freq_1)-Math.log(ori_freq_2)); //prior for p
+		    logHR+=(alpha-1)*(Math.log(this.in_pool_haps_freq[coal_index][p])-Math.log(ori_freq_1)-Math.log(ori_freq_2)); //prior for p
 		    logHR-=-Math.log(this.num_global_hap)+Math.log(1-p_add)+Math.log(sampling_prob[0]);//transition probability
 		    logHR+=-Math.log((this.num_global_hap-1)*this.num_loci*1.0)+
-		    		Math.log(solver.new_old_haps_beta.density(ori_freq_2/this.global_haps_freq[coal_index])); //inverse transition probability
+		    		Math.log(this.solver.new_old_haps_beta.density(ori_freq_2/this.in_pool_haps_freq[coal_index][p])); //inverse transition probability
 			logHR+=-Math.log(ori_freq_1+ori_freq_2); //|Jacobian|
 			
 			if( (!(Double.isNaN(this.logL))) && Math.log(ThreadLocalRandom.current().nextDouble())<=logHR){//proposal accepted
-				if(this.logL > solver.logL_best) solver.logL_best = this.logL;
 				boolean[] list_rem_hap = new boolean[this.num_global_hap];
 				list_rem_hap[hap_index] = true;
-				remHaps(list_rem_hap, 1);
+				remHaps(list_rem_hap, 1, true);
 				return 2;
 			}
 			else{//proposal rejected
-				this.global_haps_freq[hap_index]=ori_freq_1;
-				this.global_haps_freq[coal_index]=ori_freq_2;
+				this.in_pool_haps_freq[hap_index][p]=ori_freq_1;
+				this.in_pool_haps_freq[coal_index][p]=ori_freq_2;
 				return -2;
 			}	
 		}					
@@ -756,7 +854,9 @@ public class HapConfig {
 	 * @return The likelihood of i2 coalescing towards i1 expressed as the frequency of i2 over total acceptable haplotypes.
 	 */
 	// TODO Figure out the logic of this function.
-	double coalescing_probability(int i1, int i2, int coalescing_mismatch){
+	// coalescing_probability(hap_index, this.num_global_hap - 1, coalescing_mismatch, p))
+	// i1 = hap_index is the originating haplotype. i2 = the new haplotype. 
+	double coalescing_probability(int i1, int i2, int coalescing_mismatch, int p){
 		double sum=0;	// Frequencies of the haplotypes that are 1 position away from the original haplotype i1.
 		for(int h=0;h<this.num_global_hap - 1;h++){	// The last one is the newest haplotype, so don't look at it. 
 			int diff=0;
@@ -764,10 +864,10 @@ public class HapConfig {
 				if(this.global_haps[i1][l]!=this.global_haps[h][l]) diff++;
 				if(diff>coalescing_mismatch) break;
 			}
-			if(diff<=coalescing_mismatch)sum+=this.global_haps_freq[h];
+			if(diff<=coalescing_mismatch)sum+=this.in_pool_haps_freq[h][p];
 			if(h==i2 && diff!=1)System.out.println("ERROR: in coalescing probability, d(h(i1),h(12))>1\n");
 	    }
-		return this.global_haps_freq[i2]/sum;
+		return this.in_pool_haps_freq[i2][p]/sum;
 	}
 	
 	/*
@@ -782,7 +882,7 @@ public class HapConfig {
 		int[] distance=new int[this.num_global_hap];
 		int smallest_found=unacceptable; // initialize
 		distance[hap_index]=unacceptable;  // itself will be excluded.
-		float[] the_target=this.global_haps[hap_index].clone();
+		double[] the_target=this.global_haps[hap_index].clone();
 		for(int h=0;h<this.num_global_hap;h++){
 			if(h==hap_index)continue;
 			for(int l=0;l<this.num_loci;l++){				

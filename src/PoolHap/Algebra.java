@@ -21,29 +21,6 @@ public class Algebra {
 		}return result;
 	}
 	
-	public static double[] minus(float[] a1, double[] a2){
-		if(a1.length!=a2.length){
-			System.out.println("Can't carry out minus: a1.length!=a2.length");
-			return null;
-		}
-		double[] result=new double[a1.length];
-		for(int k=0;k<a1.length;k++){
-			result[k]=a1[k]-a2[k];
-		}return result;
-	}
-	
-	public static double[] minus(double[] a1, float[] a2){
-		if(a1.length!=a2.length){
-			System.out.println("Can't carry out minus: a1.length!=a2.length");
-			return null;
-		}
-		double[] result=new double[a1.length];
-		for(int k=0;k<a1.length;k++){
-			result[k]=a1[k]-a2[k];
-		}return result;
-	}
-
-	
 	public static double[] minus(double[] a1, int[] a2){
 		if(a1.length!=a2.length){
 			System.out.println("Can't carry out minus: a1.length!=a2.length");
@@ -274,11 +251,11 @@ public class Algebra {
 	 *  To save time of solving the matrix we can't run the above method k times. 
 	 */
 	public static double logL_aems(double[][] sigma, double[] mu, double[][] x){		// Formerly, logL_normal.
-		// Part of CurrentHap (3b-v) update_freq, (3b-vi) add_mutant_or_coalesce, (3b-vii) mutate_a_hap. To calculate the initial log-likelihood of the haplotype distribution explaining the aggregate variant data. Density of normal distribution as likelihood. Product of multiple density sharing the same normal distribution (\sigma and \mu)...? 
+		// x is public double[][] inpool_site_freqs i.e.: #loci x #pools, so it should be x.length
 		int n=mu.length;
 		int dim_span=0;
-		if(x[0].length!=n || sigma.length!=n || sigma[0].length!=n)
-			System.out.println("logL_normal: Length of arrays don't match!");	// If the number of variant positions don't match up between all three input parameters, report the error.
+		// System.out.println(x.length + "\t" + sigma.length + "\t" + sigma[0].length);
+		if(x.length!=n || sigma.length!=n || sigma[0].length!=n) System.out.println("logL_aems: Length of arrays don't match!");	// If the number of variant positions don't match up between all three input parameters, report the error.
 		SingularValueDecomposition svd=new SingularValueDecomposition(MatrixUtils.createRealMatrix(sigma));
 	    double[] sv=svd.getSingularValues();	// Solve the covariate matrix using singular value decomposition to get its eigenvalues.
 	    // if(not_in_span(svd, sigma, mu, x))return Double.NaN;	// (0-i) If the the haplotypes are not in the span return an NaN. 
@@ -293,10 +270,12 @@ public class Algebra {
 	    constant=constant-0.5*log_p_det;	// ... log(2 * pi) / (1/2 * size_min_set_span), and subtract half of log_p_det from the log-likelihood.
 	    									// Recall that log_p_det is the sum of the log(covariate eigenvalues).
 	    RealMatrix si= svd.getSolver().getInverse();	// Get the inverse matrix of the covariate eigenvalues.
-		int num_x=x.length;
+		int num_x=x[0].length; 
 		double logL=0;
-		for(int k=0;k<num_x;k++){	// For each pool in the double[][] data matrix... 		
-			double quadratic=quadratic_form(minus(x[k], mu), si.getData());	// (0-ii) Get the inner product of (data - mu) and (inverse matrix of covariate eigenvalues). Add that base value to the running total of the log-likelihood.
+		for(int k=0;k<num_x;k++){	// For each pool in the double[][] data matrix...
+			double[] data_inpool = new double[n]; 
+			for (int v = 0; v < n; v++) data_inpool[v] = x[v][k];
+			double quadratic=quadratic_form(minus(data_inpool, mu), si.getData());	// (0-ii) Get the inner product of (data - mu) and (inverse matrix of covariate eigenvalues). Add that base value to the running total of the log-likelihood.
 		    double log_likelihood=constant + (-0.5*quadratic);	// ...subtract half of the quadratic form from the base value of the log-likelihood. 
 		    logL=logL+log_likelihood;	// In other words, the base log-likelihood decreases in a different way for each pool, and total log-likelihood is a sum of all of the individual ones.
 		}	
@@ -304,62 +283,30 @@ public class Algebra {
 		return logL;
 	}
 
-	public static double logL_rjmcmc(double[][] sigma, double[] mu, double[][] x, int num_ind){	// !!! NEW
+	public static double logL_rjmcmc(double[][] sigma, double[] mu, double[] x){	// NOTE: This might be wayyyyyy too small to use. Will have to observe the values coming out of it.
 		int n=mu.length;
-		if(x[0].length!=n || sigma.length!=n || sigma[0].length!=n)
-			System.out.println("logL_normal: Length of arrays don't match!");	// If the number of variant positions don't match up between all three input parameters, report the error.
-		RealMatrix sigma_mtx = MatrixUtils.createRealMatrix(sigma); 
-		SingularValueDecomposition svd=new SingularValueDecomposition(sigma_mtx);
+		int dim_span=0;
+		if(x.length!=n || sigma.length!=n || sigma[0].length!=n)	// Note that x is the DATA i.e.: the observed allele frequencies in pool p, as set by update_sigma_mu_logL.
+			System.out.println("logL_rjmcmc: Length of arrays don't match!");	// If the number of variant positions don't match up between all three input parameters, report the error.
+		SingularValueDecomposition svd=new SingularValueDecomposition(MatrixUtils.createRealMatrix(sigma));
 	    double[] sv=svd.getSingularValues();	// Solve the covariate matrix using singular value decomposition to get its eigenvalues.
-	 // System.out.print("Printing the eigenvalue vector...\n");
-	    /*
-	    for (int g = 0; g < sv.length; g++) {	// !!!To check accuracy of rjMCMC!!! Prints the eigenvalue vector.
-	    	System.out.print(sv[g] + " "); 
-	    }
-	 // System.out.print("\n"); 
-	    */
 	    // if(not_in_span(svd, sigma, mu, x))return Double.NaN;	// (0-i) If the the haplotypes are not in the span return an NaN. 
 	    double log_p_det=0;
 	    for(int k=0;k<sv.length;k++){
 	    	if(sv[k]!=0){	// If the singular value/eigenvalue at variant k is not 0, add log(SV) to log_p_det (starts at 0). Also, increment dim_span. 
 	    		log_p_det=log_p_det+Math.log(sv[k]);
+	    		dim_span++;
 	    	}
 	    }//System.out.println("dim_span: "+dim_span);
-	 // System.out.print("log_p_det = " + log_p_det + "\n"); 
-   		double num_x = x.length;
-   		double num_ev = sv.length;
-   		double logL=0;
-	    // double constant=Math.log(2*Math.PI)*(-dim_span/2.0)*num_x;	// !!! x.length from n_pools in hippo_functions.c line 748.
-	    double[] poolcov = new double[sv.length]; 
-	    for (int k = 0; k < x.length; k++) {
-	    	double[] y_minus_a = minus(x[k], times(mu,(2.0*num_ind))); 
-	    	// System.out.print("Printing the y_minus_a vector...\n");
-	    	// for(int f=0;f<n;++f) { // !!!To check accuracy of rjMCMC!!! Prints the y_minus_a vector.
-				// System.out.print(y_minus_a[f] + " "); 
-	    	// }
-			// System.out.print("\n\n"); 
-	    	double[] yy = sigma_mtx.operate(y_minus_a); 
-	    	// System.out.print("Printing the yy vector...\n");
-	    	// for(int f=0;f<n;++f) { // !!!To check accuracy of rjMCMC!!! Prints the yy vector.
-	    		// System.out.print(yy[f] + " "); 
-	    	// }
-	    	// System.out.print("\n\n"); 
-			for(int f=0;f<n;++f) { 
-		    	poolcov[f] = -0.25 / num_ind / sv[f] / y_minus_a[f]; 
-		    }
-			// System.out.print("Printing the poolcov vector...\n");
-			// for(int f=0;f<n;++f) { // !!!To check accuracy of rjMCMC!!! Prints the poolcov (x) vector.
-	    		// System.out.print(poolcov[f] + " "); 
-			// }
-	    	// System.out.print("\n\n"); 		    
-		    double yy_x_ip = inner_product(yy,poolcov);
-		    // System.out.print(yy.length + " " + poolcov.length + "\n");
-		 // System.out.print("val " + k + " = " + yy_x_ip + "\n"); // !!!To check accuracy of rjMCMC!!! Prints each value of val at pool k.
-		    logL += yy_x_ip - 0.5 * (num_ev * Math.log(2 * num_ind) + log_p_det);
-		 // System.out.print("logL " + k + " = " + logL + "\n\n"); // !!!To check accuracy of rjMCMC!!! Prints each value of log at pool k.
-		}
-		logL += -0.5 * num_ev * num_x * Math.log(2*Math.PI);
-		// System.out.print("logL final = " + logL + "\n"); // !!!To check accuracy of rjMCMC!!! Prints the final value of log.
-		return logL; 
-	}	
+	    double constant=Math.log(2*Math.PI)*(-dim_span/2.0);	// Instead of using the number of variants (mu.length), Set the base value of the log-likelihood (LL) as...
+	    constant=constant-0.5*log_p_det;	// ... log(2 * pi) / (1/2 * size_min_set_span), and subtract half of log_p_det from the log-likelihood.
+	    									// Recall that log_p_det is the sum of the log(covariate eigenvalues).
+	    RealMatrix si= svd.getSolver().getInverse();	// Get the inverse matrix of the covariate eigenvalues.
+		double logL=0;
+		double quadratic=quadratic_form(minus(x, mu), si.getData());	// (0-ii) Get the inner product of (data - mu) and (inverse matrix of covariate eigenvalues). Add that base value to the running total of the log-likelihood.
+	    double log_likelihood=constant + (-0.5*quadratic);	// ...subtract half of the quadratic form from the base value of the log-likelihood. 
+	    logL=logL+log_likelihood;	// In other words, the base log-likelihood decreases in a different way for each pool, and total log-likelihood is a sum of all of the individual ones.
+		//System.out.println("debug: "+logL);		
+		return logL;
+	}
 }
