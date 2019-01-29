@@ -18,7 +18,7 @@ public class LocusAnnotation {
 	int start_loc; 
 	int end_loc;	// For SNPs and indels, end_loc=start_loc; start_loc!=end_loc only if it is a region, instead of a primitive locus
 	String[] alleles; // Note that the length of each allele are the same if this.is_region==false. 
-	HashMap<String, Float> alleles_coding;
+	public HashMap<String, Double> alleles_coding;
 	String annotation=null;	
 	
 	/*
@@ -41,14 +41,13 @@ public class LocusAnnotation {
 	 * NOTE: if it is an indel, start_loc=end_loc; Here start_loc!=end_loc only if it is a region, instead of a primitive locus.
 	 * 
 	 */
-	
 	public LocusAnnotation(String locus_info){
 		String[] the_info=locus_info.split(";");
 		this.chr_index=Integer.parseInt(the_info[0]);
 		this.start_loc=Integer.parseInt(the_info[1]);;
 		this.end_loc =Integer.parseInt(the_info[2]);;
 		this.alleles=the_info[3].split(":");
-		this.is_region=(this.start_loc==this.end_loc);
+		this.is_region=(this.start_loc!=this.end_loc);
 		this.encode_alleles();
 	}
 	
@@ -87,9 +86,9 @@ public class LocusAnnotation {
 	void encode_alleles(){
 		// if it is not a region, then just code the alleles using 0,1,2,3,... in a random order.
 		if(!is_region){
-			this.alleles_coding=new HashMap<String, Float>();
+			this.alleles_coding=new HashMap<String, Double>();
 			for(int i=0;i<this.alleles.length;i++)
-				this.alleles_coding.put(this.alleles[i], (float)(i+0.0));
+				this.alleles_coding.put(this.alleles[i], (double) i);
 		}else{  // it is a region. We assign the code based on the similarity of the alleles.
 			// form a distance matrix 
 			int allele_num=this.alleles.length;
@@ -112,7 +111,7 @@ public class LocusAnnotation {
 				}
 			}			
 			// project the distance matrix to a direction for single values. //TODO
-			double[] hap_codes= matrix_projection(the_distances);
+			// double[] hap_codes= matrix_projection(the_distances); // TODO
 		}		
 	}
 	
