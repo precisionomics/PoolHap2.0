@@ -5,6 +5,20 @@ Suggestion: I would run this in Eclipse because everything is set up for in-Ecli
 2) Add the directory containing config_v0_6.properties (in the directory sample_input_data) to the build as an external classpath. 
 3) Set the input/output file and directory names in the class MainTest. 
 
+### How to simulate 'perfect' VEFs to test PHX performance with:
+
+**Program:** FullSimulator2. Can be found in JAR form as well as in src/MiscFunctions as a .java file. 
+**Input:** Path to fullsim2.properties. 
+**Output:** inter_freq_vars (global haplotype frequency and variant composition), haps.intra_freq (in-pool haplotype frequencies), and vars.intra_freq (in-pool alternate allele frequencies) text files. Pool VEF files.  
+**Prerequisites:** Installed copies of ms and DWGSIM. Java 1.8+. 
+_Setup and Running_ Steps: 
+1. Install ms and DWGSIM and add the full directory path to the fullsim2.properties text file. 
+2. Create a working directory and place fullsim2.properties in it. Add the path of the working directory to fullsim2.properties. Add the path of the working directory to the .classpath file in this repo.
+3. Put a reference sequence in the working directory and add its name to fullsim2.properties. In this repo, it's HIV_HXB2.fa.
+4. Set the rest of the toggle-able parameters in fullsim2.properties. 
+5. Run the FullSimulator2 JAR executable with the path to fullsim2.properties. All VEF and gold-standard files will be in the working directory. 
+- Generating 93 haplotypes x 100 variant positions x 100 pools VEFs took about 17 minutes. The bulk of the time was spent simulating the paired-end reads using DWGSIM and/or gunzip-ing the outputs.
+
 ### How to measure PHX reconstruction accuracy:
 I have written a program called Orig2Recons (in the MiscFunctions project subfolder) that compares original haplotypes to the closest reconstructed haplotype. There are two functions that look very similar (OutputReporter and ResultsReporter) that were designed to give us the accuracy of the in-pool and between-pool frequency. The descriptions of the inputs are at the top of the JAVA file. Please note that this was designed for output from much older versions of PHX i.e.: they do not take output files that we have designed now. There will have to be a significant amount of refactoring to retrofit Orig2Recons for our current type of output. The input file for the original haplotypes, simhaps.mutations.txt, should remain the same. 
 NOTE: Versions of the original haplotype file that contain only 67 variants have not been made i.e.: the original haplotypes contain 100 variant positions. This shouldn't be a problem. I think I designed Orig2Recons to handle this as I have considered variant error from the very beginning of the design. But please check just in case!
