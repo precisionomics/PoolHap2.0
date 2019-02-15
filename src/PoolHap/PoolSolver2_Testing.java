@@ -3,8 +3,6 @@ package PoolHap;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
 import org.apache.commons.math3.distribution.BetaDistribution;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
@@ -13,14 +11,15 @@ import org.apache.commons.math3.linear.SingularValueDecomposition;
 import PoolHap.Parameters.*;
 import PoolHap.HapConfig;
 
-public class PoolSolver2 {
+public class PoolSolver2_Testing {
 	
 	// Redundant variables for convenience
 	public int num_snp;					// number of SNPs in this region
 	public int num_pools;				// number of pools under study	
-	// Msin structures
+	// Main structures
 	HapConfig initial_Haps; 
-	HapConfig[] final_Haps; 			// The best haplotype set for each pool.
+	HapConfig[] best_Haps_buffer;
+	double logL_best;
 	// Solver parameters
 	McmcParameters mcmc_parameters;
 	BetaDistribution new_old_haps_beta;	// This is for suggesting proportions of haplotypes to section off for new haplotypes.
@@ -30,14 +29,13 @@ public class PoolSolver2 {
 	 * @param Estimated variant frequencies, positions of the primitive loci, list of each pool's VEFs. 
 	 * @return To set up and adjust variant composition and inter/intra-pool frequencies of curr_Haps. 
 	 */
-	public PoolSolver2(int num_snp, int num_pools, HapConfig hap_config, String parameter_file) throws Exception{
+	public PoolSolver2_Testing(int num_snp, int num_pools, HapConfig hap_config, String parameter_file) throws Exception{
 		this.num_snp = num_snp;
 		this.num_pools = num_pools;
 		this.initial_Haps = hap_config;
 		this.initial_Haps.solver = this;	// TODOFIXED This doesn't pass down into the this.initial_Haps clones of rjMCMC! So we're not calculating stuff correctly at all!
-		this.final_Haps = new HapConfig[this.num_pools]; 
 		analyze_a_region_aem(parameter_file); 
-		analyze_a_region_mcmc(parameter_file);
+		// analyze_a_region_mcmc(parameter_file);
 	}
 
 	/*
@@ -156,7 +154,7 @@ public class PoolSolver2 {
 				list_rem_haps[h] = true; 
 				num_rem_hap++; 
 			} else this.initial_Haps.global_haps_freq[h] = p[h]; 
-		this.initial_Haps.remHaps(list_rem_haps, num_rem_hap, false);
+		this.initial_Haps.remHaps(list_rem_haps, num_rem_hap);
 		// stdout.write("\n" + num_rem_hap + " haplotypes were removed due to zeroed frequency after AEM.");
 		
 		System.out.println("\nThe pools are composed of " + this.initial_Haps.num_global_hap + " haplotypes.");
@@ -164,31 +162,29 @@ public class PoolSolver2 {
 	}
 
 	/*
-	 * The main method for running multi-round rjMCMC on haplotypes to refine their variant compositions and within-pool frequencies. 
-	 * @param hap_config, the set of possible sub-haplotypes in a specific region. mcmc_parameters make the running of a reverse-jump MCMC procedure possible. 
-     * @return Refined guess of within-pool haplotype variant compositions and their within-pool frequencies. 
+	 * The main method for running multi-round rjMCMC on haplotypes to refine their variant compositions and global frequencies. 
+	 * @param Various parameters for estimating parameters from a Hastings-within-Gibbs procedure. 
+     * @return Refined guess of inter-pool haplotypes in best_Haps. 
 	 */
 	public void analyze_a_region_mcmc(String parameter_file) throws IOException{
 		PrintWriter stdout = new PrintWriter(new FileWriter("/home/lmak/Documents/gc/mcmc_I_0.txt"));
 		this.mcmc_parameters = new McmcParameters(parameter_file);
-		this.new_old_haps_beta=new BetaDistribution(mcmc_parameters.c_old, mcmc_parameters.c_new);	
+		this.new_old_haps_beta=new BetaDistribution(this.mcmc_parameters.c_old, mcmc_parameters.c_new);	
+		this.best_Haps_buffer = new HapConfig[this.mcmc_parameters.num_round]; 
 		stdout.println("There are " + this.initial_Haps.num_global_hap + " initial haplotypes.\n");
-		for (int pool = 0; pool < this.num_pools; pool++) {
-			ArrayList<HapConfig> best_Haps_buffer=new ArrayList<HapConfig>();
-			for(int round=0; round < mcmc_parameters.num_round;round++){
-				HapConfig curr_Haps = this.initial_Haps.clone(0, false);
-				curr_Haps.solver = this;	// TODO make sure that the update functions that require the beta distribution actually access this.
-				curr_Haps.checkrank_and_fullfill(mcmc_parameters.freqs_sum, pool);
-				stdout.write("Starting MCMC round " + round + " for pool " + pool + ": logL = " + curr_Haps.logL + "\nThere are " + curr_Haps.num_global_hap + " initial haplotypes.\n\n");
-				best_Haps_buffer.add(population_freq_rjmcmc(curr_Haps, pool, stdout));
-			}
-			int best_index=0;
-			if (mcmc_parameters.num_round == 0) best_index = 0;
-			else for(int round=1; round<mcmc_parameters.num_round;round++)
-				if (best_Haps_buffer.get(round).logL > best_Haps_buffer.get(best_index).logL)
-					best_index=round;
-			this.final_Haps[pool] = best_Haps_buffer.get(best_index).clone(mcmc_parameters.rare_cutoff, true);
+		for (int round = 0; round < this.mcmc_parameters.num_round; round++){
+			HapConfig curr_Haps = this.initial_Haps.clone(0);
+			curr_Haps.solver = this;	// TODO make sure that the update functions that require the beta distribution actually access this.
+			curr_Haps.checkrank_and_fullfill(mcmc_parameters.freqs_sum);
+			stdout.write("Starting RJMCMC round " + round + ": logL = " + curr_Haps.logL + "\nThere are " + curr_Haps.num_global_hap + " initial haplotypes.\n\n");
+			this.best_Haps_buffer[round] = single_round_rjmcmc(curr_Haps, stdout);
 		}
+		int best_index = 0;
+		if (mcmc_parameters.num_round != 0)
+			for (int round = 1; round<mcmc_parameters.num_round;round++)
+				if (this.best_Haps_buffer[round].logL > this.best_Haps_buffer[best_index].logL) best_index = round;
+		HapConfig best_Haps = this.best_Haps_buffer[best_index].clone(mcmc_parameters.rare_cutoff);
+		this.logL_best = best_Haps.logL;
 		stdout.close();
 	}
 	
@@ -197,20 +193,20 @@ public class PoolSolver2 {
 	 * @param Various parameters for estimating parameters from a Hastings-within-Gibbs procedure. 
 	 * @return Proposal for a refined guess of inter-pool haplotypes. 
 	 */
-	public HapConfig population_freq_rjmcmc(HapConfig curr_Haps, int pool, PrintWriter stdout){
+	public HapConfig single_round_rjmcmc(HapConfig curr_Haps, PrintWriter stdout){
 		int accept_freq=0, accept_substit=0, accept_additions=0,accept_deletions=0; // ,accept_recomb=0,reject_recomb=0; also had rejection before
 		try{
 			stdout.write("Burning in for " + mcmc_parameters.burn_in + " iterations...\n");
 			for (int iter = 0; iter < mcmc_parameters.burn_in; iter++) {	// These are the burn-in iterations. Nothing will be recorded here...
-				curr_Haps.update_freqs(mcmc_parameters.beta_a, mcmc_parameters.beta_c, mcmc_parameters.alpha, iter, pool); // !!!
-				curr_Haps.mutate_a_hap(pool);
-				curr_Haps.add_mutant_or_coalesce(mcmc_parameters.alpha, mcmc_parameters.p_add, mcmc_parameters.gamma, mcmc_parameters.coalescing_mismatch, pool);
+				curr_Haps.update_freqs(mcmc_parameters.beta_a, mcmc_parameters.beta_c, mcmc_parameters.alpha, iter); // !!!
+				curr_Haps.mutate_a_hap();
+				curr_Haps.add_mutant_or_coalesce(mcmc_parameters.alpha, mcmc_parameters.p_add, mcmc_parameters.gamma, mcmc_parameters.coalescing_mismatch);
 			}
 			stdout.write("Running for " + mcmc_parameters.max_iteration + " iterations...\n");
 			for(int iter=0;iter< mcmc_parameters.max_iteration; iter++){
-				accept_freq += curr_Haps.update_freqs(mcmc_parameters.beta_a, mcmc_parameters.beta_c, mcmc_parameters.alpha, iter, pool); // !!!  		
-				accept_substit += curr_Haps.mutate_a_hap(pool);
-				int add_or_del=curr_Haps.add_mutant_or_coalesce(mcmc_parameters.alpha, mcmc_parameters.p_add, mcmc_parameters.gamma, mcmc_parameters.coalescing_mismatch, pool);
+				accept_freq += curr_Haps.update_freqs(mcmc_parameters.beta_a, mcmc_parameters.beta_c, mcmc_parameters.alpha, iter); // !!!  		
+				accept_substit += curr_Haps.mutate_a_hap();
+				int add_or_del=curr_Haps.add_mutant_or_coalesce(mcmc_parameters.alpha, mcmc_parameters.p_add, mcmc_parameters.gamma, mcmc_parameters.coalescing_mismatch);
 				if(add_or_del==1) accept_additions++;
 				else if(add_or_del==2) accept_deletions++;
 			}
@@ -223,7 +219,7 @@ public class PoolSolver2 {
 		return curr_Haps;
 	}
 
-	public HapConfig report(){
+	/* public HapConfig report(){
 		ArrayList<String> tmp_IDs = new ArrayList<String>(); 
 		HashMap<String, ArrayList<Integer>> id2pools = new HashMap<String, ArrayList<Integer>>(); // Maps haplotypes to the (list of) pools they occur in. 
 		for (int p = 0; p < this.num_pools; p++) {
@@ -254,5 +250,5 @@ public class PoolSolver2 {
 		// System.out.println(final_IDs);
 		return new HapConfig(tmp_global_string, tmp_global_freq, tmp_in_pool_freq, this.initial_Haps.inpool_site_freqs, 
 				this.initial_Haps.locusInfo, this.num_pools, final_IDs, this.initial_Haps.pool_IDs, this.initial_Haps.est_ind_pool);
-	}
+	}*/
 }
