@@ -20,7 +20,7 @@ public class Parameters {
 		public int est_ind_pool; 
 		public int level_I_and_II_alignment_cutoff; 
 
-		DivideParameters(String propFilePath) throws IOException { 
+		public DivideParameters(String propFilePath) throws IOException { 
 			InputStream is = null; 
 			try {
 				Properties prop = new Properties();
