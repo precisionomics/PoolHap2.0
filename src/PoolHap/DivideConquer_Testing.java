@@ -19,11 +19,15 @@ import java.util.Date;
 
 import PoolHap.Parameters.*;
 import PoolHap.HapConfig;
+import PoolHap.HapSegment;
+import PoolHap.SiteInPoolFreqAnno;
+import PoolHap.LocusAnnotation;
+import PoolHap.PoolSolver2_Testing;
 
 import static java.util.stream.Collectors.*;
 import static java.util.Map.Entry.*;
 
-public class DivideConquer {
+public class DivideConquer_Testing {
 
 	/*
 	 * @author  Quan Long. Oct 08, 2018
@@ -60,7 +64,7 @@ public class DivideConquer {
 	/*
 	 * Constructor that generate dividing plans based on GC outcomes.
 	 */
-	public DivideConquer(String frequency_file, String gc_pathes_file, String parameter_file, String dc_plan_outfile){
+	public DivideConquer_Testing(String frequency_file, String gc_pathes_file, String parameter_file, String dc_plan_outfile){
 		try{
 			this.divide_parameters=new DivideParameters(parameter_file);
 			System.out.println("Finished loading PHX Parameter File: "+parameter_file);
@@ -131,6 +135,8 @@ public class DivideConquer {
 	public void generate_dividing_plan_two_level(String[][] graph_coloring_outcome){
 		// Step 1) Generate list of positions where there are linkage uncertainties i.e.: gaps.
 		int[] gap_positions=identify_gaps(graph_coloring_outcome);  
+		// for (int i : gap_positions) System.out.print(i + "\t");
+		// System.out.println();
 		// Step 2) Make the level 1 regions i.e.: windows of variants based on the generated gaps.
 		ArrayList<Integer> region_cuts=new ArrayList<Integer>();	// These are the boundaries of the regions/windows of variants. 
 		int curr_unmatched_len=0;	// This is the length of (number of variants in) the region/windows of variants so far.
@@ -187,6 +193,7 @@ public class DivideConquer {
 	 * 	double gap_all_pool_cutoff
 	 * 	double gap_inpool_cutoff
 	 */
+	// this.gc_outcome=new String[num_pools][new String[haps_list.size()]];
 	public int[] identify_gaps(String[][] graph_coloring_outcome){
 		ArrayList<Integer> gap_indexes=new ArrayList<>();
 		// Step 1) Count up the number of gaps within each and between all of the raw GC haplotypes and all of the pools.
@@ -207,15 +214,23 @@ public class DivideConquer {
 				}
 			}
 		}
+		/*
+		for (int i = 0; i < this.num_pools; i++) {
+			for (int j = 0; j < this.num_sites - 1; j++) System.out.print(gap_counts[i][j] + "\t");
+			System.out.println();
+		}
+		for (double k : num_haps_inpool) System.out.println(k + "\t");
+		System.out.println();
+		*/
 		// Step 2) Check if the potential gaps meet the within- OR between-pool frequency thresholds.
 		HashSet<Integer> gap_indexes_set=new HashSet<Integer>();
 		for(int k=0;k<this.num_sites-1;k++){
-			if(gap_counts_all[k]/num_haps_all>=this.divide_parameters.gap_all_pool_cutoff && !gap_indexes_set.contains(k)){
+			if((double) gap_counts_all[k]/num_haps_all>=this.divide_parameters.gap_all_pool_cutoff && !gap_indexes_set.contains(k)){
 				gap_indexes.add(k);
 				gap_indexes_set.add(k);
 			}
 			for(int p=0;p<this.num_pools;p++){
-				if(gap_counts[p][k]/num_haps_inpool[p]>=this.divide_parameters.gap_inpool_cutoff && !gap_indexes_set.contains(k)){	
+				if((double) gap_counts[p][k]/num_haps_inpool[p]>=this.divide_parameters.gap_inpool_cutoff && !gap_indexes_set.contains(k)){	
 					gap_indexes.add(k);
 					gap_indexes_set.add(k);
 				}
@@ -250,9 +265,9 @@ public class DivideConquer {
 				BufferedReader br= new BufferedReader(new FileReader(new File(graph_coloring_outcome_files[p_index])));
 				String line=br.readLine();
 				while(line.startsWith("#"))line=br.readLine();
-				this.num_sites=(line.length()+1)/2;
-				while(line!=null){
-					haps_list.add(line);
+				this.num_sites=(line.length()-1)/2;	// Changed from original code (+1 -> -1) because at the end of the draft haplotype variant 
+				while(line!=null){					// composition, the output_ref_arr.get(x), which seems to be the count of that draft  
+					haps_list.add(line);			// haplotype in the pool, is also outputted. Need to NOT read this into the variant composition. 
 					line=br.readLine();
 				}
 				gc_outcome[p_index]=new String[haps_list.size()];
@@ -476,10 +491,11 @@ public class DivideConquer {
 			HapConfig hap_config = generate_hapconfig_from_gc(regions, r, this.gc_outcome, this.in_pool_sites_freq_anno);	// Will be extended in the future such that a user-specified sub-sequence can be reconstructed instead.
 			// hap_config.write_inpool("C:\\gc\\haps_inpool_" + r + ".txt", true);
 			// hap_config.write_global_file_code("C:\\gc\\haps_allpool_" + r + ".txt", true);
-			PoolSolver2 hap_solver = new PoolSolver2(hap_config.num_loci, this.num_pools, hap_config, parameter_file); 
-			region_haps[r] = hap_solver.report();
-			region_haps[r].write_inpool("/home/lmak/Documents/gc/region_1_haps.txt_inpool", false); 
-			region_haps[r].write_global_file_code("/home/lmak/Documents/gc/region_1_haps_allpool.txt", false); 
+			PoolSolver2_Testing hap_solver = new PoolSolver2_Testing(hap_config.num_loci, this.num_pools, hap_config, parameter_file); 
+			region_haps[r] = hap_solver.initial_Haps; // This is for AEM.
+			// region_haps[r] = hap_solver.report();
+			// region_haps[r].write_inpool("/home/lmak/Documents/gc/region_1_haps.txt_inpool", false); 
+			region_haps[r].write_global_file_code("/home/lmak/Documents/v0.7_test/region_0_haps_allpool.txt", false); 
 		}
 		return region_haps; 
 	}
