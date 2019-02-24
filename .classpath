@@ -7,7 +7,6 @@
 	<classpathentry kind="lib" path="/home/lmak/Dropbox/University of Calgary/workspace/PoolHapX/external_jars/commons-math3-3.6.1-tools.jar"/>
 	<classpathentry kind="lib" path="/home/lmak/Dropbox/University of Calgary/workspace/PoolHapX/external_jars/slf4j-api-1.7.25.jar"/>
 	<classpathentry kind="lib" path="/home/lmak/Dropbox/University of Calgary/workspace/PoolHapX/external_jars/slf4j-simple-1.7.25.jar"/>
-	<classpathentry kind="lib" path="/home/lmak/Dropbox/University of Calgary/workspace/PoolHapX"/>
 	<classpathentry kind="lib" path="/home/lmak/Dropbox/University of Calgary/PoolHap_Testing/FullSimulator2_Testing"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
