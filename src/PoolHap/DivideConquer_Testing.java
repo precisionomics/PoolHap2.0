@@ -71,11 +71,11 @@ public class DivideConquer_Testing {
 			load_gc_outcome(parse_gc_pathes_file(gc_pathes_file)); 
 			System.out.println("Finished loading Graph-coloring Files: "+gc_pathes_file);
 			System.out.println("#pools="+this.num_pools+"\t#sites="+this.num_sites);
-			generate_dividing_plan_two_level(this.gc_outcome);
+			ArrayList<Integer> reg_uncertainties = generate_dividing_plan_two_level(this.gc_outcome);
 			output_current_DC_plan(dc_plan_outfile);
-			System.out.println("Finished generating divide & conquer plan. The plan has been written to "+dc_plan_outfile);
+			System.out.println("\nFinished generating divide & conquer plan. The plan has been written to " + dc_plan_outfile);
 			System.out.println("The current dividing plan:");
-			this.output_current_DC_plan();
+			this.output_current_DC_plan(reg_uncertainties);
 			this.in_pool_sites_freq_anno=new SiteInPoolFreqAnno(frequency_file);
 		}catch(Exception e){e.printStackTrace();}
 	}
@@ -132,14 +132,16 @@ public class DivideConquer_Testing {
 	 *  //TODO: there is a bug in this function if there is no gap (which is meaningless, though). Will fix this when I get time!
 	 */
 	
-	public void generate_dividing_plan_two_level(String[][] graph_coloring_outcome){
+	public ArrayList<Integer> generate_dividing_plan_two_level(String[][] graph_coloring_outcome){
 		// Step 1) Generate list of positions where there are linkage uncertainties i.e.: gaps.
 		int[] gap_positions=identify_gaps(graph_coloring_outcome);  
-		// for (int i : gap_positions) System.out.print(i + "\t");
-		// System.out.println();
+		for (int i : gap_positions) System.out.print(i + "\t");
+		System.out.println();
 		// Step 2) Make the level 1 regions i.e.: windows of variants based on the generated gaps.
-		ArrayList<Integer> region_cuts=new ArrayList<Integer>();	// These are the boundaries of the regions/windows of variants. 
+		ArrayList<Integer> region_cuts=new ArrayList<Integer>();	// These are the boundaries of the regions/windows of variants.
+		ArrayList<Integer> reg_uncertainties = new ArrayList<Integer>();	
 		int curr_unmatched_len=0;	// This is the length of (number of variants in) the region/windows of variants so far.
+		int num_uncert = 0; 
 		for(int gap=0;gap<gap_positions.length;gap++){	// For each gap...
 			int previous_gap_position=(gap==0)?0:gap_positions[gap-1];	// The start position of the region currently being made. 
 			int gap_len=gap_positions[gap]-previous_gap_position;		// The number of variants in the region currently being made.
@@ -149,13 +151,19 @@ public class DivideConquer_Testing {
 				// create the region
 				curr_unmatched_len=0;
 				region_cuts.add(gap_positions[gap]);
+				reg_uncertainties.add(num_uncert); 
+				num_uncert = 0; 
 			// ...otherwise, if the region currently being made is larger than the max allowable size, split it up so that everything after the max size is added to the next region.
 			}else if(curr_unmatched_len+gap_len> divide_parameters.max_level_I_region_size){
 				curr_unmatched_len=curr_unmatched_len+gap_len-divide_parameters.max_level_I_region_size;
 				region_cuts.add(previous_gap_position+divide_parameters.max_level_I_region_size);
+				reg_uncertainties.add(num_uncert); 
+				num_uncert = 0; 
 			}else { // curr_unmatched_len+gap_len < parameters.min_level_I_region_size
 				// extend the current unmatched length; do not form a region
 				curr_unmatched_len+=gap_len;
+				num_uncert++; 
+				System.out.print(gap_positions[gap] + "\t" + gap_len + "\t" + num_uncert);
 			}
 		}
 		this.num_regsion_level_I=region_cuts.size()+1;
@@ -173,6 +181,7 @@ public class DivideConquer_Testing {
 			this.regions_level_II[r][1]=(this.regions_level_I[r+1][0]+this.regions_level_I[r+1][1])/2;
 			this.regions_level_II[r+1][0]=this.regions_level_II[r][1]+1;	// The endpoint of the 0th level 2 region is the midpoint of the 1st level 1 region. 
 		}this.regions_level_II[num_regsion_level_II-1][1]= (this.num_sites + this.regions_level_II[num_regsion_level_II-1][0]) / 2;	// !!!
+		return reg_uncertainties;
 	}
 	
 	public boolean inbetween(int value, int min, int max){
@@ -415,7 +424,6 @@ public class DivideConquer_Testing {
 	 * Add one HashMap<HapSegment,Integer> (in one pool) to another one (global)
 	 * Note that the global one is the 2nd parameter.
 	 */
-	
 	public static void add2global(HashMap<HapSegment,Integer> single_pool_haps, HashMap<HapSegment,Integer> global_haps) {
 		for(HapSegment hap: single_pool_haps.keySet()) {
 			if(global_haps.containsKey(hap)) {
@@ -478,24 +486,64 @@ public class DivideConquer_Testing {
 		// stdout.write("Trimmed "+num_tobe_trimmed+" segments." + "\n\n");
 		return num_partial_hap;
 	}
-		
+	
+	public HapConfig generate_hapconfig_2n(int[][] the_region, int region_index, SiteInPoolFreqAnno in_pool_sites2) throws IOException {
+		int region_start=the_region[region_index][0];
+		int region_end=the_region[region_index][1];
+		int num_site_regional=region_end-region_start+1;
+		double[][] in_pool_haps_freq= null;
+		double[][] inpool_site_freqs=new double[num_site_regional][];
+		LocusAnnotation[] locusInfo=new LocusAnnotation[num_site_regional];
+		for(int l = 0; l < num_site_regional; l++) {
+			locusInfo[l]=this.in_pool_sites_freq_anno.loci_annotations[l + region_start];
+			inpool_site_freqs[l]=this.in_pool_sites_freq_anno.inpool_freqs[l + region_start];
+			// System.out.println("DivideConquer:\t" + k + "\t" + locusInfo[k].alleles_coding.size());
+		}
+		String[] pool_IDs = null; 
+		int haps_2n = (int) Math.pow(2, num_site_regional); 
+		String[][] global_haps_string=new String[haps_2n][num_site_regional];
+		String[] hap_IDs = new String[haps_2n];
+		for (int h = 0; h < haps_2n; h++) {
+			String curr_ID = ""; 
+			String vc_str = Integer.toBinaryString(h); 
+			String[] vc_arr  = vc_str.split("");
+			for(int l = 0; l < num_site_regional - vc_arr.length; l++) {
+				global_haps_string[h][l] = "0"; 
+				curr_ID += "0";
+			}
+			for(int l = num_site_regional - vc_arr.length; l < num_site_regional; l++) {
+				global_haps_string[h][l] = vc_arr[l - num_site_regional + vc_arr.length]; 
+				curr_ID += vc_arr[l - num_site_regional + vc_arr.length];
+			}
+
+			hap_IDs[h] = curr_ID;
+		}
+		double[] global_haps_freq=new double[haps_2n];
+		Arrays.fill(global_haps_freq, 1 / (double) haps_2n);
+		HapConfig regional_hap_config=new HapConfig(global_haps_string, global_haps_freq, in_pool_haps_freq, inpool_site_freqs, 
+					locusInfo, this.num_pools, hap_IDs, pool_IDs, this.divide_parameters.est_ind_pool);
+		// stdout.write("There are, in total, " + global_haps_freq.length + " regional haplotypes.");
+		// stdout.close();
+		return regional_hap_config;
+	}
+	
 	/*
 	 * Analyze a set of regions based on the dividing plan. 
 	 * 
 	 * This function can be used for either level I or level II, or a subset of them 
 	 */
-	public HapConfig[] analyze_regions(int[][] regions, String parameter_file) throws Exception{
-		int num_region=regions.length;
+	public HapConfig[] analyze_regions(int[][] regions, String parameter_file, String work_dir, int l) throws Exception{
+		int num_region = regions.length;
 		HapConfig[] region_haps=new HapConfig[num_region];
-		for(int r=0;r<1;r++){
-			HapConfig hap_config = generate_hapconfig_from_gc(regions, r, this.gc_outcome, this.in_pool_sites_freq_anno);	// Will be extended in the future such that a user-specified sub-sequence can be reconstructed instead.
-			// hap_config.write_inpool("C:\\gc\\haps_inpool_" + r + ".txt", true);
-			// hap_config.write_global_file_code("C:\\gc\\haps_allpool_" + r + ".txt", true);
+		for(int r = 0; r < num_region; r++){
+			// Gold-standard Haplotypes : HapConfig hap_config = new HapConfig("/home/lmak/Documents/v0.7_test/region_0.inter_freq_vars.txt", 
+					// "/home/lmak/Documents/v0.7_test/region_0_vars.intra_freq.txt"); 
+			// GC Raw Haplotypes: HapConfig hap_config = generate_hapconfig_from_gc(regions, r, this.gc_outcome, this.in_pool_sites_freq_anno);	
+			HapConfig hap_config = generate_hapconfig_2n(regions, r, this.in_pool_sites_freq_anno);
 			PoolSolver2_Testing hap_solver = new PoolSolver2_Testing(hap_config.num_loci, this.num_pools, hap_config, parameter_file); 
-			region_haps[r] = hap_solver.initial_Haps; // This is for AEM.
-			// region_haps[r] = hap_solver.report();
-			// region_haps[r].write_inpool("/home/lmak/Documents/gc/region_1_haps.txt_inpool", false); 
-			region_haps[r].write_global_file_code("/home/lmak/Documents/v0.7_test/region_0_haps_allpool.txt", false); 
+			region_haps[r] = hap_solver.initial_Haps; // initial_Haps is for AEM. best_Haps is for rjMCMC.
+			// region_haps[r].write_global_file_string(work_dir + "level_" + l + "_region_" + r + "_RH.inter_freq_vars.txt", false);
+			System.out.println("Level " + l + " region " + r + " now finished.");
 		}
 		return region_haps; 
 	}
@@ -748,16 +796,20 @@ public class DivideConquer_Testing {
 	/*
 	 * Output the current dividing plan to a the stdout
 	 */
-	public void output_current_DC_plan(){
+	public void output_current_DC_plan(ArrayList<Integer> uncert){
 		// Output Level I:
 		System.out.print("Level_I\n");
 		for(int r=0;r<this.num_regsion_level_I;r++){
 			System.out.print(this.regions_level_I[r][0]+":"+this.regions_level_I[r][1]+"\t");
 		}
+		System.out.println("\nThese are the number of linkage uncertainties in each region of Level_I:");
+		for (int u = 0; u < uncert.size(); u++) System.out.print(u + "\t");
+		System.out.println();
 		// Output Level II:
 		System.out.print("\nLevel_II\n");
 		for(int r=0;r<this.num_regsion_level_II;r++){
 			System.out.print(this.regions_level_II[r][0]+":"+this.regions_level_II[r][1]+"\t");
-		}System.out.print("\n");		
-	}	
-}
+		} System.out.print("\n");		
+	}
+
+}	
