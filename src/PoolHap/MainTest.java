@@ -16,15 +16,15 @@ import java.time.LocalDateTime;
 public class MainTest {
 
 	public static void main(String[] args) throws IOException {
-		String work_dir = "/home/lmak/Documents/v0.7_test/";
-		String input_dir = "/home/lmak/Dropbox/University of Calgary/PoolHap_Testing/FullSimulator2_Testing/Pool VEFs/";  
+		String work_dir = args[0]; // "/home/lmak/Documents/v0.7_test/";
+		// String input_dir = "/home/lmak/Dropbox/University of Calgary/PoolHap_Testing/FullSimulator2_Testing/Pool VEFs/";  
 		// String input_gc_folder=working_folder0+"input/gc/";
 		// String freq_real=working_folder+"/input/freq/simvars.intra_freq.txt";
-		int num_pools = 20; 
+		// int num_pools = 20; 
 		String observed_freq = work_dir + "test_vars.intra_freq.txt";
 		String parameter_file = work_dir + "config_v0_6.properties";
-		String dc_plan_outfile=work_dir + "dc_plan_file.txt";
-		String hap_segment_outfile=work_dir + "hap_segment.txt";
+		String dc_plan_outfile = work_dir + "dc_plan_file.txt";
+		// String hap_segment_outfile = work_dir + "hap_segment.txt";
 		
 		HashMap<Integer, Integer> pos_dict = new HashMap<Integer, Integer>();
 		Integer pos_index = 0; 
@@ -55,11 +55,11 @@ public class MainTest {
 		try{
 			DivideConquer_Testing dc_tester = new DivideConquer_Testing(observed_freq, work_dir + "p.in.list", parameter_file, dc_plan_outfile);
 		    System.out.println("DC Finished: " + dtf.format(LocalDateTime.now()) + "\n");  
-			HapConfig[] level_I_config = dc_tester.analyze_regions(dc_tester.regions_level_I, parameter_file);
-		    System.out.println("Solving Finished: " + dtf.format(LocalDateTime.now()) + "\n");  
-			// HapConfig[] level_II_config = dc_tester.analyze_regions(dc_tester.regions_level_II, parameter_file);
-			// HapConfig[] level_II_config = dc_tester.analyze_regions(dc_tester.regions_level_II, parameter_file);
-			// dc_tester.combine_level_I_and_II(level_I_config, level_II_config, hap_segment_outfile);
+			HapConfig[] level_I_config = dc_tester.analyze_regions(dc_tester.regions_level_I, parameter_file, work_dir, 1);
+		    System.out.println("Level 1 solving Finished: " + dtf.format(LocalDateTime.now()) + "\n");  
+			HapConfig[] level_II_config = dc_tester.analyze_regions(dc_tester.regions_level_II, parameter_file, work_dir, 2);
+			System.out.println("Level 2 solving Finished: " + dtf.format(LocalDateTime.now()) + "\n");  
+			// dc_tester.combine_levels_I_and_II(level_I_config, level_II_config, hap_segment_outfile);
 		}catch(Exception e){e.printStackTrace();}		
 	}
 

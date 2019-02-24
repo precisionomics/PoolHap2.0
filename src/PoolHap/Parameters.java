@@ -49,6 +49,7 @@ public class Parameters {
 		public int est_ind_pool; 
 		public double epsilon; 
 		public double rare_cutoff; 
+		public double final_cutoff; 
 		
 		AemParameters(String propFilePath) throws IOException { 
 			InputStream is = null; 
@@ -59,7 +60,8 @@ public class Parameters {
 				this.max_iteration = Integer.parseInt(prop.getProperty("Iterations_AEM_Max"));
 				this.est_ind_pool = Integer.parseInt(prop.getProperty("Est_Ind_PerPool"));
 				this.epsilon = Double.parseDouble(prop.getProperty("Difference_Cutoff"));
-				this.rare_cutoff = Double.parseDouble(prop.getProperty("Hap_All-Pool_Freq_Min"));
+				this.rare_cutoff = Double.parseDouble(prop.getProperty("Hap_Running_Freq_Min"));
+				this.final_cutoff = Double.parseDouble(prop.getProperty("Hap_All-Pool_Freq_Min"));
 			} catch (Exception e) {
 				System.out.println("Exception: " + e);
 			} finally {
@@ -102,7 +104,7 @@ public class Parameters {
 				this.c_new = Double.parseDouble(prop.getProperty("Shape_Param_C_New"));
 				this.p_add = Double.parseDouble(prop.getProperty("Probability_AddHap"));
 				this.coalescing_mismatch = Integer.parseInt(prop.getProperty("Coalesce_Mismatch_Max"));
-				this.rare_cutoff = Double.parseDouble(prop.getProperty("Hap_In-Pool_Freq_Min"));
+				this.rare_cutoff = Double.parseDouble(prop.getProperty("Hap_All-Pool_Freq_Min"));
 			} catch (Exception e) {
 				System.out.println("Exception: " + e);
 			} finally {
