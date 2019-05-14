@@ -14,10 +14,12 @@ public class SimpleConfig {
 	public int num_loci;					// number of loci in this region
 	// Main structures
 	public int[][] hap_var_comp; 			// #global_hap x #loci: haplotypes that ever show up in the total population. floating number coded. 
+	public String[][] str_var_comp; 			// #global_hap x #loci: haplotypes that ever show up in the total population. floating number coded. 
 	public double[] hap_freq; 				// #global_hap
 	public int[] locus_positions;			// #loci 
+	public String[] hap_IDs;
 
-	public SimpleConfig(String hap_file) throws IOException {	// This constructor is for haplotypes in standard output files.
+	public SimpleConfig(String hap_file, Boolean filled) throws IOException {	// This constructor is for haplotypes in standard output files.
 		BufferedReader br = new BufferedReader(new FileReader(hap_file));
 		br.readLine();	// Skip IDs. 
 		String[] header_freqs = br.readLine().split("\t");
@@ -28,28 +30,36 @@ public class SimpleConfig {
 		while(br.readLine() != null)
 			this.num_loci++;
 		br.close();
-		this.hap_var_comp = new int[this.num_hap][this.num_loci];
+		if (filled) this.hap_var_comp = new int[this.num_hap][this.num_loci];
+		else this.str_var_comp = new String[this.num_hap][this.num_loci];
+		this.hap_IDs = new String[this.num_hap]; 
 		this.locus_positions = new int[this.num_loci];
 		br = new BufferedReader(new FileReader(hap_file));
-		String line = br.readLine(); line=br.readLine(); // skip two headers
+		String[] tmp = br.readLine().split("\t"); 
+		for(int h = 1; h <= this.num_hap; h++) this.hap_IDs[h - 1] = tmp[h]; 
+		String line = br.readLine(); // skip the frequency line
 		line = br.readLine();
 		int loci_index = 0;
 		while (line != null){
-			String[] tmp = line.split("\t");
+			tmp = line.split("\t");
 			this.locus_positions[loci_index] = Integer.parseInt(tmp[0].split(";")[1]); // the second column is the variant position
-			for(int h = 0; h < this.num_hap; h++)
-				this.hap_var_comp[h][loci_index] = Integer.parseInt(tmp[h + 1]);
+			for(int h = 0; h < this.num_hap; h++) {
+				if (filled) this.hap_var_comp[h][loci_index] = Integer.parseInt(tmp[h + 1]);
+				else this.str_var_comp[h][loci_index] = tmp[h + 1];
+			}
 			loci_index++; 
 			line = br.readLine();
 		} br.close();
 	}
 
-	public SimpleConfig(String work_dir, int num_pools, String var_file) throws IOException {	// This constructor is for haplotypes in GC output files.
+	public SimpleConfig(String work_dir, int num_pools, String var_file, Boolean full) throws IOException {	// This constructor is for haplotypes in GC output files.
 		double hap_ct_all = 0; 
 		HashMap<String, Integer> hap_tracker = new HashMap<String, Integer>();
 		String[] tmp = null;
 		for (int p = 0; p < num_pools; p++) {
-			BufferedReader br = new BufferedReader(new FileReader(work_dir + "p" + p + ".in"));
+			BufferedReader br;
+			if(!full) br = new BufferedReader(new FileReader(work_dir + "p" + p + ".in"));
+			else br = new BufferedReader(new FileReader(work_dir));
 			String line = br.readLine(); 
 			while(line != null) {
 				tmp = line.split("\\t|-|\\?"); 
