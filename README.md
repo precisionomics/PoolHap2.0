@@ -1,27 +1,45 @@
-### How to run PHX v0.6:
-Suggestion: I would run this in Eclipse because everything is set up for in-Eclipse testing. There are two JAVA files, suffixed with `_Testing` that output a lot of stuff to performance logs, in case that's useful. You can switch in code from that to the original version as needed.
-0) Make your own version of the file_paths.txt (example is in the directory sample_input_data) to point PHX to your `*.`in GC raw haplotype files.
-1) Add all external jars to the build (all are in the external_jars folder).
-2) Add the directory containing config_v0_6.properties (in the directory sample_input_data) to the build as an external classpath. 
-3) Set the input/output file and directory names in the class MainTest. 
+### How to run PHX8:
+Suggestion: Open the source files in Eclipse and refactor line 17 as needed. Currently, the observed alternate allele frequency data is taken from ***gold-standard*** files, instead of empirically observed frequencies from the variant-calling process. The observed frequencies file is currently drawn from the directory called gp.gs_dir. Update this directory as necessary, either directly in the code here or in the parameters file (or both). However, if this is acceptable (i.e.: you're testing with simulated 'perfect' data as well), then this version is fine and you can skip straight using PHX8.jar. 
+
+
+_Setup and Running Steps:_
+1. Make your own version of the PHX.properties file to tell PHX where the input VEF and observed allele frequencies are. 
+2. The command-line/configuration arguments are as follows: args[0] = absolute/path/to/PHX.properties, args[1] =  prefix_string, args[2] = number of pools.
+- For example, if prefix_string = "test", PHX will look for work_dir/test_p0.vef, gs_dir/test_vars.intra_freq.txt, etc.
+3. Run PHX8.jar with Java 8 (will not work with Java 7). 20 pools (33 unique haplotypes) x 100 segregating sites took about 5 hours.
+
 
 ### How to simulate 'perfect' VEFs to test PHX performance with:
 
 **Program:** FullSimulator2. Can be found in JAR form as well as in src/MiscFunctions as a .java file. 
-**Input:** Path to fullsim2.properties. 
+
+**Input:** Path to FS2.properties, the string prefix. 
+
 **Output:** inter_freq_vars (global haplotype frequency and variant composition), haps.intra_freq (in-pool haplotype frequencies), and vars.intra_freq (in-pool alternate allele frequencies) text files. Pool VEF files.  
+
 **Prerequisites:** Installed copies of ms and DWGSIM. Java 1.8+. 
-_Setup and Running_ Steps: 
-1. Install ms and DWGSIM and add the full directory path to the fullsim2.properties text file. 
-2. Create a working directory and place fullsim2.properties in it. Add the path of the working directory to fullsim2.properties. Add the path of the working directory to the .classpath file in this repo.
-3. Put a reference sequence in the working directory and add its name to fullsim2.properties. In this repo, it's HIV_HXB2.fa.
-4. Set the rest of the toggle-able parameters in fullsim2.properties. 
-5. Run the FullSimulator2 JAR executable with the path to fullsim2.properties. All VEF and gold-standard files will be in the working directory. 
+
+
+_Setup and Running Steps:_
+1. Install ms and DWGSIM and add the full directory path to the FS2.properties text file. 
+2. Create a working directory and place FS2.properties in it. Add the path of the working directory to FS2.properties. 
+3. Put a reference sequence in the working directory and add its name to FS2.properties. In this repo, it's HIV_HXB2.fa.
+4. Set the rest of the toggle-able parameters in FS2.properties. 
+5. Run the FullSimulator2 JAR executable with the path to FS2.properties and a prefix you want to apply to every gold-standard and VEF file. All VEF and gold-standard files will be in the working directory. 
 - Generating 93 haplotypes x 100 variant positions x 100 pools VEFs took about 17 minutes. The bulk of the time was spent simulating the paired-end reads using DWGSIM and/or gunzip-ing the outputs.
+- If you want to make multiple sets of perfect data at once, then use the PHX_submit.py and PHX_run.py scripts with slurm. PHX_run.py is capable of generating 'perfect' data, running PHX8.jar on the perfect data, and evaluating the accuracy of the output. Like an sbatch array job, PHX_submit.py submits PHX_run.py many times. Currently, the last two steps are commented out as PHX8.jar is finishing tests.
+
 
 ### How to measure PHX reconstruction accuracy:
-I have written a program called Orig2Recons (in the MiscFunctions project subfolder) that compares original haplotypes to the closest reconstructed haplotype. There are two functions that look very similar (OutputReporter and ResultsReporter) that were designed to give us the accuracy of the in-pool and between-pool frequency. The descriptions of the inputs are at the top of the JAVA file. Please note that this was designed for output from much older versions of PHX i.e.: they do not take output files that we have designed now. There will have to be a significant amount of refactoring to retrofit Orig2Recons for our current type of output. The input file for the original haplotypes, simhaps.mutations.txt, should remain the same. 
-NOTE: Versions of the original haplotype file that contain only 67 variants have not been made i.e.: the original haplotypes contain 100 variant positions. This shouldn't be a problem. I think I designed Orig2Recons to handle this as I have considered variant error from the very beginning of the design. But please check just in case!
+I have written a program called Orig2Recons2 (in the MiscFunctions project subfolder) that compares original haplotypes to the closest reconstructed haplotype. It is also available in JAR form as O2R2.jar. For each (simulated) dataset, O2R2 will print...
+1. One full-detail multi-pool results file containing the following columns: the pool ID, the original haplotype ID, the index of the closest reconstructed haplotype, the number of variants different between the closest RH and the OH, the difference in frequency between the closest RH and OH, and the number of haplotypes globally that are close enough to be 'quasispecies' (here, the cutoff is 5% difference of the total variant length). 
+2. One line of multi-pool-aggregated summary statistics about PHX performance across the dataset. It contains the following columns: The fraction of accurately reconstructed OH, the average reconstruction error per OH, the average difference between the frequencies of the closest RH and the OH, and the proportion of the population that was accurately constructed (sum(quasispecies frequencies)).
+- If there is more than one dataset being evaluated at once, each evaluation will generate the one line of aggregated summary statistics into the same file for easy comparison across the multiple datasets.
+
+
+_Setup and Running Steps:_
+1. Run the Orig2Recons2 JAR executable with the directory of the gold-standard files, the directory of the output files, the desired prefix, and the number of pools. 
+ 
 
 === DEPRECATED ===
 
