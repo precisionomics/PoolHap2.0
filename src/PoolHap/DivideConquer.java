@@ -47,11 +47,13 @@ public class DivideConquer {
 	public int num_regions_level_II;
 	public int[][] regions_level_II;   // num_regsion_level_II x 2 (start and end)
 	public String[][] global_haps_gc; 
+	public double[] global_gc_freq; 
 	public int num_haps_gc; 
 
 	// Note that we do NOT generate the fields for HapConfigs of each regions. These will be generated on-the-fly during the calculation.
 	public SiteInPoolFreqAnno in_pool_sites_freq_anno;   // the in-pool frequencies and annotations for all sites.
 	public String[][] gc_outcome;
+	public boolean region_solve; 
 
 	/*
 	 * Constructor that generates regions (i.e.: the dividing plan) based on GC outcomes.
@@ -64,9 +66,13 @@ public class DivideConquer {
 			System.out.println("Finished loading graph-coloring files from " + gc_input_list);
 			System.out.println("Number of pools = " + this.num_pools + "\tNumber of segregating sites = " + this.num_sites);
 			this.generate_dividing_plan_two_level(this.gc_outcome);
-			System.out.println("\nFinished generating divide-and-conquer plan. The plan has been written to " + dc_out_file);
-			System.out.println("The current dividing plan: ");
-			this.output_current_DC_plan(dc_out_file);
+			if (this.region_solve) {
+				System.out.println("\nFinished generating divide-and-conquer plan. The plan has been written to " + dc_out_file);
+				System.out.println("The current dividing plan: ");
+				this.output_current_DC_plan(dc_out_file);
+			} else {
+				System.out.println("There are not enough locations of linkage uncertainty to run regional reconstruction. Skipping straight to linkage-informed LASSO regression.");
+			}
 			this.in_pool_sites_freq_anno = new SiteInPoolFreqAnno(frequency_file);
 		}catch(Exception e){e.printStackTrace();}
 	}
@@ -128,6 +134,7 @@ public class DivideConquer {
 	public void generate_dividing_plan_two_level(String[][] graph_coloring_outcome){
 		// Step 1) Generate list of positions where there are linkage uncertainties i.e.: gaps.
 		int[] gap_positions=identify_gaps(graph_coloring_outcome);  
+		if (!this.region_solve) return;
 		// for (int i : gap_positions) System.out.print(i + "\t");
 		// System.out.println();
 		// Step 2) Make the level 1 regions i.e.: windows of variants based on the generated gaps.
@@ -141,13 +148,13 @@ public class DivideConquer {
 			if(inbetween(curr_unmatched_len+gap_len, dp.min_level_I_region_size, dp.max_level_I_region_size)){
 				// create the region
 				curr_unmatched_len=0;
-				if (gap_positions[gap] + 1 > this.num_sites - 3) break;	// If there are only two more segregating sites after this region end, add them to the region.
+				if (gap_positions[gap] + 1 > this.num_sites - this.dp.min_level_I_last_size) break;	// If there are only two more segregating sites after this region end, add them to the region.
 				else region_cuts.add(gap_positions[gap]);
 			// ...otherwise, if the region currently being made is larger than the max allowable size, split it up so that everything after the max size is added to the next region.
 			}else if(curr_unmatched_len+gap_len> dp.max_level_I_region_size){
 				// System.out.print(gap_positions[gap] + "\t" + gap_len + "\t");
 				curr_unmatched_len=curr_unmatched_len + gap_len - dp.max_level_I_region_size;
-				if (gap_positions[gap] + 1 > this.num_sites - 3) break;
+				if (gap_positions[gap] + 1 > this.num_sites - this.dp.min_level_I_last_size) break;
 				else {
 					int previous_gap = 0; 
 					if (region_cuts.size()!=0) previous_gap = region_cuts.get(region_cuts.size() - 1); 
@@ -214,63 +221,84 @@ public class DivideConquer {
 		int[] gap_counts_all=new int[this.num_sites-1];	// The cumulative count at each potential gap position. 
 		double[] num_haps_inpool=new double[this.num_pools];	// The number of types of raw GC haplotypes in each pool. 
 		double num_haps_all= 0.0;
-		HashSet<String> hap_tracker = new HashSet<String>();  
+		HashMap<String,Integer> hap_tracker = new HashMap<String,Integer>();  
+		int tot_ct = 0; 
 		for(int p=0;p<this.num_pools;p++){	// For each pool...
 			String[] haps=graph_coloring_outcome[p];	// The list of raw GC haplotypes.
 			num_haps_all+=haps.length;
 			num_haps_inpool[p]=haps.length;
 			for(int h=0;h<haps.length;h++){	// ...for each raw GC haplotype...
 				String curr_vc = ""; 
+				int hap_ct = Integer.parseInt(haps[h].split("\t")[1]);
 				for(int k=0;k<this.num_sites-1;k++){ // ...for each potential gap... 
 					curr_vc += haps[h].charAt(k*2); 
 					if(haps[h].charAt(k*2+1)=='?'){	// If the linkage between the two variant positions is uncertain i.e.: gap is present...
-						gap_counts[p][k]++;	// ...increment the count within-pool and globally. 
-						gap_counts_all[k]++;
+						gap_counts[p][k]+=hap_ct;	// ...increment the count within-pool and globally. 
+						gap_counts_all[k]+=hap_ct;
 					}
 				}
 				curr_vc += haps[h].charAt((this.num_sites-1)*2);
-				hap_tracker.add(curr_vc);
+				if (!hap_tracker.containsKey(curr_vc))	hap_tracker.put(curr_vc, hap_ct);
+				else {
+					int new_ct = hap_tracker.get(curr_vc) + hap_ct; 
+					hap_tracker.put(curr_vc, new_ct);
+				}
+				tot_ct += hap_ct; 
 			}
 		}
-		/*
-		for (int i = 0; i < this.num_pools; i++) {
-			for (int j = 0; j < this.num_sites - 1; j++) System.out.print(gap_counts[i][j] + "\t");
-			System.out.println();
-		}
-		for (double k : num_haps_inpool) System.out.println(k + "\t");
-		System.out.println();
-		*/
+
 		// Step 2) Check if the potential gaps meet the within- OR between-pool frequency thresholds.
 		HashSet<Integer> gap_indexes_set=new HashSet<Integer>();
-		for(int k=0;k<this.num_sites-1;k++){
-			if((double) gap_counts_all[k]/num_haps_all>=this.dp.gap_all_pool_cutoff && !gap_indexes_set.contains(k)){
-				gap_indexes.add(k);
-				gap_indexes_set.add(k);
-			}
-			for(int p=0;p<this.num_pools;p++){
-				if((double) gap_counts[p][k]/num_haps_inpool[p]>=this.dp.gap_inpool_cutoff && !gap_indexes_set.contains(k)){	
+		double avg_region_size = this.num_sites; 
+		double across_cutoff = 1; 
+		double local_cutoff = 1; 
+		while (across_cutoff >= this.dp.gap_all_pool_cutoff || local_cutoff >= this.dp.gap_inpool_cutoff) {	// While there aren't enough gaps to divide up the GC haplotypes... 
+			for(int k=0;k<this.num_sites-1;k++){
+				if((double) gap_counts_all[k]/num_haps_all>=across_cutoff && !gap_indexes_set.contains(k)){
 					gap_indexes.add(k);
 					gap_indexes_set.add(k);
 				}
+				for(int p=0;p<this.num_pools;p++){
+					if((double) gap_counts[p][k]/num_haps_inpool[p]>=local_cutoff && !gap_indexes_set.contains(k)){	
+						gap_indexes.add(k);
+						gap_indexes_set.add(k);
+					}
+				}
 			}
-		}
-		gap_indexes.add(this.num_sites-1); // add the last site index as the final "gap" so that all the sites are within gaps. 
-		gap_indexes_set.add(this.num_sites-1); // this is not useful for the moment, but keep the data integrity for potential future use. 
-		// clean the outcome and return
-		int[] gap_indexes_array=new int[gap_indexes.size()];
-		for(int i=0;i<gap_indexes.size();i++){
-			gap_indexes_array[i]=gap_indexes.get(i);
-		}
-		Arrays.sort(gap_indexes_array); // sort the indexes. 
+			avg_region_size = (double) this.num_sites / (double) (gap_indexes.size() + 1); 
+			if (avg_region_size > this.dp.max_level_I_region_size) break;
+			across_cutoff-=this.dp.gap_support_step;	// Relax the cutoffs so that there many be more gaps.
+			local_cutoff-=this.dp.gap_support_step;	// The local cutoff is identical in case there are rare haplotypes with uncommon linkage patterns.  
+		} 
+		System.out.println("The final across-pool cutoff is " + across_cutoff + " and the within-pool cutoff is " + local_cutoff + ". The average region size is " + avg_region_size + " segregating sites long.");
 		
-		this.global_haps_gc = new String[hap_tracker.size()][this.num_sites];
-		this.num_haps_gc = hap_tracker.size();
-		int hap_index = 0;
-		for (String curr_vc : hap_tracker) {
-			String[] tmp = curr_vc.split("");
-			for (int l = 0; l < this.num_sites; l++) this.global_haps_gc[hap_index][l] = tmp[l]; 
-			hap_index++;
-		}	   
+		int[] gap_indexes_array;
+		if (avg_region_size <= this.dp.max_level_I_region_size) {	// If there are enough gaps to run regional reconstruction....
+			gap_indexes_array=new int[gap_indexes.size()];
+			gap_indexes.add(this.num_sites-1); // add the last site index as the final "gap" so that all the sites are within gaps. 
+			gap_indexes_set.add(this.num_sites-1); // this is not useful for the moment, but keep the data integrity for potential future use. 
+			// clean the outcome and return
+			for(int i=0;i<gap_indexes.size();i++){
+				gap_indexes_array[i]=gap_indexes.get(i);
+			}
+			Arrays.sort(gap_indexes_array); // sort the indexes. 
+			
+			this.global_haps_gc = new String[hap_tracker.size()][this.num_sites];
+			this.global_gc_freq = new double[hap_tracker.size()];
+			this.num_haps_gc = hap_tracker.size();
+			int hap_index = 0;
+			for (String curr_vc : hap_tracker.keySet()) {
+				String[] tmp = curr_vc.split("");
+				for (int l = 0; l < this.num_sites; l++) this.global_haps_gc[hap_index][l] = tmp[l]; 
+				this.global_gc_freq[hap_index] = (double) hap_tracker.get(curr_vc) / (double) tot_ct; 
+				hap_index++;
+			}
+			this.region_solve = true; 
+		} else {	// ...otherwise, we can just reduce the candidates using LASSO. 
+			gap_indexes_array=new int[1];
+			gap_indexes_array[0] = -1;
+			this.region_solve = false; 
+		}
 		return gap_indexes_array;
 	}
 
@@ -365,29 +393,27 @@ public class DivideConquer {
 	public HapConfig generate_hapconfig_gc(int[] region, int l, int r, String dir_prefix) throws FileNotFoundException {
 		int start = region[0]; int end = region[1]; 
 		int num_site_regional = end - start + 1; 
-		HashMap<String, Integer> hap_tracker = new HashMap<String, Integer>();
+		HashMap<String, Double> hap_tracker = new HashMap<String, Double>();
 		for (int h = 0; h < this.num_haps_gc; h++) {
 			String curr_vc = String.join("", Arrays.copyOfRange(this.global_haps_gc[h], start, end + 1));
-			if (!hap_tracker.containsKey(curr_vc)) hap_tracker.put(curr_vc, 1); 
+			if (!hap_tracker.containsKey(curr_vc)) hap_tracker.put(curr_vc, this.global_gc_freq[h]); 
 			else {
-				int prev_ct = hap_tracker.get(curr_vc); 
-				hap_tracker.put(curr_vc, prev_ct++);
+				double new_freq = hap_tracker.get(curr_vc) + this.global_gc_freq[h]; 
+				hap_tracker.put(curr_vc, new_freq);
 			}
 		}
 		int num_hap_regional = hap_tracker.size(); 
 		String[][] reg_haps_string = new String[num_hap_regional][num_site_regional];
 		int hap_index = 0; 
-		double[] hap_ct = new double[num_hap_regional];
 		String[] hap_IDs = new String[num_hap_regional];
+		double[] global_haps_freq = new double[num_hap_regional];
         for (String curr_vc : hap_tracker.keySet()) {
             String[] tmp = curr_vc.split("");
             for (int s = 0; s < num_site_regional; s++) reg_haps_string[hap_index][s] = tmp[s]; 
-            hap_ct[hap_index] = (double) hap_tracker.get(curr_vc);
+            global_haps_freq[hap_index] = hap_tracker.get(curr_vc) / num_pools;
             hap_IDs[hap_index] = Integer.toString(hap_index);
             hap_index++;
         }
-		double[] global_haps_freq = new double[num_hap_regional];
-		for(int h = 0; h < num_hap_regional; h++) global_haps_freq[h] = hap_ct[h] / this.num_haps_gc;	
 		double[][] inpool_site_freqs=new double[num_site_regional][];
 		LocusAnnotation[] locusInfo=new LocusAnnotation[num_site_regional];
 		for(int s = 0; s < num_site_regional; s++) {
@@ -402,8 +428,8 @@ public class DivideConquer {
 		for (int p = 0; p < this.num_pools; p++) vef_files[p] = dir_prefix + "_p" + p + ".vef";
 		regional_lasso.estimate_frequencies_lasso(null, vef_files, dp.lasso_weights);
 		double new_penalty = dp.lambda; 
-		while (regional_lasso.r2 == 0.0) {
-			new_penalty -= 0.04; 
+		while (regional_lasso.r2 == this.dp.min_r2) {
+			new_penalty -= this.dp.lasso_penalty_step; 
 			System.out.println("Regional LASSO has failed. Adjust the lambda penalty to " + new_penalty + " and trying again.");
 			regional_lasso.lambda = new_penalty; 
 			regional_lasso.estimate_frequencies_lasso(null, vef_files, dp.lasso_weights);
@@ -419,7 +445,7 @@ public class DivideConquer {
 				list_rem_haps[h] = true; 
 				num_rem_hap++; 
 			}
-		if (num_rem_hap > final_reg_haps.num_global_hap - 3) {	// If too many of them are below the regional frequency minimum...
+		if (num_rem_hap > final_reg_haps.num_global_hap - this.dp.hapset_size_max) {	// If too many of them are below the regional frequency minimum...
 			list_rem_haps = new boolean[final_reg_haps.num_global_hap];
 			num_rem_hap = 0; 
 			double[] haps_freq_copy = new double[final_reg_haps.global_haps_freq.length];	// Deep instead of shallow copy.
@@ -433,11 +459,11 @@ public class DivideConquer {
 					num_rem_hap++; 
 				}
 		}
-		if (num_rem_hap < final_reg_haps.num_global_hap - 50) {	// ...and then if all of them are about the same low frequency...
+		if (num_rem_hap < final_reg_haps.num_global_hap - this.dp.hapset_size_min) {	// ...and then if all of them are about the same low frequency...
 			list_rem_haps = new boolean[final_reg_haps.num_global_hap];
 			num_rem_hap = 0; 
 			for (int h = 0; h < final_reg_haps.num_global_hap; h++)			
-				if (ThreadLocalRandom.current().nextDouble() > 0.2) {		// Take a random 20% of the GC regional haplotypes. 
+				if (ThreadLocalRandom.current().nextDouble() > this.dp.hapset_size_rand) {		// Take a random 20% of the GC regional haplotypes. 
 					list_rem_haps[h] = true; 
 					num_rem_hap++; 
 				}

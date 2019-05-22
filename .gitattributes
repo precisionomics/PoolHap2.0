@@ -1,0 +1,2 @@
+PoolHapX*.jar filter=lfs diff=lfs merge=lfs -text
+PoolHapX.jar filter=lfs diff=lfs merge=lfs -text
