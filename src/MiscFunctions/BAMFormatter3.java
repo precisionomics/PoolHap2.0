@@ -132,9 +132,9 @@ public class BAMFormatter3 {
 		String currLine = BAMScanner.nextLine(); 
 		// System.out.println(currLine);
 		while (currLine.matches("@(.*)")) {
-			String prevLine = currLine;
+			// String prevLine = currLine;
 			currLine = BAMScanner.nextLine(); 
-			if (prevLine.contains("PN:")) break;
+			// if (prevLine.contains("PN:")) break;
 			// System.out.println(currLine);
 		}
 		String QNAME, CIGAR, SEQ, tempPos = "",currAltAllele;
@@ -318,4 +318,13 @@ public class BAMFormatter3 {
 		BAMScanner.close();
 	}
 }
+class VarObj {
 
+	public Integer intM; 	// The position of the variant according to the metareference.
+	public Integer varCode; // The numerical code corresponding to the desired alternative allele.  
+	
+	public VarObj(Integer i, Integer c){	// This is the constructor. 
+		intM = i;
+		varCode = c; 
+	}
+}

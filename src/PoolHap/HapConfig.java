@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -271,6 +272,64 @@ public class HapConfig {
 		}catch(Exception e){e.printStackTrace();}
 	}
 	
+	public HapConfig(String gc_file, String var_file, int num_pools) throws IOException {	// This constructor is for haplotypes in GC output files.
+		double hap_ct_all = 0; 
+		HashMap<String, Integer> hap_tracker = new HashMap<String, Integer>();
+		String[] tmp = null;
+		BufferedReader br = new BufferedReader(new FileReader(gc_file));
+		String line = br.readLine(); 
+		while(line != null) {
+			tmp = line.split("\\t|-|\\?"); 
+			String hap = "";
+			for (int l = 0; l < tmp.length - 1; l++) hap += tmp[l];
+			int hap_ct = Integer.parseInt(tmp[tmp.length - 1]); 
+			if (!hap_tracker.containsKey(hap)) hap_tracker.put(hap, hap_ct); 
+			else {
+				int prev_ct = hap_tracker.get(hap); 
+				hap_tracker.put(hap, prev_ct + hap_ct);
+			}
+			hap_ct_all += hap_ct;
+			line = br.readLine();
+		} br.close();
+		this.num_loci = tmp.length - 1;
+		this.num_global_hap = hap_tracker.size(); 
+		this.global_haps_string = new String[this.num_global_hap][this.num_loci];
+		this.hap_IDs = new String[this.num_global_hap];
+		int[] hap_ct = new int[this.num_global_hap];
+		int hap_index = 0;
+		for (String hap : hap_tracker.keySet()) {
+			String[] tmp2 = hap.split("");
+			for (int l = 0; l < this.num_loci; l++)
+				this.global_haps_string[hap_index][l] = tmp2[l]; 
+			hap_ct[hap_index] = hap_tracker.get(hap);
+			this.hap_IDs[hap_index] = Integer.toString(hap_index);
+			hap_index++;
+		}		
+		this.global_haps_freq = new double[this.num_global_hap];
+		for(int h = 0; h < this.num_global_hap; h++)
+			this.global_haps_freq[h] = (double) hap_ct[h] / hap_ct_all; 		
+		this.locusInfo = new LocusAnnotation[this.num_loci];
+		this.num_pools = num_pools;
+		this.pool_IDs = new String[num_pools];
+		for(int k=0;k<this.num_pools;k++)
+			this.pool_IDs[k]=k+"";
+		this.inpool_site_freqs= new double[this.num_loci][this.num_pools];
+		br = new BufferedReader(new FileReader(var_file));
+		line = br.readLine(); 
+		line = br.readLine();
+		int locus_index = 0;
+		while(line != null){
+			tmp = line.split("\t");
+			this.locusInfo[locus_index] = new LocusAnnotation(tmp[0]); // the first column is the locus-info
+			for (int p = 0; p < this.num_pools; p++) this.inpool_site_freqs[locus_index][p] = Double.parseDouble(tmp[p + 1]);
+			locus_index++;
+			line = br.readLine();
+		} br.close();
+		this.construct_hapID2index_map();
+		this.encoding_haps(); // initialize this.global_haps;
+		// this.write_global_file_string("/home/lmak/Documents/v0.7_test/Both_V2_Plus_GC_800/gc.inter_freq.txt", false);
+	}
+
 	public void construct_hapID2index_map(){
 		this.hapID2index = new HashMap<String, Integer>();
 		for(int h=0;h<this.num_global_hap;h++) {

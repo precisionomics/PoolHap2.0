@@ -177,24 +177,24 @@ public class RegionEMSolver {
 					list_rem_haps[h] = true; 
 					num_rem_hap++; 
 				} else this.initial_Haps.global_haps_freq[h] = p[h]; 
-			if (num_rem_hap == p.length) {	// If too many of them are below the regional frequency minimum...
+			if (num_rem_hap > p.length - aem_parameters.hapset_size_max) {	// If too many of them are below the regional frequency minimum...
 				list_rem_haps = new boolean[p.length];
 				num_rem_hap = 0; 
 				double[] haps_freq_copy = new double[p.length];	// Deep instead of shallow copy.
 				for (int f = 0; f < p.length; f++) haps_freq_copy[f] = p[f]; 
-				Arrays.sort(haps_freq_copy); 
-				actual_cutoff = haps_freq_copy[haps_freq_copy.length - 5];		// Take the haplotypes that are the top 5 frequencies or more common.
+				Arrays.sort(haps_freq_copy);
+				actual_cutoff = haps_freq_copy[haps_freq_copy.length - aem_parameters.adhoc_freq_cutoff];		// Take the haplotypes that are the top 5 frequencies or more common.
 				for (int h = 0; h < p.length; h++)			// Don't want too many because GC gets confused.
 					if (p[h] < actual_cutoff) {
 						list_rem_haps[h] = true; 
 						num_rem_hap++; 
 					} else this.initial_Haps.global_haps_freq[h] = p[h]; 
 			}
-			if (num_rem_hap == p.length) {	// ...and then if all of them are about the same low frequency...
+			if (num_rem_hap < p.length - aem_parameters.hapset_size_min) {	// ...and then if all of them are about the same low frequency...
 				list_rem_haps = new boolean[p.length];
 				num_rem_hap = 0; 
 				ArrayList<Integer> haps_to_keep = new ArrayList<Integer>(); // AEM starts with 2^l haplotypes, so we need to keep much less than 20%. 
-				for (int h = 0; h < 10; h++) haps_to_keep.add((int) ThreadLocalRandom.current().nextDouble() * p.length); 
+				for (int h = 0; h < aem_parameters.hapset_size_rand; h++) haps_to_keep.add((int) ThreadLocalRandom.current().nextDouble() * p.length); 
 				for (int h = 0; h < p.length; h++)			
 					if (!haps_to_keep.contains(h)) {
 						list_rem_haps[h] = true; 
