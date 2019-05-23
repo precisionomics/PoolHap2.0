@@ -3,7 +3,7 @@
 .vscode/
 
 # Folders
-misc/
+misc_old/
 target/
 
 # Compilation generated files
