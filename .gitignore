@@ -1,2 +1,10 @@
-.settings
-.vscode
+# IDE settings
+.settings/
+.vscode/
+
+# Folders
+misc/
+target/
+
+# Compilation generated files
+dependency-reduced-pom.xml
