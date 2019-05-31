@@ -9,8 +9,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class PairedReadLinker {
-	
-	public static void main(String[] args) throws IOException{	
+
+	public static void main(String[] args) throws IOException{
 		String prefix = args[0];
 		HashMap<String,Integer> dict_read = new HashMap<String,Integer>();
 		ArrayList<String>  readname_arr= new ArrayList<String >();
@@ -21,31 +21,27 @@ public class PairedReadLinker {
 		BufferedReader bufferedreader= new BufferedReader(new FileReader(prefix + ".raw.vef"));
 		String line= null;
 		int index=0;
-		
+
 		while ( (line =bufferedreader.readLine())!=null ){
 			line= line.replace("\r","");
 			String[] line_arr = line.split("\t");
 			String readname = line_arr[0];
 			int readstart = Integer.parseInt(line_arr[3]);
 			if (dict_read.containsKey(readname)) {
+				String[] vars = line_arr[1].split(";|=");
+				String to_add = "";
+				for (int v = 0; v < vars.length; v += 2)
+					if (!pos_arr.get(dict_read.get(readname)).contains(vars[v])) to_add = to_add + vars[v] + "=" + vars[v + 1] + ";";
 				if 	(readstart>=readstart_arr.get(dict_read.get(readname))){
 					readrange_arr.set(dict_read.get(readname), readrange_arr.get(dict_read.get(readname))+"\t"+line_arr[3]
-							+ "\t"+line_arr[4]); 
-					String[] vars = line_arr[1].split(";|=");
-					String to_add = ""; 
-					for (int v = 0; v < vars.length; v += 2)
-						if (!pos_arr.get(dict_read.get(readname)).contains(vars[v])) to_add = to_add + vars[v] + "=" + vars[v + 1] + ";"; 
+							+ "\t"+line_arr[4]);
 					pos_arr.set(dict_read.get(readname), pos_arr.get(dict_read.get(readname))+to_add);
 				}else {
-					readrange_arr.set(dict_read.get(readname),line_arr[3]+ "\t"+line_arr[4]+"\t" 
-									+readrange_arr.get(dict_read.get(readname))); 
-					String[] vars = line_arr[1].split(";");
-					String to_add = ""; 
-					for (int v = 0; v < vars.length; v += 2)
-						if (!pos_arr.get(dict_read.get(readname)).contains(vars[v])) to_add = to_add + vars[v] + "=" + vars[v + 1] + ";"; 
-					pos_arr.set(dict_read.get(readname), to_add+pos_arr.get(dict_read.get(readname)));		
+					readrange_arr.set(dict_read.get(readname),line_arr[3]+ "\t"+line_arr[4]+"\t"
+									+readrange_arr.get(dict_read.get(readname)));
+					pos_arr.set(dict_read.get(readname), to_add+pos_arr.get(dict_read.get(readname)));
 				}
-				
+
 			}else {
 				dict_read.put(readname, index);
 				index ++;
@@ -57,8 +53,8 @@ public class PairedReadLinker {
 			}
 		}
 		bufferedreader.close();
-		
-		PrintWriter pw = new PrintWriter(new FileWriter(prefix + ".vef",false));		
+
+		PrintWriter pw = new PrintWriter(new FileWriter(prefix + ".vef",false));
 		for (int i =0;i<readname_arr.size();i++ ) {
 			String tmp_str = readname_arr.get(i)+"\t"+pos_arr.get(i)+"\t"+"//"+"\t"+readrange_arr.get(i)+"\n";
 			pw.write(tmp_str);

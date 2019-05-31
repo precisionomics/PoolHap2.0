@@ -132,9 +132,9 @@ public class BAMFormatter {
 		String currLine = BAMScanner.nextLine();
 		// System.out.println(currLine);
 		while (currLine.matches("@(.*)")) {
-			String prevLine = currLine;
+			// String prevLine = currLine;
 			currLine = BAMScanner.nextLine();
-			if (prevLine.contains("PN:")) break;
+			// if (prevLine.contains("PN:")) break;
 			// System.out.println(currLine);
 		}
 		String QNAME, CIGAR, SEQ, tempPos = "",currAltAllele;

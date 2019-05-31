@@ -21,7 +21,7 @@ public class Orig2Recons3 {
 		double quasi_cutoff = Double.parseDouble(args[4]); 
 
 		multipool_quasispecies = new HashSet<Integer>();
-		HapConfig orig_haps = new HapConfig(gs_dir + prefix + "_haps.inter_freq_vars.txt", gs_dir + prefix + "_haps.intra_freq.txt"); 
+		HapConfig orig_haps = new HapConfig(gs_dir + prefix + "_haps.inter_freq_vars.txt", gs_dir + prefix + "_haps.intra_freq.txt"); // diG null); // 
 		HapConfig recon_haps = new HapConfig(out_dir + prefix + ".inter_freq_vars.txt", out_dir + prefix + ".intra_freq.txt"); 
 		int[] o2r_indices = new int[orig_haps.num_loci]; 
 		ArrayList<Integer> false_neg = new ArrayList<Integer>(); 
@@ -35,6 +35,7 @@ public class Orig2Recons3 {
 		}
 		for (int io = 0; io < orig_haps.num_loci; io++) {
 			int ir = find(r_loci, o_loci[io]); 
+			// System.out.println(ir +"\t"+o_loci[io]);
 			if (ir != -1) {
 				o2r_indices[io] = ir;
 				false_pos.remove(false_pos.indexOf(o_loci[io]));
@@ -45,8 +46,9 @@ public class Orig2Recons3 {
 			}
 		}
 
-		double[][] multi_pool_record = new double[20][4];
+		double[][] multi_pool_record = new double[num_pools][4];
 		int compare_loci = orig_haps.num_loci - false_neg.size(); 
+		// System.out.println(compare_loci);
 		for (int p = 0; p < num_pools; p++) multi_pool_record[p] = pool_evaluator(orig_haps, recon_haps, compare_loci, o2r_indices, quasi_cutoff, p, out_dir + prefix);
 
 		PrintWriter pw1 = new PrintWriter(new FileWriter(out_dir + quasi_cutoff + "_extended_results.txt", true));
@@ -62,8 +64,8 @@ public class Orig2Recons3 {
 		pw1.close();
 
 		PrintWriter pw2 = new PrintWriter(new FileWriter(out_dir + quasi_cutoff + "_aggregated_results.txt", true));
-		String[] comb_sim = prefix.split("_");
-		pw2.append(comb_sim[0] + "\t" + comb_sim[1] + "\t" + false_neg.size() + "\t" + false_pos.size() + "\t");
+		// String[] comb_sim = prefix.split("_"); // diG
+		pw2.append(false_neg.size() + "\t" + false_pos.size() + "\t"); // comb_sim[0] + "\t" + comb_sim[1] + "\t" + // diG
 		for (int i = 0; i < 4; i++) pw2.append(multi_pool_results[i] / num_pools + "\t"); 
 		pw2.append(orig_haps.num_global_hap + "\t" + recon_haps.num_global_hap + "\t" + Double.toString((double) multipool_quasispecies.size() / recon_haps.num_global_hap) + "\t");
 		for (int l : false_neg) pw2.append(l + ",");
@@ -153,9 +155,10 @@ public class Orig2Recons3 {
         
         PrintWriter pw = new PrintWriter(new FileWriter(dir_prefix + "_" + quasi_cutoff + "_results.txt", true));
 		// pw.append("Original_ID\tClosest_Recon_ID\tNum_Allele_Diff\tFreq_Diff_Abs\tFreq_Diff_Prop\tNum_Also_MinDiff\tNum_Quasi\n"); // \tNum_Unk_Pos
-		for (int h_id = 0; h_id < num_inpool; h_id++) 
-			pw.append(pool + "\t" + inpool_hap_ids.get(h_id) + "\t" + recon_haps.hapID2index.get(min_diff_ID[h_id]) + "\t" + min_diff_pos[h_id] + "\t" + min_diff_freq[h_id] + "\t" + max_diff_haps[h_id] + "\n"); 
+		for (int h_id = 0; h_id < num_inpool; h_id++) {
+			pw.append(pool + "\t" + inpool_hap_ids.get(h_id) + "\t" + recon_haps.hapID2index.get(min_diff_ID[h_id]) + "\t" + min_diff_pos[h_id] + "\t" + min_diff_freq[h_id] + "\t" + max_diff_haps[h_id] + "\n");
 			// also_min_diff[h_id] + "\t" + min_diff_freq_prop[h_id] + "\t" + 
+		}
 		// pw.append("\n");
 		// pw.append("Pool\tAverage_Min_Diff\tAverage_Diff_Freq\tAverage_Diff_Freq_Prop\n");
 		// double avg_diff_ct = diff_ct / num_inpool;

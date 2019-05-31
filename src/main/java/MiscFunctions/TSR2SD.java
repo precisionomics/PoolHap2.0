@@ -38,6 +38,7 @@ public class TSR2SD {
 	public static void transfer_file(String output_fa_file, String first_output_file, String final_output_file) {
 		ArrayList<String> strain_frequency= new ArrayList<String>();
 		ArrayList<ArrayList<String>> reference_listlist=new ArrayList<ArrayList<String>>();
+		ArrayList<Integer> seg_site_number = new ArrayList<Integer>();	// For diG testing.
 		HashSet<Integer> variant_position=new HashSet<Integer>(); 
 		ArrayList<Double> recombinate_rate_list= new ArrayList<Double>();
 		try {
@@ -46,15 +47,19 @@ public class TSR2SD {
 			String fa_line=br_fa_file.readLine();//read the first line
 			fa_line=br_fa_file.readLine();// read the second line, the reference sequence
 			String[] each_base=fa_line.split("");
+			int true_seg_site = 0; // For diG testing.
 			while(!each_base[0].equals(">")) {
 				ArrayList<String> sequence_row=new ArrayList<String>();
 				for(int i=0;i<each_base.length;i++) {	
 					sequence_row.add(each_base[i]);
+					seg_site_number.add(true_seg_site); // For diG testing.
+					if (!each_base[i].equals("-")) true_seg_site++; // If the reference sequence does not align with an insertion, the segregating site index is incremented.
 				}
 				reference_listlist.add(sequence_row);
 				fa_line=br_fa_file.readLine();
 				each_base=fa_line.split("");
 			}
+			// for (int i: seg_site_number) System.out.print(i + "\t");
 			int num_of_hap=0;
 			while(fa_line!=null) {
 				if(each_base[0].equals(">")) {
@@ -71,8 +76,20 @@ public class TSR2SD {
 					while(!each_base[0].equals(">")) {
 						for(int i=0;i<each_base.length;i++) {
 							if(each_base[i].equals("-")) {
-								bw_file.write("-");
-								num_of_empty++;
+								if(each_base[i].equals(reference_listlist.get(sequence_line_count).get(i))) {  	// For diG testing to differentiate between a non-reference insertion and a deletion here.
+									bw_file.write("0");
+									num_of_zero++;			
+								} else {
+									bw_file.write("-");
+									if(sequence_line_count!=0) {
+										variant_position.add(sequence_line_count*reference_listlist.get(sequence_line_count-1).size()+i);
+									}else if (sequence_line_count==0) {
+										variant_position.add(i);
+									}
+									num_of_one++;
+								}
+								// bw_file.write("-");		// For TenSQR comparisons.
+								// num_of_empty++;			// For TenSQR comparisons.
 							}else if(each_base[i].equals(reference_listlist.get(sequence_line_count).get(i))) {
 								bw_file.write("0");
 								num_of_zero++;
@@ -80,13 +97,14 @@ public class TSR2SD {
 								bw_file.write("*");
 								num_of_empty++;
 							}else {
-								bw_file.write("1");
-								num_of_one++;
+								if (reference_listlist.get(sequence_line_count).get(i).equals("-")) bw_file.write("+"); // For diG testing to identify a non-reference insertion.
+								else bw_file.write("1");	// For TenSQR comparisons, delete 'else'.
 								if(sequence_line_count!=0) {
 									variant_position.add(sequence_line_count*reference_listlist.get(sequence_line_count-1).size()+i);
 								}else if (sequence_line_count==0) {
 									variant_position.add(i);
 								}
+								num_of_one++;
 							}
 						}
 						fa_line=br_fa_file.readLine(); 
@@ -107,7 +125,7 @@ public class TSR2SD {
 			br_fa_file.close();
 			ArrayList<Integer> variant_position_list = new ArrayList<Integer>(variant_position); // hashset convert to arraylist
 			Collections.sort(variant_position_list);
-			final_output_file(strain_frequency, variant_position_list,first_output_file,final_output_file,num_of_hap,recombinate_rate_list);
+			final_output_file(strain_frequency, variant_position_list, seg_site_number, first_output_file,final_output_file,num_of_hap,recombinate_rate_list);
 		}catch(Exception e) {e.printStackTrace();}
 	}
 	
@@ -120,7 +138,7 @@ public class TSR2SD {
 	 *   the second line: frequency for each haplotype; 
 	 *   the third line and line after: the value on each variant_position for each haplotype
 	 */
-	public static void final_output_file(ArrayList<String> strain_frequency, ArrayList<Integer> variant_position_list,String first_output_file,String final_output_file,int num_of_hap,ArrayList<Double> recombinate_rate_list) {
+	public static void final_output_file(ArrayList<String> strain_frequency, ArrayList<Integer> variant_position_list,ArrayList<Integer> seg_site_number, String first_output_file,String final_output_file,int num_of_hap,ArrayList<Double> recombinate_rate_list) {
 		try {
 			BufferedReader br_file=new BufferedReader(new FileReader(first_output_file));
 			String[][] variant_in_hap=new String[variant_position_list.size()][num_of_hap];
@@ -129,13 +147,14 @@ public class TSR2SD {
 			while(line!=null) {
 				String [] each_position=line.split("");
 				for(int i=0;i<variant_position_list.size();i++) {
-					if(each_position[variant_position_list.get(i)].equals("1")) { //the base at the position of variant_position
+					/*if(each_position[variant_position_list.get(i)].equals("1")) { //the base at the position of variant_position
 						variant_in_hap[i][line_count]="1";
 					}else if(each_position[variant_position_list.get(i)].equals("0")) {
 						variant_in_hap[i][line_count]="0";
 					}else {
 							variant_in_hap[i][line_count]="*";
-					}
+					}*/	// For TenSQR comparisons
+					variant_in_hap[i][line_count]=each_position[variant_position_list.get(i)]; // For diG testing.
 				}
 				line=br_file.readLine();
 				line_count++;
@@ -154,7 +173,8 @@ public class TSR2SD {
 			bw_file.write(strain_frequency.get(strain_frequency.size()-1)+"\n");
 			//write the following line
 			for(int i=0;i<variant_position_list.size();i++) {
-				bw_file.write("0;"+Integer.toString(variant_position_list.get(i))+";"+Integer.toString(variant_position_list.get(i))+";"+"0:1"+"\t");
+				// The diG testing version.
+				bw_file.write("0;"+Integer.toString(seg_site_number.get(variant_position_list.get(i)) + 1)+";"+Integer.toString(seg_site_number.get(variant_position_list.get(i)) + 1)+";"+"0:1"+"\t");
 				for(int j=0;j<num_of_hap-1;j++) {
 					bw_file.write(variant_in_hap[i][j]+"\t");
 				}
