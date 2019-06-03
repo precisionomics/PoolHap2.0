@@ -28,12 +28,14 @@ public class Parameters {
                 this.out_dir = prop.getProperty("Output_Dir");
                 this.fragments = Integer.parseInt(prop.getProperty("Fragments"));
                 this.final_cutoff =
-                        Double.parseDouble(prop.getProperty("FullLength_Local_Freq_Min"));
+                    Double.parseDouble(prop.getProperty("FullLength_Local_Freq_Min"));
+
                 this.lambda = Double.parseDouble(prop.getProperty("Lambda_Lambda_Penalty"));
-                this.lasso_weights =
-                        new double[] {Double.parseDouble(prop.getProperty("One_Vector_Weight")),
-                                Double.parseDouble(prop.getProperty("Hap_VC_Weight")),
-                                Double.parseDouble(prop.getProperty("Hap_11_Weight"))};
+                this.lasso_weights = new double[] {
+                    Double.parseDouble(prop.getProperty("One_Vector_Weight")),
+                    Double.parseDouble(prop.getProperty("Hap_VC_Weight")),
+                    Double.parseDouble(prop.getProperty("Hap_11_Weight"))};
+
                 this.min_r2 = Double.parseDouble(prop.getProperty("Minimum_R2_Fit"));
                 this.lasso_penalty_step = Double.parseDouble(prop.getProperty("Penalty_Step_Size"));
             } catch (Exception e) {
@@ -80,36 +82,48 @@ public class Parameters {
                 Properties prop = new Properties();
                 is = new FileInputStream(propFilePath);
                 prop.load(is);
-                this.gap_inpool_cutoff =
-                        Double.parseDouble(prop.getProperty("In-pool_Gap_Support_Min"));
-                this.gap_all_pool_cutoff =
-                        Double.parseDouble(prop.getProperty("All-pool_Gap_Support_Min"));
-                this.gap_support_step =
-                        Double.parseDouble(prop.getProperty("Gap_Support_Step_Size"));
-                this.min_level_I_region_size =
-                        Integer.parseInt(prop.getProperty("Level_1_Region_Size_Min"));
-                this.max_level_I_region_size =
-                        Integer.parseInt(prop.getProperty("Level_1_Region_Size_Max"));
-                this.min_level_I_last_size =
-                        Integer.parseInt(prop.getProperty("Level_1_Last_Region_Min"));
-                this.min_level_II_region_size =
-                        Integer.parseInt(prop.getProperty("Level_2_Region_Size_Min"));
-                this.max_level_II_region_size =
-                        Integer.parseInt(prop.getProperty("Level_2_Region_Size_Max"));
+                this.gap_inpool_cutoff = Double.parseDouble(
+                    prop.getProperty("In-pool_Gap_Support_Min"));
+
+                this.gap_all_pool_cutoff =  Double.parseDouble(
+                    prop.getProperty("All-pool_Gap_Support_Min"));
+
+                this.gap_support_step = Double.parseDouble(
+                    prop.getProperty("Gap_Support_Step_Size"));
+
+                this.min_level_I_region_size = Integer.parseInt(
+                    prop.getProperty("Level_1_Region_Size_Min"));
+
+                this.max_level_I_region_size = Integer.parseInt(
+                    prop.getProperty("Level_1_Region_Size_Max"));
+
+                this.min_level_I_last_size = Integer.parseInt(
+                    prop.getProperty("Level_1_Last_Region_Min"));
+
+                this.min_level_II_region_size = Integer.parseInt(
+                    prop.getProperty("Level_2_Region_Size_Min"));
+
+                this.max_level_II_region_size = Integer.parseInt(
+                    prop.getProperty("Level_2_Region_Size_Max"));
+
                 this.est_ind_pool = Integer.parseInt(prop.getProperty("Est_Ind_PerPool"));
-                this.final_cutoff =
-                        Double.parseDouble(prop.getProperty("Regional_Global_Freq_Min"));
+                this.final_cutoff = Double.parseDouble(
+                    prop.getProperty("Regional_Global_Freq_Min"));
+
                 this.lambda = Double.parseDouble(prop.getProperty("Lambda_Penalty"));
-                this.lasso_weights =
-                        new double[] {Double.parseDouble(prop.getProperty("One_Vector_Weight")),
-                                Double.parseDouble(prop.getProperty("Hap_VC_Weight")),
-                                Double.parseDouble(prop.getProperty("Hap_11_Weight"))};
+                this.lasso_weights = new double[] {
+                    Double.parseDouble(prop.getProperty("One_Vector_Weight")),
+                    Double.parseDouble(prop.getProperty("Hap_VC_Weight")),
+                    Double.parseDouble(prop.getProperty("Hap_11_Weight"))};
+
                 this.min_r2 = Double.parseDouble(prop.getProperty("Minimum_R2_Fit"));
                 this.lasso_penalty_step = Double.parseDouble(prop.getProperty("Penalty_Step_Size"));
-                this.hapset_size_max =
-                        Integer.parseInt(prop.getProperty("Regional_HapSetSize_Max"));
-                this.hapset_size_min =
-                        Integer.parseInt(prop.getProperty("Regional_HapSetSize_Min"));
+                this.hapset_size_max = Integer.parseInt(
+                    prop.getProperty("Regional_HapSetSize_Max"));
+
+                this.hapset_size_min = Integer.parseInt(
+                    prop.getProperty("Regional_HapSetSize_Min"));
+
                 this.hapset_size_rand = Double.parseDouble(prop.getProperty("DC_HapSetSize_Rand"));
             } catch (Exception e) {
                 System.out.println("Exception: " + e);
@@ -140,13 +154,16 @@ public class Parameters {
                 this.est_ind_pool = Integer.parseInt(prop.getProperty("Est_Ind_PerPool"));
                 this.epsilon = Double.parseDouble(prop.getProperty("Difference_Cutoff"));
                 this.rare_cutoff = Double.parseDouble(prop.getProperty("Running_Freq_Min"));
-                this.final_cutoff =
-                        Double.parseDouble(prop.getProperty("Regional_Global_Freq_Min"));
-                this.hapset_size_max =
-                        Integer.parseInt(prop.getProperty("Regional_HapSetSize_Max"));
+                this.final_cutoff = Double.parseDouble(
+                    prop.getProperty("Regional_Global_Freq_Min"));
+
+                this.hapset_size_max = Integer.parseInt(
+                    prop.getProperty("Regional_HapSetSize_Max"));
+
                 this.adhoc_freq_cutoff = Integer.parseInt(prop.getProperty("Adhoc_Freq_Cutoff"));
-                this.hapset_size_min =
-                        Integer.parseInt(prop.getProperty("Regional_HapSetSize_Min"));
+                this.hapset_size_min = Integer.parseInt(
+                    prop.getProperty("Regional_HapSetSize_Min"));
+
                 this.hapset_size_rand = Integer.parseInt(prop.getProperty("AEM_HapSetSize_Rand"));
             } catch (Exception e) {
                 System.out.println("Exception: " + e);

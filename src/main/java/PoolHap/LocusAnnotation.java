@@ -4,7 +4,7 @@ import java.util.HashMap;
 
 public class LocusAnnotation {
 
-    /*
+    /**
      * @author Quan Long. Oct 12, 2018
      *
      * Information and Annotation regarding an individual locus.
@@ -22,7 +22,8 @@ public class LocusAnnotation {
     public HashMap<String, Double> alleles_coding;
     String annotation=null;
 
-    /*
+    /**
+     * TODO: @param and @return
      *  Constructor using multiple variables.
      */
     public LocusAnnotation(boolean is_region, int chr_index, int start_loc, int end_loc,
@@ -35,7 +36,8 @@ public class LocusAnnotation {
         this.encode_alleles();
     }
 
-    /*
+    /**
+     * TODO: @param and @return
      * Constructor using a string, formatted as:
      * chr_index;start_loc;end_loc;alleles (the alleles are separated by ":")
      * chr_index starts with zero.
@@ -59,21 +61,34 @@ public class LocusAnnotation {
         for (int i = 1; i < this.alleles.length; i++) {
             allels_str = allels_str + ":" + this.alleles[i];
         }
-        String out_str =
-                this.chr_index + ";" + this.start_loc + ";" + this.end_loc + ";" + allels_str;
+        String out_str = this.chr_index
+            + ";"
+            + this.start_loc
+            + ";"
+            + this.end_loc
+            + ";"
+            + allels_str;
+
         return out_str;
     }
 
-    /*
+    /**
+     * TODO: @param and @return
      * Constructor with annotation string initialized.
      */
-    public LocusAnnotation(boolean is_region, int chr_index, int start_loc, int end_loc,
-            String[] alleles, String annotation) {
+    public LocusAnnotation(
+        boolean is_region,
+        int chr_index,
+        int start_loc,
+        int end_loc,
+        String[] alleles, String annotation) {
+
         this(is_region, chr_index, start_loc, end_loc, alleles);
         this.annotation = annotation;
     }
 
-    /*
+    /**
+     * TODO: @param and @return
      * Constructor with annotation string initialized.
      */
     public LocusAnnotation(String locus_info, String annotation) {
@@ -81,7 +96,8 @@ public class LocusAnnotation {
         this.annotation = annotation;
     }
 
-    /*
+    /**
+     * TODO: @param and @return
      * Map string-coded alleles to integers.
      *
      * Please note that this map is not trivial when there are many alleles at the same locus. This
@@ -94,7 +110,7 @@ public class LocusAnnotation {
         // If it is not a region, then just code the alleles using 0,1,2,3,... in a random order.
         if (!is_region) {
             this.alleles_coding = new HashMap<String, Double>();
-            for (int i = 0; i < this.alleles.length;i++) {
+            for (int i = 0; i < this.alleles.length; i++) {
                 this.alleles_coding.put(this.alleles[i], (double) i);
             }
         } else { // It is a region. We assign the code based on the similarity of the alleles.

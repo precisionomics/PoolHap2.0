@@ -11,7 +11,8 @@ public class SiteInPoolFreqAnno {
     public LocusAnnotation[] loci_annotations;
     public double[][] inpool_freqs; // [this.num_sites][this.num_pools]
 
-    /*
+    /**
+     * TODO: @param and @return
      * Constructor file format below:
      * (First line header; the rest are variant annotations (column #1) and frequencies.)
      *
@@ -80,11 +81,17 @@ public class SiteInPoolFreqAnno {
         }
     }
 
-    /*
+    /**
+     * TODO: @param and @return
      * Constructor: copy by reference -- no clone!
      */
-    public SiteInPoolFreqAnno(int num_sites, int num_pools, String[] pool_IDs,
-            LocusAnnotation[] loci_annotations, double[][] inpool_freqs) {
+    public SiteInPoolFreqAnno(
+        int num_sites,
+        int num_pools,
+        String[] pool_IDs,
+        LocusAnnotation[] loci_annotations,
+        double[][] inpool_freqs) {
+
         this.num_sites = num_sites;
         this.num_pools = num_pools;
         this.pool_IDs = pool_IDs;
@@ -104,7 +111,10 @@ public class SiteInPoolFreqAnno {
             sub_loci_annotations[i - start_index] = this.loci_annotations[i];
             sub_inpool_freq[i - start_index] = this.inpool_freqs[i];
         }
-        return new SiteInPoolFreqAnno(sub_num_sites, this.num_pools, this.pool_IDs,
-                sub_loci_annotations, sub_inpool_freq);
+        return new SiteInPoolFreqAnno(
+            sub_num_sites,
+            this.num_pools,
+            this.pool_IDs,
+            sub_loci_annotations, sub_inpool_freq);
     }
 }
