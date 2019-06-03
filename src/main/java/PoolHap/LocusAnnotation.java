@@ -122,7 +122,7 @@ public class LocusAnnotation {
             for (int i = 0; i < this.alleles.length; i++) {
                 this.alleles_coding.put(this.alleles[i], (double) i);
             }
-            
+
         } else { // It is a region. We assign the code based on the similarity of the alleles.
             int allele_num = this.alleles.length; // form a distance matrix
 

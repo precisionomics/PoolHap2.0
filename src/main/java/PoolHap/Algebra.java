@@ -365,7 +365,7 @@ public class Algebra {
             // eigenvalues). Add that base value to the running total of the log-likelihood.
             double quadratic = quadratic_form(minus(data_inpool, mu), si.getData());
 
-        	// ...subtract half of the quadratic form from the base value of the log-likelihood.
+            // ...subtract half of the quadratic form from the base value of the log-likelihood.
             double log_likelihood = constant + (-0.5 * quadratic);
 
             // In other words, the base log-likelihood decreases in a different way for each pool,
@@ -395,7 +395,7 @@ public class Algebra {
         SingularValueDecomposition svd = new SingularValueDecomposition(
             MatrixUtils.createRealMatrix(sigma));
 
-    	// Solve the covariate matrix using singular value decomposition to get its eigenvalues.
+        // Solve the covariate matrix using singular value decomposition to get its eigenvalues.
         double[] sv = svd.getSingularValues();
 
         // TODO: LEFTOVER
@@ -424,7 +424,7 @@ public class Algebra {
         // log-likelihood. Recall that log_p_det is the sum of the log(covariate eigenvalues).
         constant = constant - 0.5 * log_p_det;
 
-    	// Get the inverse matrix of the covariate eigenvalues.
+        // Get the inverse matrix of the covariate eigenvalues.
         RealMatrix si = svd.getSolver().getInverse();
         double logL = 0;
 
@@ -432,7 +432,7 @@ public class Algebra {
         // eigenvalues). Add that base value to the running total of the log-likelihood.
         double quadratic = quadratic_form(minus(x, mu), si.getData());
 
-    	// ...subtract half of the quadratic form from the base value of the log-likelihood.
+        // ...subtract half of the quadratic form from the base value of the log-likelihood.
         double log_likelihood = constant + (-0.5 * quadratic);
 
         // In other words, the base log-likelihood decreases in a different way for each pool, and

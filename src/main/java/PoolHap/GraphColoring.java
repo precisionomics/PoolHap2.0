@@ -325,7 +325,7 @@ public class GraphColoring {
         ArrayList<HashSet<Integer>> nb_color_arr = new ArrayList<HashSet<Integer>>();
 
         // TODO: LEFTOVER
-		// nb_color_arr.add(new HashSet());
+        // nb_color_arr.add(new HashSet());
 
         for (int i = 0; i < readadj_arr.size(); i++) {
             nb_color_arr.add(new HashSet<Integer>());
@@ -533,7 +533,7 @@ public class GraphColoring {
 
         // TODO: LEFTOVER
         // for (int i = 0; i< real_max_color + 1; i++) {
-       	//     System.out.println(ref_arr[i]);
+        //     System.out.println(ref_arr[i]);
         // }
 
         return;
