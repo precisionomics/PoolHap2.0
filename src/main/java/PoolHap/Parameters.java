@@ -27,8 +27,8 @@ public class Parameters {
                 this.gs_dir = prop.getProperty("Gold-Standard_Dir");
                 this.out_dir = prop.getProperty("Output_Dir");
                 this.fragments = Integer.parseInt(prop.getProperty("Fragments"));
-                this.final_cutoff =
-                    Double.parseDouble(prop.getProperty("FullLength_Local_Freq_Min"));
+                this.final_cutoff = Double.parseDouble(
+                    prop.getProperty("FullLength_Local_Freq_Min"));
 
                 this.lambda = Double.parseDouble(prop.getProperty("Lambda_Lambda_Penalty"));
                 this.lasso_weights = new double[] {
