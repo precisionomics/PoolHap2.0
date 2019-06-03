@@ -113,17 +113,17 @@ public class Main {
             }
             final_local_haps[p] = inpool_lasso.hapOut();
             System.out.println(final_local_haps[p].num_global_hap
-                    + " haplotypes were generated for pool "
-                    + p
-                    + ".");
+                + " haplotypes were generated for pool "
+                + p
+                + ".");
 
         }
         System.out.println("\nLASSO Finished: " + dtf.format(LocalDateTime.now()) + "\n");
 
         HapConfig final_reconstruction = new HapConfig(final_local_haps);
         System.out.println("Haplotype reconstruction finished. There are "
-                + final_reconstruction.num_global_hap
-                + " global haplotypes.");
+            + final_reconstruction.num_global_hap
+            + " global haplotypes.");
 
         final_reconstruction.write2files(
             gp.out_dir + prefix + ".inter_freq_vars.txt",
