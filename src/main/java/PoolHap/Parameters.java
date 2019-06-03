@@ -47,6 +47,9 @@ public class Parameters {
     }
 
     public static class DivideParameters extends Parameters {
+        /*
+         *  TODO: refactor the variable names, at the moment they're too long and unwieldy.
+         */
         public double gap_inpool_cutoff; // a ratio
         public double gap_all_pool_cutoff; // a ratio
         public double gap_support_step; // a ratio

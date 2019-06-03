@@ -14,17 +14,20 @@ import java.util.Vector;
 
 public class GraphColoring {
 
-    public Vector <Integer> readindex_arr_tmp; // The index of the genotype when it was added to
-                                               // readinfo_arr_tmp.
-    public Vector <String> readinfo_arr_tmp; // The list of all possible genotypes,
-                                             // ArrayList<site=allele;...site=allele;>
+    // The index of the genotype when it was added to readinfo_arr_tmp.
+    public Vector <Integer> readindex_arr_tmp;
+
+    // The list of all possible genotypes, ArrayList<site=allele; ... site=allele;>
+    public Vector <String> readinfo_arr_tmp;
+
     public HashMap<String,Integer> output_ref_arr;
     public HashMap<String,String> conf_ref_arr;
     public int num_loci;
     public int num_pools;
-    public LocusAnnotation[] locusInfo; // #loci. Note that a locus can be a SNP or a region.
-    public double[][] inpool_site_freqs; // #loci x #pools; Added by Quan Dec. 2018.
+    public LocusAnnotation[] locusInfo; // # of loci, note that a locus can be a SNP or a region
+    public double[][] inpool_site_freqs; // # of loci x # of pools; Added by Quan Dec. 2018.
 
+    // TODO: LEFTOVER
     // new GraphColoring(gp.inter_dir + prefix + "_p" + p + ".vef",
     //     gs_var_pos,
     //     gp.inter_dir + prefix + "_p" + p + ".in");
@@ -45,7 +48,7 @@ public class GraphColoring {
 
         while ((line = bufferedreader.readLine()) != null) {
             line = line.replace("\r", "");
-            String[] line_arr = line.split("\t"); // Read_Name    Pos=Allele;    // Start   End
+            String[] line_arr = line.split("\t"); // Read_Name Pos=Allele; // Start   End
 
             // If the read contains a segregating site (i.e.: has a distinguishing genotype)...
             if (line_arr[1].contains("=")) {
@@ -59,6 +62,7 @@ public class GraphColoring {
                     this.readindex_arr_tmp.add(count);
                     count = count + 1;
                     this.readinfo_arr_tmp.add(line_arr[1]);
+
                 } else { // Almost no difference if it has already been recorded yet.
                     int tmp_num = geno_dict.get(tmp_geno);
                     geno_dict.remove(tmp_geno);
@@ -102,7 +106,10 @@ public class GraphColoring {
                     count++;
                     this.readinfo_arr_tmp.add(curr_vc);
                 }
+
+                // TODO: LEFTOVER
                 // System.out.println(curr_vc);
+
             }
         }
         for (int r = 0; r < level_2.length; r++) {
@@ -122,10 +129,16 @@ public class GraphColoring {
                     count++;
                     this.readinfo_arr_tmp.add(curr_vc);
                 }
+
+                // TODO: LEFTOVER
                 // System.out.println(curr_vc);
+
             }
         }
+
+        // TODO: LEFTOVER
         // System.out.println("Finished reading in all of the source files.");
+
         System.out.println("There are "
             + count
             + " individual fragments (reads or regional haplotypes) in the dataset.");
@@ -143,7 +156,10 @@ public class GraphColoring {
         currLine = br.readLine();
         while (currLine != null) {
             pos_dict.put(Integer.parseInt(currLine.split(";")[1]), pos_index);
+
+            // TODO: LEFTOVER
             // System.out.println(currLine.split(";")[1] + "\t" +  pos_index);
+
             pos_index++;
             currLine = br.readLine();
         }
@@ -160,7 +176,7 @@ public class GraphColoring {
         while (currLine != null) {
             String[] tmp = currLine.split("\t");
 
-            // the first column is the locus-info
+            // The first column is the locus-info.
             this.locusInfo[loci_index] = new LocusAnnotation(tmp[0]);
             for (int p = 0; p < this.num_pools; p++) {
                 this.inpool_site_freqs[loci_index][p] = Double.parseDouble(tmp[p + 1]);
@@ -169,12 +185,14 @@ public class GraphColoring {
             currLine = br.readLine();
         }
         br.close();
+
+        // TODO: LEFTOVER
         // System.out.println("There are " + this.locusInfo.length + " positions.");
 
         // ArrayList<pos=allele;> in random order
         Vector <Integer> readindex_arr = new Vector<Integer>();
 
-        // ArrayList<original index of pos=allele;> TODO Confirm!
+        // ArrayList<original index of pos=allele;> TODO: Confirm!
         Vector <String> readinfo_arr = new Vector<String>();
 
         int[] index_arr_tmp = new int[this.readindex_arr_tmp.size()];
@@ -199,7 +217,10 @@ public class GraphColoring {
         Iterator<Integer> ite = list.iterator();
         int tmp_i = 0;
         while (ite.hasNext()) {
+
+            // TODO: LEFTOVER
             // System.out.println(ite.next().toString()+", ");
+
             index_arr[tmp_i] = ite.next();
             tmp_i++;
         }
@@ -207,6 +228,7 @@ public class GraphColoring {
         // Now, index_arr_tmp is a copy of this.readindex_arr_tmp. List, index_arr are now
         // randomized versions of this.readindex_arr_tmp.
 
+        // TODO: LEFTOVER
         // for (int i = 0; i < index_arr.length; i++) {
         //     System.out.println(index_arr[i]);
         // }
@@ -221,6 +243,7 @@ public class GraphColoring {
         // readindex_arr contains the original indices corresponding to the genotypes from the VEF
         // file i.e.: the order they were read in.
 
+        // TODO: LEFTOVER
         // for (int i = 0; i < readindex_arr.size(); i++) {
         // 	System.out.println(readinfo_arr.get(i));
         // }
@@ -231,8 +254,9 @@ public class GraphColoring {
         // ArrayList<Genotype, ArrayList<Allele_SS>>
         ArrayList<ArrayList<String>> read_geno_2D_arr= new ArrayList<ArrayList<String>>();
 
-
+        // TODO: LEFTOVER
         // System.out.println(readinfo_arr);
+
         for (int i = 0; i < readinfo_arr.size(); i++) {
             String tmp_str = readinfo_arr.get(i);
             String [] tmp_str_arr= tmp_str.split(";");
@@ -248,15 +272,20 @@ public class GraphColoring {
             read_geno_2D_arr.add(i_geno_arr);
         }
 
+        // TODO: LEFTOVER
         // System.out.println(read_pos_2D_arr);
         // System.out.println(read_geno_2D_arr);
 
         // ArrayList<Genotype, ArrayList<Index_Genotype>>
         ArrayList<ArrayList<Integer>> readadj_arr = new ArrayList<ArrayList<Integer>>();
-        for (int i = 0; i < read_pos_2D_arr.size(); i++) { // For each possible genotype...
+
+        for (int i = 0; i < read_pos_2D_arr.size(); i++) { // for each possible genotype...
+
+            // TODO: LEFTOVER
             // if (i % 500 == 0) {
             //     System.out.println(i + " fragments have been processed.");
             // }
+
             ArrayList<Integer> adj_arr = new ArrayList<Integer>();
 
             // ...comparing it to all other genotypes...
@@ -284,14 +313,18 @@ public class GraphColoring {
             }
             readadj_arr.add(adj_arr);
         }
+
+        // TODO: LEFTOVER
         // System.out.println(
         //     "Finished identifying all possible conflicts between genotype fragments.");
-
+        //
         // System.out.println(readadj_arr);
 
-        int max_color = readindex_arr.size(); // Only if there are all 2^loci genotypes present.
+        int max_color = readindex_arr.size(); // only if there are all 2^loci genotypes present
         ArrayList<Integer> read_color_arr = new ArrayList<Integer>();
         ArrayList<HashSet<Integer>> nb_color_arr = new ArrayList<HashSet<Integer>>();
+
+        // TODO: LEFTOVER
 		// nb_color_arr.add(new HashSet());
 
         for (int i = 0; i < readadj_arr.size(); i++) {
@@ -299,7 +332,7 @@ public class GraphColoring {
             read_color_arr.add(-1);
         }
 
-        read_color_arr.set(0, 0); // Set the first colour as the genotype at index 0.
+        read_color_arr.set(0, 0); // set the first colour as the genotype at index 0
 
         for (int i = 0; i < readadj_arr.get(0).size(); i++) {
             int index = readadj_arr.get(0).get(i);
@@ -316,6 +349,7 @@ public class GraphColoring {
         // This is the full genotype of a colour.
         color_geno_set_arr.get(0).add(readinfo_arr.get(0));
 
+        // TODO: LEFTOVER
         // System.out.println(color_geno_set_arr);
 
         // Make the conflict graph. Basically, assign colours to any genotype fragments that can't
@@ -323,23 +357,24 @@ public class GraphColoring {
         while (true) {
             int max_nb_color = -1;
             int index = -1;
-            for (int i = 0; i < readadj_arr.size(); i++) { // For each genotype...
-                 if ((read_color_arr.get(i) == -1) // If there hasn't been a colour assigned to that
-                                                   // genotype...
 
+            for (int i = 0; i < readadj_arr.size(); i++) { // for each genotype...
+                // If there hasn't been a colour assigned to that genotype...
+                if ((read_color_arr.get(i) == -1)
                     // ...and there are other genotypes that can go with it of the same colour...
                     && (nb_color_arr.get(i).size() > max_nb_color)) {
 
                     index = i;
                     max_nb_color = nb_color_arr.get(i).size();
-                 }
+                }
             }
+
             if (index == -1) { // If there are no colours left (?) end this step.
                 break;
             }
             int color = -1;
-            for (int i = 0; i < max_color; i++) { // For each genotype...
 
+            for (int i = 0; i < max_color; i++) { // for each genotype...
                 // If the possible colours list for that genotype doesn't contain colour i...
                 if (!nb_color_arr.get(index).contains(i)) {
 
@@ -367,8 +402,13 @@ public class GraphColoring {
             for (int i = 0; i < readadj_arr.get(index).size(); i++) {
                 nb_color_arr.get(readadj_arr.get(index).get(i)).add(color);
             }
+
+            // TODO: LEFTOVER
             // System.out.println(max_nb_color);
+
         }
+
+        // TODO: LEFTOVER
         // System.out.println(
         //     "Finished identifying potential full-genome genotypes i.e.: haplotypes.");
         //
@@ -388,13 +428,17 @@ public class GraphColoring {
             conf_arr[i] = conf_ref;
         }
 
+        // TODO: LEFTOVER
         // String ss = "1234567";
         // System.out.println(ss.substring(1, ss.length()));
 
         for (int i = 0; i < read_color_arr.size(); i++) {
             int i_color = read_color_arr.get(i);
             for (int j = 0; j < read_pos_2D_arr.get(i).size(); j++) {
-       		    // System.out.println(read_pos_2D_arr.get(i).get(j).toString());
+
+                // TODO: LEFTOVER
+                   // System.out.println(read_pos_2D_arr.get(i).get(j).toString());
+
                 int p = read_pos_2D_arr.get(i).get(j);
                 p++;
                 ref_arr[i_color] = ref_arr[i_color].substring(0, (p - 1))
@@ -426,6 +470,8 @@ public class GraphColoring {
             }
 
         }
+
+        // TODO: LEFTOVER
         // for (int i = 0; i < conf_arr.length; i++) {
         //     System.out.println(ref_arr[i]);
         // }
@@ -434,8 +480,11 @@ public class GraphColoring {
         this.conf_ref_arr = new HashMap<String,String>();
         double completeness_cutoff = 0;
         for (int i = 0; i <= real_max_color; i++) {
-            if (count(ref_arr[i]) <= completeness_cutoff) {	// May implement this in the future.
+            if (count(ref_arr[i]) <= completeness_cutoff) {	// may implement this in the future
+
+                // TODO: LEFTOVER
                 // System.out.println(ref_arr[i]);
+
                 if (this.output_ref_arr.containsKey(ref_arr[i])) {
                     this.output_ref_arr.put(ref_arr[i], this.output_ref_arr.get(ref_arr[i])+1);
                     conf_ref_arr.put(ref_arr[i], conf_arr[i]);
@@ -444,17 +493,25 @@ public class GraphColoring {
                     this.conf_ref_arr.put(ref_arr[i], conf_arr[i]);
                 }
             } else {
+
+                // TODO: LEFTOVER
                 // System.out.println(ref_arr[i] + "\t" + count(ref_arr[i]));
+
             }
         }
-        // if (this.conf_ref_arr.isEmpty()) {
 
+        // TODO: LEFTOVER
+        // if (this.conf_ref_arr.isEmpty()) {
+        //
         // }
+
     }
 
     public void fileOut(String out_file) throws IOException {
         FileWriter mydata = new FileWriter(out_file,false);
         PrintWriter pw = new PrintWriter(mydata);
+
+        // TODO: LEFTOVER
         // System.out.println(output_ref_arr );
 
         // Changed iterator from Map<K,V> -> K because just getting the key requires less memory.
@@ -466,13 +523,19 @@ public class GraphColoring {
             }
             c = c + entry.substring(entry.length() - 1, entry.length());
             pw.write(c + "\t" + this.output_ref_arr.get(entry).toString() + "\n");
+
+            // TODO: LEFTOVER
             // System.out.println(c + "\t" + output_ref_arr.get(x).toString());
+
         }
         pw.flush();
         pw.close();
+
+        // TODO: LEFTOVER
         // for (int i = 0; i< real_max_color + 1; i++) {
        	//     System.out.println(ref_arr[i]);
         // }
+
         return;
     }
 

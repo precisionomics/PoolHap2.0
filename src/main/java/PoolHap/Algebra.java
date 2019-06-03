@@ -309,8 +309,12 @@ public class Algebra {
         // x is public double[][] inpool_site_freqs i.e.: #loci x #pools, so it should be x.length
         int n = mu.length;
         int dim_span = 0;
+
+        // TODO: LEFTOVER
         // System.out.println(x.length + "\t" + sigma.length + "\t" + sigma[0].length);
+
         if (x.length != n || sigma.length != n || sigma[0].length != n) {
+
             // If the number of variant positions don't match up between all three input parameters,
             // report the error.
             System.out.println("logL_aems: Length of arrays don't match!");
@@ -320,9 +324,12 @@ public class Algebra {
 
         // Solve the covariate matrix using singular value decomposition to get its eigenvalues.
         double[] sv = svd.getSingularValues();
+
+        // TODO: LEFTOVER
         // if (not_in_span(svd, sigma, mu, x)) {
         //     return Double.NaN; // (0-i) If the the haplotypes are not in the span return an NaN.
         // }
+
         double log_p_det = 0;
         for (int k = 0; k < sv.length; k++) {
             if (sv[k] != 0) {
@@ -332,6 +339,8 @@ public class Algebra {
                 dim_span++;
             }
         }
+
+        // TODO: LEFTOVER
         // System.out.println("dim_span: " + dim_span);
 
         // Instead of using the number of variants (mu.length), Set the base value of the
@@ -346,7 +355,7 @@ public class Algebra {
         RealMatrix si = svd.getSolver().getInverse();
         int num_x = x[0].length;
         double logL = 0;
-        for (int k = 0; k < num_x; k++) {	// For each pool in the double[][] data matrix...
+        for (int k = 0; k < num_x; k++) { // For each pool in the double[][] data matrix...
             double[] data_inpool = new double[n];
             for (int v = 0; v < n; v++) {
                 data_inpool[v] = x[v][k];
@@ -363,7 +372,10 @@ public class Algebra {
             // and total log-likelihood is a sum of all of the individual ones.
             logL = logL + log_likelihood;
         }
+
+        // TODO: LEFTOVER
         // System.out.println("debug: " + logL);
+
         return logL;
     }
 
@@ -385,9 +397,12 @@ public class Algebra {
 
     	// Solve the covariate matrix using singular value decomposition to get its eigenvalues.
         double[] sv = svd.getSingularValues();
+
+        // TODO: LEFTOVER
         // if (not_in_span(svd, sigma, mu, x)) {
         //    return Double.NaN; // (0-i) If the the haplotypes are not in the span return an NaN.
         // }
+
         double log_p_det = 0;
         for (int k = 0; k < sv.length; k++) {
             // If the singular value/eigenvalue at variant k is not 0, add log(SV) to log_p_det
@@ -397,6 +412,8 @@ public class Algebra {
                 dim_span++;
             }
         }
+
+        // TODO: LEFTOVER
         //System.out.println("dim_span: " + dim_span);
 
         // Instead of using the number of variants (mu.length), Set the base value of the
@@ -421,7 +438,10 @@ public class Algebra {
         // In other words, the base log-likelihood decreases in a different way for each pool, and
         // total log-likelihood is a sum of all of the individual ones.
         logL = logL + log_likelihood;
+
+        // TODO: LEFTOVER
         //System.out.println("debug: " + logL);
+
         return logL;
     }
 }

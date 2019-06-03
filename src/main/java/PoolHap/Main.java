@@ -40,7 +40,8 @@ public class Main {
         DivideConquer dc_maker = new DivideConquer(
             gs_var_pos,
             gp.inter_dir + prefix + "_p.in.list",
-            parameter_file, dc_out_file);
+            parameter_file,
+            dc_out_file);
 
         System.out.println("DC Finished: " + dtf.format(LocalDateTime.now()) + "\n");
 
@@ -49,7 +50,8 @@ public class Main {
             HapConfig[] level_I_config = dc_maker.analyze_regions(
                 dc_maker.regions_level_I,
                 parameter_file,
-                gp.inter_dir + prefix, 1);
+                gp.inter_dir + prefix,
+                1);
 
             System.out.println("Level 1 solving Finished: "
                 + dtf.format(LocalDateTime.now())
@@ -58,7 +60,8 @@ public class Main {
             HapConfig[] level_II_config = dc_maker.analyze_regions(
                 dc_maker.regions_level_II,
                 parameter_file,
-                gp.inter_dir + prefix, 2);
+                gp.inter_dir + prefix,
+                2);
 
             System.out.println("Level 2 solving Finished: "
                 + dtf.format(LocalDateTime.now())

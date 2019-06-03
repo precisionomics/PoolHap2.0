@@ -12,16 +12,16 @@ public class SiteInPoolFreqAnno {
     public double[][] inpool_freqs; // [this.num_sites][this.num_pools]
 
     /**
-     * TODO: @param and @return
-     * Constructor file format below:
-     * (First line header; the rest are variant annotations (column #1) and frequencies.)
+     *  TODO: @param and @return
+     *  Constructor file format below:
+     *  (First line header; the rest are variant annotations (column #1) and frequencies.)
      *
-     * e.g.:
+     *  e.g.:
      *
-     * Var_ID   0   1   2   3   4
-     * 0;329;329;0:1    0.8054936896807721  0.8954512105649303  1.0 0.7920611798980335  0.807418
-     * 0;796;796;0:1    0.1968  0.10485592315901815 0.0 0.20496397117694154 0.1938584779706275
-     * 0;833;833;0:1    0.20240320427236316 0.2144571885836223  0.0952253934382502  0.09605122732123
+     *  Var_ID 0 1 2 3 4
+     *  0;329;329;0:1 0.8054936896807721 0.8954512105649303 1.0 0.7920611798980335 0.807418
+     *  0;796;796;0:1 0.1968 0.10485592315901815 0.0 0.20496397117694154 0.1938584779706275
+     *  0;833;833;0:1 0.20240320427236316 0.2144571885836223  0.0952253934382502 0.09605122732123
      */
     public SiteInPoolFreqAnno(String input_file) {
         try {
@@ -69,7 +69,10 @@ public class SiteInPoolFreqAnno {
             while (line != null) {
                 String[] tmp = line.split("\t");
                 this.loci_annotations[locus_index] = new LocusAnnotation(tmp[0]);
+
+                // TODO: LEFTOVER
                 // System.out.println("ding\t" + this.loci_annotations[0].alleles_coding.size());
+
                 for (int p = 0; p < this.num_pools; p++) {
                     this.inpool_freqs[locus_index][p] = Double.parseDouble(tmp[p + 1]);
                 }
@@ -82,8 +85,8 @@ public class SiteInPoolFreqAnno {
     }
 
     /**
-     * TODO: @param and @return
-     * Constructor: copy by reference -- no clone!
+     *  TODO: @param and @return
+     *  Constructor: copy by reference -- no clone!
      */
     public SiteInPoolFreqAnno(
         int num_sites,
@@ -99,9 +102,10 @@ public class SiteInPoolFreqAnno {
         this.inpool_freqs = inpool_freqs;
     }
 
-    /*
-     * Extract the user-specified subset of loci by index and return a new object. To save memory,
-     * here the annotations and frequencies are copied by reference.
+    /**
+     *  TODO: @param and @return
+     *  Extract the user-specified subset of loci by index and return a new object. To save memory,
+     *  here the annotations and frequencies are copied by reference.
      */
     public SiteInPoolFreqAnno subset(int start_index, int end_index) {
         int sub_num_sites = end_index - start_index + 1;
