@@ -18,314 +18,501 @@ import java.util.TreeSet;
 
 public class BAMFormatter {
 
-	public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException {
+        String outdir = args[0]; // inter_dir/
+        String prefix = args[1]; // c_s
+        Integer numPts = Integer.parseInt(args[2]);	// p
+        Boolean simmode = false; // Boolean.parseBoolean(args[3]);
+        HashSet<Integer> trueVarPos = new HashSet<Integer>();
+        if (simmode) {
+            trueVarPos = simvarsReader(outdir + "/simvars.intra_freq.txt", numPts);
+        }
+        PrintWriter VEFList = new PrintWriter(outdir + prefix + ".vef.list");
+        HashMap<Integer,HashMap<String,VarObj>> variantEncoder = VariantMapping(
+            outdir + prefix + ".vcf", // args[1] needs to be interdir + prefix + .all.vcf
+            true,
+            outdir + prefix, numPts, simmode, trueVarPos);
+        for (int p = 0; p < numPts; p++) {
+            VEFMaker(outdir + prefix + "_p" + p, variantEncoder);
+            VEFList.println(outdir + prefix + "_p" + p + ".vef");
+        }
+        VEFList.close();
+    }
 
-		String outdir = args[0]; // inter_dir/
-		String prefix = args[1]; // c_s
-		Integer numPts = Integer.parseInt(args[2]);	// p
-		Boolean simmode = false; // Boolean.parseBoolean(args[3]);
-		HashSet<Integer> trueVarPos = new HashSet<Integer>();
-		if (simmode) {
-			trueVarPos = simvarsReader(outdir + "/simvars.intra_freq.txt", numPts);
-		}
-		PrintWriter VEFList = new PrintWriter(outdir + prefix + ".vef.list");
-		HashMap<Integer,HashMap<String,VarObj>> variantEncoder = VariantMapping(outdir + prefix + ".vcf", true, outdir + prefix, numPts, simmode, trueVarPos);	// args[1] needs to be interdir + prefix + .all.vcf.
-		for (int p = 0; p < numPts; p++) {
-			VEFMaker(outdir + prefix + "_p" + p, variantEncoder);
-			VEFList.println(outdir + prefix + "_p" + p + ".vef");
-		}
-		VEFList.close();
-	}
+    private static HashSet<Integer> simvarsReader(
+        String simvarsFile,
+        int numPts) throws IOException {
 
-	private static HashSet<Integer> simvarsReader(String simvarsFile, int numPts) throws IOException {
-		BufferedReader SVReader = new BufferedReader(new FileReader(simvarsFile));
-		String currLine = SVReader.readLine();	// Skip the first line.
-		currLine = SVReader.readLine();
-		HashSet<Integer> trueVarPos = new HashSet<Integer>();
-		svRead: while (currLine != null) {
-			String[] fullLine = currLine.split("\t"); // 0;211;211;0:1		0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0
-			for (int p = 2; p <= numPts + 1; p++) {
-				if (Double.parseDouble(fullLine[p]) == 0)  {
-					currLine = SVReader.readLine();
-					continue svRead;
-				}
-			}
-			int truePos = Integer.parseInt(fullLine[0].split(";")[1]);
-			trueVarPos.add(truePos);
-			currLine = SVReader.readLine();
-		}
-		SVReader.close();
-		return trueVarPos;
-	}
+        BufferedReader SVReader = new BufferedReader(new FileReader(simvarsFile));
+        String currLine = SVReader.readLine();	// skip the first line
+        currLine = SVReader.readLine();
+        HashSet<Integer> trueVarPos = new HashSet<Integer>();
+        svRead: while (currLine != null) {
+            // 0;211;211;0:1 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+            String[] fullLine = currLine.split("\t");
+            for (int p = 2; p <= numPts + 1; p++) {
+                if (Double.parseDouble(fullLine[p]) == 0)  {
+                    currLine = SVReader.readLine();
+                    continue svRead;
+                }
+            }
+            int truePos = Integer.parseInt(fullLine[0].split(";")[1]);
+            trueVarPos.add(truePos);
+            currLine = SVReader.readLine();
+        }
+        SVReader.close();
+        return trueVarPos;
+    }
 
-	private static HashMap<Integer,HashMap<String,VarObj>> VariantMapping(String VCFFile, boolean biallelic, String dir_pref, int numPts, Boolean simmode, HashSet<Integer> trueVarPos) throws IOException {
+    private static HashMap<Integer,HashMap<String,VarObj>> VariantMapping(
+        String VCFFile,
+        boolean biallelic,
+        String dir_pref,
+        int numPts,
+        Boolean simmode,
+        HashSet<Integer> trueVarPos) throws IOException {
 
-		BufferedReader VCFReader = new BufferedReader(new FileReader(VCFFile));
-		String currLine = VCFReader.readLine();
-		// System.out.println(currLine);
-		while (!currLine.contains("#CHROM")) currLine = VCFReader.readLine();
-		String[] header_line = currLine.split("\t"); // Match up the order of the pool IDs in the VCF to their actual row number.
-		int[] actual_row = new int[numPts];
-		for (int i = 9; i < header_line.length; i++) actual_row[i - 9] = Integer.parseInt(header_line[i]);
-		currLine = VCFReader.readLine();
-		// System.out.println(currLine);
-		HashMap<Integer,HashMap<String,VarObj>> variantEncoder = new HashMap<Integer,HashMap<String,VarObj>>();
-		ArrayList<double[]> poolFreqs = new ArrayList<double[]>();
-		ArrayList<Integer> posTracker = new ArrayList<Integer>();
-		int v = 0;
-		while (currLine != null) {
-			String[] var_info = currLine.split("\t");
-			int pos = Integer.parseInt(var_info[1]);
-			if (simmode)
-				if (!trueVarPos.contains(pos)) {
-					currLine = VCFReader.readLine();
-					continue;	// If this is not a true variant position, skip it.
-				}
-			posTracker.add(pos);
-			// System.out.println(pos);
-			variantEncoder.put(pos, new HashMap<String,VarObj>());
-			Scanner altAlleleScanner = new Scanner(var_info[4]);	// This Scanner runs through the String containing all of the alternate allele(s). There is at least one.
-			altAlleleScanner.useDelimiter(",");
-			int variantCode = 1;
-			while(altAlleleScanner.hasNext()) {					// In case of highly polymorphic (>=2 alternate alleles) positions.
-				String variantNow = altAlleleScanner.next().replace("\"","");
-				VarObj altAlleleAtPos = new VarObj(pos,variantCode);	// This is the information that will be reported when the alternate allele at this position in the read is accessed.
-				variantEncoder.get(pos).put(variantNow,altAlleleAtPos);			// The information is mapped to the alternate allele.
-				variantCode++;										// The code corresponding to the alternate allele is incremented so no two alternate alleles in the same location have the same code.
-				if (biallelic == true) break; 	// If PoolHap has not been adjusted for 3+ alleles.
-			} altAlleleScanner.close();
-			poolFreqs.add(new double[numPts]);
-			for (int p = 0; p < numPts; p++) {
-				String[] varCts = var_info[p + 9].split(":")[1].split(",");	// This is the AD of the GT:AD:DP:GQ:PL of the p0 block of genotypes.
-				double ref = Double.parseDouble(varCts[0]);
-				double alt = Double.parseDouble(varCts[1]);
-				if (ref != 0 || alt != 0) poolFreqs.get(v)[actual_row[p]] = alt / (ref + alt);
-				else poolFreqs.get(v)[actual_row[p]] = 0;	// In case there are no reads at this position at all.
-				// System.out.println(poolFreqs.get(v)[p]);
-			}
-			v++;
-			currLine = VCFReader.readLine();
-		}
-		VCFReader.close();
-		// System.out.println("Done.");
+        BufferedReader VCFReader = new BufferedReader(new FileReader(VCFFile));
+        String currLine = VCFReader.readLine();
 
-		BufferedWriter br = new BufferedWriter(new FileWriter(dir_pref + "_vars.intra_freq.txt"));
-		br.write("Pool_ID\t");
-		for(int p=0;p<numPts;p++) br.write(p + "\t");
-		for(int a=0;a<v;a++) {
-			br.write("\n0;" + posTracker.get(a) + ";" + posTracker.get(a) + ";0:1"); // TODO This only allows for biallelic simple loci (single alternate allele) for now.
-			for(int p=0;p<numPts;p++) br.write("\t" + poolFreqs.get(a)[p]);
-		}
-		br.close();
+        // TODO: LEFTOVER
+        // System.out.println(currLine);
 
-		return variantEncoder;
-	}
+        while (!currLine.contains("#CHROM")) {
+            currLine = VCFReader.readLine();
+        }
 
-	private static void VEFMaker(String BAMPrefix, HashMap<Integer,HashMap<String,VarObj>> variantEncoder) throws FileNotFoundException {
-		Set<Integer> keyMATCH, keyINS, keyDEL, variantKS = variantEncoder.keySet(), tempSet, indelKS;
-		SortedSet<Integer> variantSS = new TreeSet<Integer>();
-		variantSS.addAll(variantKS);
+        // Match up the order of the pool IDs in the VCF to their actual row number.
+        String[] header_line = currLine.split("\t");
+        int[] actual_row = new int[numPts];
+        for (int i = 9; i < header_line.length; i++) {
+            actual_row[i - 9] = Integer.parseInt(header_line[i]);
+        }
+        currLine = VCFReader.readLine();
 
-		File BAMPath = new File(BAMPrefix + ".srt.sam");
-		Scanner BAMScanner = new Scanner(BAMPath);
-		BAMScanner.useDelimiter("\t");
-		String currLine = BAMScanner.nextLine();
-		// System.out.println(currLine);
-		while (currLine.matches("@(.*)")) {
-			// String prevLine = currLine;
-			currLine = BAMScanner.nextLine();
-			// if (prevLine.contains("PN:")) break;
-			// System.out.println(currLine);
-		}
-		String QNAME, CIGAR, SEQ, tempPos = "",currAltAllele;
-		Integer FLAG, startPOS = 1, currentPos, posToAdd, matchToIndel, skipSBases = 0;
-		VarObj currVarObj;
-		HashMap<Integer, HashMap<Integer,String>> hmMATCH = new HashMap<Integer, HashMap<Integer,String>>();
-		HashMap<Integer, HashMap<Integer,String>> hmINS = new HashMap<Integer, HashMap<Integer,String>>();
-		HashMap<Integer, HashMap<Integer,String>> hmDEL = new HashMap<Integer, HashMap<Integer,String>>();
-		HashMap<Integer,String> defaultHM, tempFinderHM;
-		HashMap<String,VarObj> tempReporterHM;
-		/* HashMap<Integer,Integer> hmVarCount = new HashMap<Integer,Integer>();
-		for (Integer i : variantSS) {
-			hmVarCount.put(i,0);
-		}
-		int readCount = 0; */
+        // TODO: LEFTOVER
+        // System.out.println(currLine);
 
-		PrintWriter VEFFile = new PrintWriter(BAMPrefix + ".raw.vef");
+        HashMap<Integer,HashMap<String,VarObj>> variantEncoder =
+            new HashMap<Integer,HashMap<String,VarObj>>();
 
-		while (BAMScanner.hasNextLine()) {
-			// readCount++;
-			QNAME = BAMScanner.next().replace(":", "");
-			// System.out.println(QNAME);
-			FLAG = BAMScanner.nextInt();
-			if (FLAG > 163) {
-				BAMScanner.nextLine();
-				continue; 	// If the read is chimeric, or mapped to more than one location, or of poor technical quality, skip it.
-			}
-			BAMScanner.next(); 	// Skip the FLAG, RNAME.
-			startPOS = BAMScanner.nextInt();
-			currentPos = startPOS;
-			BAMScanner.next(); 		// Skip the MAPQ.
-			CIGAR = BAMScanner.next();
+        ArrayList<double[]> poolFreqs = new ArrayList<double[]>();
+        ArrayList<Integer> posTracker = new ArrayList<Integer>();
+        int v = 0;
+        while (currLine != null) {
+            String[] var_info = currLine.split("\t");
+            int pos = Integer.parseInt(var_info[1]);
+            if (simmode)
+                if (!trueVarPos.contains(pos)) {
+                    currLine = VCFReader.readLine();
+                    continue; // if this is not a true variant position, skip it
+                }
+            posTracker.add(pos);
 
-			if (CIGAR.charAt(0) == '*') {
-				BAMScanner.nextLine(); 	// * refers to the fact that no CIGAR information is available.
-				continue;	 			// The above line skips the rest of the information in this read entirely.
-			}
-			for (int c = 0; c < CIGAR.length(); c++) {
-				Character tempChar = CIGAR.charAt(c);
-				if (tempChar.compareTo('M') == 0) {
-					posToAdd = Integer.parseInt(tempPos);
-					for (int addPos = currentPos; addPos < currentPos + posToAdd; addPos++) {
-						defaultHM = new HashMap<Integer,String>();
-						defaultHM.put(1, "N");
-						hmMATCH.put(addPos,defaultHM);
-					}
-					currentPos += posToAdd;
-					tempPos = "";
-				} else if (tempChar.compareTo('I') == 0) {
-					// Command to check for insertions: samtools view HIV_p1_sample_1.procd.bam | awk '{if ($6 ~ /I/) print $6;}' -
-					posToAdd = Integer.parseInt(tempPos);
-					matchToIndel = currentPos - 1; 	// This is the first position of the insertion, which it is recognized by.
-					hmMATCH.remove(matchToIndel); 	// Remove the first position of the insertion from the match HM.
-					defaultHM = new HashMap<Integer,String>();
-					defaultHM.put(posToAdd + 1, "N");	// This accounts for the entire length of the insertion.
-					hmINS.put(matchToIndel, defaultHM);
-					currentPos = matchToIndel + 1;		// Since the insertion starts at the previous currentPos - 1, the next match along starts at matchToIndel + 1 = previous currentPos.
-					tempPos = "";
-				} else if (tempChar.compareTo('D') == 0) {
-					posToAdd = Integer.parseInt(tempPos);
-					matchToIndel = currentPos - 1; 	// This is the first position of the deletion, which it is recognized by.
-					hmMATCH.remove(matchToIndel); 	// Remove the first position of the deletion from the match HM.
-					defaultHM = new HashMap<Integer,String>();
-					defaultHM.put(posToAdd + 1, "N");	// This accounts for the entire length of the deletion.
-					hmDEL.put(matchToIndel, defaultHM);
-					currentPos += posToAdd; 	// Since the deletion starts at the previous currentPos - 1, the next match along starts at currentPos + matchToIndel - 1.
-					tempPos = "";
-				} else if (tempChar.compareTo('S') == 0) {
-					skipSBases = Integer.parseInt(tempPos);	// These bases do appear in SEQ BUT they are not aligned to the reference genome. Therefore these bases do not contribute to the currentPOS.
-					tempPos = "";
-				} else if (tempChar.compareTo('H') == 0) {
-					tempPos = ""; // These bases DO NOT appear in SEQ and they are not aligned to the reference genome. Therefore these bases do not contribute to the currentPOS.
-				} else {
-					tempPos += tempChar;
-				}
-			}
+            // TODO: LEFTOVER
+            // System.out.println(pos);
 
-			keyMATCH = hmMATCH.keySet();
-			keyINS = hmINS.keySet();
-			keyDEL = hmDEL.keySet();
-			for (int s = 0; s < 3; s++) {
-				BAMScanner.next(); 	// Skip the RNEXT, PNEXT, TLEN.
-			}
-			SEQ = BAMScanner.next();
-			int endPOS = startPOS + SEQ.length() - 1;
-			currentPos = startPOS;
-			// 4. Test the following to see if the SEQ-parsing code works properly, and the proper bases are assigned to the correct Hash Maps.
-			for (int s = skipSBases; s < SEQ.length(); s++) {	// Skip all of the bases that were soft-clipped but still reported at the beginning of SEQ. In the event there is no 'S' in the CIGAR string, this is 0 and we start reporting from the end of SEQ.
-				// System.out.println(s + "\t" + currentPos);
-				if (keyMATCH.contains(currentPos)) {
-					hmMATCH.get(currentPos).put(1,SEQ.substring(s,s+1));
-					currentPos++;
-				} else if (keyINS.contains(currentPos)) {
-					tempSet = hmINS.get(currentPos).keySet();
-					for (Integer length : tempSet) {
-						hmINS.get(currentPos).put(length,SEQ.substring(s,s+length));
-					}
-					currentPos++;
-				} else if (keyDEL.contains(currentPos)) {
-					tempSet = hmDEL.get(currentPos).keySet();
-					for (Integer length : tempSet) {
-						hmDEL.get(currentPos).put(length,SEQ.substring(s,s+1));
-						currentPos += length;
-					}
-				}
-			}
+            variantEncoder.put(pos, new HashMap<String,VarObj>());
 
-			/* for (int i : keyMATCH) {
-				System.out.println(i + "\t" + hmMATCH.get(i));
-			} */
-			skipSBases = 0; // Reset the 'start' position of SEQ-processing to 0 in case there aren't any S-es in the next CIGAR string.
+            // This Scanner runs through the String containing all of the alternate allele(s). There
+            // is at least one.
+            Scanner altAlleleScanner = new Scanner(var_info[4]);
+            altAlleleScanner.useDelimiter(",");
+            int variantCode = 1;
 
-			StringBuilder readInfo = new StringBuilder();
-			// System.out.println(startPOS + "\t" + endPOS);
-			for (Integer VCFVarPos : variantSS.subSet(startPOS,endPOS+1)) {	// subSet method is (inclusive,exclusive)
-				// System.out.println(VCFVarPos);
-				tempReporterHM = variantEncoder.get(VCFVarPos);
-				if (keyMATCH.contains(VCFVarPos)) {
-					currAltAllele = hmMATCH.get(VCFVarPos).get(1);
-					// System.out.println(currAltAllele);
-					if (tempReporterHM.containsKey(currAltAllele)) {
-						currVarObj = tempReporterHM.get(currAltAllele);
-						// VEFFile.print(currVarObj.intM + "=" + currVarObj.varCode + ";");
-						readInfo.append(currVarObj.intM + "=" + currVarObj.varCode + ";");
-						// hmVarCount.put(VCFVarPos, hmVarCount.get(VCFVarPos) + 1);
-					} else {
-						readInfo.append(VCFVarPos + "=0;"); // Fixed as of 10282018. Noted by CC that in some reads, variant positions in those reads were not being annotated.
-						//System.out.println(VCFVarPos + " done");	// Realized that the 'else' clause was in the wrong place i.e.: alleles  =/= alternate (i.e: the reference)
-					}												// were not noted when they existed.
-					// System.out.println("match");
-				} else if (keyINS.contains(VCFVarPos)) {
-					tempFinderHM = hmINS.get(VCFVarPos);
-					indelKS = tempFinderHM.keySet();
-					for (Integer indel : indelKS) {
-						currAltAllele = tempFinderHM.get(indel);
-						if (tempReporterHM.containsKey(currAltAllele)) {
-							currVarObj = tempReporterHM.get(currAltAllele);
-							// VEFFile.print(currVarObj.intM + "=" + currVarObj.varCode + ";");
-							readInfo.append(currVarObj.intM + "=" + currVarObj.varCode + ";");
-							// hmVarCount.put(VCFVarPos, hmVarCount.get(VCFVarPos) + 1);
-						} else {
-							readInfo.append(VCFVarPos + "=0;");
-							// System.out.println(VCFVarPos + " done");
-						}
-					}
-					// System.out.println("ins");
-				} else if (keyDEL.contains(VCFVarPos)) {
-					tempFinderHM = hmDEL.get(VCFVarPos);
-					indelKS = tempFinderHM.keySet();
-					for (Integer indel : indelKS) {
-						currAltAllele = tempFinderHM.get(indel);
-						if (tempReporterHM.containsKey(currAltAllele)) {
-							currVarObj = tempReporterHM.get(currAltAllele);
-							// VEFFile.print(currVarObj.intM + "=" + currVarObj.varCode + ";");
-							readInfo.append(currVarObj.intM + "=" + currVarObj.varCode + ";");
-							// hmVarCount.put(VCFVarPos, hmVarCount.get(VCFVarPos) + 1);
-						} else {
-							readInfo.append(VCFVarPos + "=0;");
-							// System.out.println(VCFVarPos + " done");
-						}
-						// System.out.println("del");
-					}
-				}
-			}
-			// System.out.println(readInfo.toString());
-			if (readInfo.toString().isEmpty()) {
-				BAMScanner.nextLine(); 	// Skip the QUAL.
-				hmMATCH.clear();
-				hmINS.clear();
-				hmDEL.clear();
-				continue;
-			}
-			// System.out.println(readInfo);
-			VEFFile.println(QNAME + ":\t" + readInfo + "\t//\t" + startPOS + "\t" + endPOS);
-			BAMScanner.nextLine(); 	// Skip the QUAL.
-			hmMATCH.clear();
-			hmINS.clear();
-			hmDEL.clear();
-		}
-		VEFFile.close();
-		BAMScanner.close();
-	}
+            // In case of highly polymorphic (>=2 alternate alleles) positions.
+            while (altAlleleScanner.hasNext()) {
+                String variantNow = altAlleleScanner.next().replace("\"","");
+
+                // This is the information that will be reported when the alternate allele at this
+                // position in the read is accessed.
+                VarObj altAlleleAtPos = new VarObj(pos,variantCode);
+
+                // The information is mapped to the alternate allele.
+                variantEncoder.get(pos).put(variantNow,altAlleleAtPos);
+
+                // The code corresponding to the alternate allele is incremented so no two alternate
+                // alleles in the same location have the same code.
+                variantCode++;
+                if (biallelic == true) {
+                    break; 	// if PoolHap has not been adjusted for 3+ alleles
+                }
+            }
+            altAlleleScanner.close();
+            poolFreqs.add(new double[numPts]);
+            for (int p = 0; p < numPts; p++) {
+
+                // This is the AD of the GT:AD:DP:GQ:PL of the p0 block of genotypes.
+                String[] varCts = var_info[p + 9].split(":")[1].split(",");
+                double ref = Double.parseDouble(varCts[0]);
+                double alt = Double.parseDouble(varCts[1]);
+                if (ref != 0 || alt != 0) {
+                    poolFreqs.get(v)[actual_row[p]] = alt / (ref + alt);
+                } else {
+                    // In case there are no reads at this position at all.
+                    poolFreqs.get(v)[actual_row[p]] = 0;
+                }
+
+                // TODO: LEFTOVER
+                // System.out.println(poolFreqs.get(v)[p]);
+
+            }
+            v++;
+            currLine = VCFReader.readLine();
+        }
+        VCFReader.close();
+
+        // TODO: LEFTOVER
+        // System.out.println("Done.");
+
+        BufferedWriter br = new BufferedWriter(new FileWriter(dir_pref + "_vars.intra_freq.txt"));
+        br.write("Pool_ID\t");
+        for (int p = 0; p < numPts; p++) {
+            br.write(p + "\t");
+        }
+        for (int a = 0; a < v; a++) {
+            // TODO: This only allows for biallelic simple loci (single alternate allele) for now.
+            br.write("\n0;" + posTracker.get(a) + ";" + posTracker.get(a) + ";0:1");
+            for (int p = 0; p < numPts; p++) {
+                br.write("\t" + poolFreqs.get(a)[p]);
+            }
+        }
+        br.close();
+        return variantEncoder;
+    }
+
+    private static void VEFMaker(
+        String BAMPrefix,
+        HashMap<Integer, HashMap<String, VarObj>> variantEncoder) throws FileNotFoundException {
+
+        Set<Integer> keyMATCH, keyINS, keyDEL, variantKS =
+            variantEncoder.keySet(),
+            tempSet,
+            indelKS;
+
+        SortedSet<Integer> variantSS = new TreeSet<Integer>();
+        variantSS.addAll(variantKS);
+
+        File BAMPath = new File(BAMPrefix + ".srt.sam");
+        Scanner BAMScanner = new Scanner(BAMPath);
+        BAMScanner.useDelimiter("\t");
+        String currLine = BAMScanner.nextLine();
+
+        // TODO: LEFTOVER
+        // System.out.println(currLine);
+
+        while (currLine.matches("@(.*)")) {
+
+            // TODO: LEFTOVER
+            // String prevLine = currLine;
+
+            currLine = BAMScanner.nextLine();
+
+            // TODO: LEFTOVER
+            // if (prevLine.contains("PN:")) {
+            //     break;
+            // }
+            // System.out.println(currLine);
+
+        }
+        String QNAME, CIGAR, SEQ, tempPos = "", currAltAllele;
+        Integer FLAG, startPOS = 1, currentPos, posToAdd, matchToIndel, skipSBases = 0;
+        VarObj currVarObj;
+        HashMap<Integer, HashMap<Integer, String>> hmMATCH =
+            new HashMap<Integer, HashMap<Integer, String>>();
+
+        HashMap<Integer, HashMap<Integer, String>> hmINS =
+            new HashMap<Integer, HashMap<Integer,String>>();
+
+        HashMap<Integer, HashMap<Integer, String>> hmDEL =
+            new HashMap<Integer, HashMap<Integer, String>>();
+
+        HashMap<Integer, String> defaultHM, tempFinderHM;
+        HashMap<String, VarObj> tempReporterHM;
+
+        // TODO: LEFTOVER
+        // HashMap<Integer,Integer> hmVarCount = new HashMap<Integer,Integer>();
+        // for (Integer i : variantSS) {
+        //     hmVarCount.put(i, 0);
+        // }
+        // int readCount = 0;
+
+        PrintWriter VEFFile = new PrintWriter(BAMPrefix + ".raw.vef");
+
+        while (BAMScanner.hasNextLine()) {
+
+            // TODO: LEFTOVER
+            // readCount++;
+
+            QNAME = BAMScanner.next().replace(":", "");
+
+            // TODO: LEFTOVER
+            // System.out.println(QNAME);
+
+            FLAG = BAMScanner.nextInt();
+            if (FLAG > 163) {
+                // If the read is chimeric, or mapped to more than one location, or of poor
+                // technical quality, skip it.
+                BAMScanner.nextLine();
+                continue;
+            }
+            BAMScanner.next(); // skip the FLAG, RNAME
+            startPOS = BAMScanner.nextInt();
+            currentPos = startPOS;
+            BAMScanner.next(); // skip the MAPQ
+            CIGAR = BAMScanner.next();
+
+            if (CIGAR.charAt(0) == '*') {
+                // * refers to the fact that no CIGAR information is available.
+                // Skip rest of the info in this read entirely.
+                BAMScanner.nextLine();
+                continue;
+            }
+            for (int c = 0; c < CIGAR.length(); c++) {
+                Character tempChar = CIGAR.charAt(c);
+                if (tempChar.compareTo('M') == 0) {
+                    posToAdd = Integer.parseInt(tempPos);
+                    for (int addPos = currentPos; addPos < currentPos + posToAdd; addPos++) {
+                        defaultHM = new HashMap<Integer,String>();
+                        defaultHM.put(1, "N");
+                        hmMATCH.put(addPos,defaultHM);
+                    }
+                    currentPos += posToAdd;
+                    tempPos = "";
+                } else if (tempChar.compareTo('I') == 0) {
+                    // Command to check for insertions:
+                    // samtools view HIV_p1_sample_1.procd.bam | awk '{if ($6 ~ /I/) print $6;}' -
+                    posToAdd = Integer.parseInt(tempPos);
+
+                    // This is the first position of the insertion, which it is recognized by.
+                    matchToIndel = currentPos - 1;
+
+                    // Remove the first position of the insertion from the match HM.
+                    hmMATCH.remove(matchToIndel);
+                    defaultHM = new HashMap<Integer,String>();
+
+                    // This accounts for the entire length of the insertion.
+                    defaultHM.put(posToAdd + 1, "N");
+                    hmINS.put(matchToIndel, defaultHM);
+
+                    // Since the insertion starts at the previous currentPos - 1, the next match
+                    // along starts at matchToIndel + 1 = previous currentPos.
+                    currentPos = matchToIndel + 1;
+                    tempPos = "";
+                } else if (tempChar.compareTo('D') == 0) {
+                    posToAdd = Integer.parseInt(tempPos);
+
+                    // This is the first position of the deletion, which it is recognized by.
+                    matchToIndel = currentPos - 1;
+
+                    // Remove the first position of the deletion from the match HM.
+                    hmMATCH.remove(matchToIndel);
+                    defaultHM = new HashMap<Integer,String>();
+
+                    // This accounts for the entire length of the deletion.
+                    defaultHM.put(posToAdd + 1, "N");
+                    hmDEL.put(matchToIndel, defaultHM);
+
+                    // Since the deletion starts at the previous currentPos - 1, the next match
+                    // along starts at currentPos + matchToIndel - 1.
+                    currentPos += posToAdd;
+                    tempPos = "";
+                } else if (tempChar.compareTo('S') == 0) {
+                    // These bases do appear in SEQ BUT they are not aligned to the reference
+                    // genome. Therefore these bases do not contribute to the currentPOS.
+                    skipSBases = Integer.parseInt(tempPos);
+                    tempPos = "";
+                } else if (tempChar.compareTo('H') == 0) {
+                    // These bases DO NOT appear in SEQ and they are not aligned to the reference
+                    // genome. Therefore these bases do not contribute to the currentPOS.
+                    tempPos = "";
+                } else {
+                    tempPos += tempChar;
+                }
+            }
+
+            keyMATCH = hmMATCH.keySet();
+            keyINS = hmINS.keySet();
+            keyDEL = hmDEL.keySet();
+            for (int s = 0; s < 3; s++) {
+                BAMScanner.next(); 	// skip the RNEXT, PNEXT, TLEN
+            }
+            SEQ = BAMScanner.next();
+            int endPOS = startPOS + SEQ.length() - 1;
+            currentPos = startPOS;
+
+            // 4. Test the following to see if the SEQ-parsing code works properly, and the proper
+            // bases are assigned to the correct Hash Maps.
+            // Skip all of the bases that were soft-clipped but still reported at the beginning of
+            // SEQ. In the event there is no 'S' in the CIGAR string, this is 0 and we start
+            // reporting from the end of SEQ.
+            for (int s = skipSBases; s < SEQ.length(); s++) {
+
+                // TODO: LEFTOVER
+                // System.out.println(s + "\t" + currentPos);
+
+                if (keyMATCH.contains(currentPos)) {
+                    hmMATCH.get(currentPos).put(1,SEQ.substring(s, s + 1));
+                    currentPos++;
+                } else if (keyINS.contains(currentPos)) {
+                    tempSet = hmINS.get(currentPos).keySet();
+                    for (Integer length : tempSet) {
+                        hmINS.get(currentPos).put(length,SEQ.substring(s, s + length));
+                    }
+                    currentPos++;
+                } else if (keyDEL.contains(currentPos)) {
+                    tempSet = hmDEL.get(currentPos).keySet();
+                    for (Integer length : tempSet) {
+                        hmDEL.get(currentPos).put(length, SEQ.substring(s, s + 1));
+                        currentPos += length;
+                    }
+                }
+            }
+
+            // TODO: LEFTOVER
+            // for (int i : keyMATCH) {
+            //     System.out.println(i + "\t" + hmMATCH.get(i));
+            // }
+
+            // Reset the 'start' position of SEQ-processing to 0 in case there aren't any S-es in
+            // the next CIGAR string.
+            skipSBases = 0;
+
+            StringBuilder readInfo = new StringBuilder();
+
+            // TODO: LEFTOVER
+            // System.out.println(startPOS + "\t" + endPOS);
+
+            // subSet method is (inclusive, exclusive)
+            for (Integer VCFVarPos : variantSS.subSet(startPOS, endPOS + 1)) {
+
+                // TODO: LEFTOVER
+                // System.out.println(VCFVarPos);
+
+                tempReporterHM = variantEncoder.get(VCFVarPos);
+                if (keyMATCH.contains(VCFVarPos)) {
+                    currAltAllele = hmMATCH.get(VCFVarPos).get(1);
+
+                    // TODO: LEFTOVER
+                    // System.out.println(currAltAllele);
+
+                    if (tempReporterHM.containsKey(currAltAllele)) {
+                        currVarObj = tempReporterHM.get(currAltAllele);
+
+                        // TODO: LEFTOVER
+                        // VEFFile.print(currVarObj.intM + "=" + currVarObj.varCode + ";");
+
+                        readInfo.append(currVarObj.intM + "=" + currVarObj.varCode + ";");
+
+                        // TODO: LEFTOVER
+                        // hmVarCount.put(VCFVarPos, hmVarCount.get(VCFVarPos) + 1);
+
+                    } else {
+                        // Fixed as of 10282018. Noted by CC that in some reads, variant positions
+                        // in those reads were not being annotated.
+                        readInfo.append(VCFVarPos + "=0;");
+
+                        // TODO: LEFTOVER
+                        // // Realized that the 'else' clause was in the wrong place i.e.: alleles =/=
+                        // // alternate (i.e: the reference) were not noted when they existed
+                        // System.out.println(VCFVarPos + " done");
+
+                    }
+
+                    // TODO: LEFTOVER
+                    // System.out.println("match");
+
+                } else if (keyINS.contains(VCFVarPos)) {
+                    tempFinderHM = hmINS.get(VCFVarPos);
+                    indelKS = tempFinderHM.keySet();
+                    for (Integer indel : indelKS) {
+                        currAltAllele = tempFinderHM.get(indel);
+                        if (tempReporterHM.containsKey(currAltAllele)) {
+                            currVarObj = tempReporterHM.get(currAltAllele);
+
+                            // TODO: LEFTOVER
+                            // VEFFile.print(currVarObj.intM + "=" + currVarObj.varCode + ";");
+
+                            readInfo.append(currVarObj.intM + "=" + currVarObj.varCode + ";");
+
+                            // TODO: LEFTOVER
+                            // hmVarCount.put(VCFVarPos, hmVarCount.get(VCFVarPos) + 1);
+
+                        } else {
+                            readInfo.append(VCFVarPos + "=0;");
+
+                            // TODO: LEFTOVER
+                            // System.out.println(VCFVarPos + " done");
+
+                        }
+                    }
+
+                    // TODO: LEFTOVER
+                    // System.out.println("ins");
+
+                } else if (keyDEL.contains(VCFVarPos)) {
+                    tempFinderHM = hmDEL.get(VCFVarPos);
+                    indelKS = tempFinderHM.keySet();
+                    for (Integer indel : indelKS) {
+                        currAltAllele = tempFinderHM.get(indel);
+                        if (tempReporterHM.containsKey(currAltAllele)) {
+                            currVarObj = tempReporterHM.get(currAltAllele);
+
+                            // TODO: LEFTOVER
+                            // VEFFile.print(currVarObj.intM + "=" + currVarObj.varCode + ";");
+
+                            readInfo.append(currVarObj.intM + "=" + currVarObj.varCode + ";");
+
+                            // TODO: LEFTOVER
+                            // hmVarCount.put(VCFVarPos, hmVarCount.get(VCFVarPos) + 1);
+
+                        } else {
+                            readInfo.append(VCFVarPos + "=0;");
+
+                            // TODO: LEFTOVER
+                            // System.out.println(VCFVarPos + " done");
+
+                        }
+
+                        // TODO: LEFTOVER
+                        // System.out.println("del");
+
+                    }
+                }
+            }
+
+            // TODO: LEFTOVER
+            // System.out.println(readInfo.toString());
+
+            if (readInfo.toString().isEmpty()) {
+                BAMScanner.nextLine(); // skip the QUAL
+                hmMATCH.clear();
+                hmINS.clear();
+                hmDEL.clear();
+                continue;
+            }
+
+            // TODO: LEFTOVER
+            // System.out.println(readInfo);
+
+            VEFFile.println(QNAME + ":\t" + readInfo + "\t//\t" + startPOS + "\t" + endPOS);
+            BAMScanner.nextLine(); // skip the QUAL
+            hmMATCH.clear();
+            hmINS.clear();
+            hmDEL.clear();
+        }
+        VEFFile.close();
+        BAMScanner.close();
+    }
 }
 
 class VarObj {
 
-	public Integer intM; 	// The position of the variant according to the metareference.
-	public Integer varCode; // The numerical code corresponding to the desired alternative allele.
+    public Integer intM; // the position of the variant according to the metareference
+    public Integer varCode; // the numerical code corresponding to the desired alternative allele
 
-	public VarObj(Integer i, Integer c){	// This is the constructor.
-		intM = i;
-		varCode = c;
-	}
+    public VarObj(Integer i, Integer c) { // this is the constructor
+        intM = i;
+        varCode = c;
+    }
 }
