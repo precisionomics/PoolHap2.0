@@ -414,8 +414,8 @@ public class HapLASSO {
 
             // TODO: LEFTOVER
             // // And then add it to the global ld_matrix.
-            // for(int loc1 = 0; loc1 < this.num_loci; loc1++) {
-            //     for(int loc2 = loc1 + 1; loc2 < this.num_loci; loc2++) {
+            // for (int loc1 = 0; loc1 < this.num_loci; loc1++) {
+            //     for (int loc2 = loc1 + 1; loc2 < this.num_loci; loc2++) {
             //         System.out.println(this.potential_haps.locusInfo[loc1].start_loc
             //             + "\t"
             //             + this.potential_haps.locusInfo[loc2].start_loc
@@ -440,7 +440,6 @@ public class HapLASSO {
                 }
             }
         }
-
         for (int loc1 = 0; loc1 < this.num_loci; loc1++) { // normalize the global ld_matrix
             for (int loc2 = loc1 + 1; loc2 < this.num_loci; loc2++) {
                 this.ld_matrix[loc1][loc2] = this.ld_matrix[loc1][loc2]
@@ -472,16 +471,17 @@ public class HapLASSO {
             for (int loc2 = loc1 + 1; loc2 < this.num_loci; loc2++) {
                 // TODO: Lauren: check whether the following four lines that provide the
                 // calculation of \Sigma_0 (in Zhang et al 2008 Bioinfo) is correct for Quan!!!
-                for (int pool = 0; pool < this.potential_haps.num_pools; pool++) { // SUM(XY)
+                for (int pool = 0; pool < this.potential_haps.num_pools; pool++) {
+                    // SUM(XY)
                     this.ld_matrix[loc1][loc2] += inpool_site_freqs[loc1][pool]
                         * inpool_site_freqs[loc1][pool];
                 }
 
-                // E(XY) = SUM(XY)/n
+                // E(XY) = SUM(XY) / n
                 this.ld_matrix[loc1][loc2] = this.ld_matrix[loc1][loc2]
                     / this.potential_haps.num_pools;
 
-                // COV(XY)=E(XY)-E(X)E(Y)
+                // COV(XY) = E(XY) - E(X)E(Y)
                 this.ld_matrix[loc1][loc2] = this.ld_matrix[loc1][loc2]
                     - this.maf[loc1]
                     * this.maf[loc2];
@@ -532,7 +532,7 @@ public class HapLASSO {
         // TODO: LEFTOVER
         // System.out.println("LinearRegression DONE");
 
-        this.out_hap_freqs= lrModel.coefficients().toArray();
+        this.out_hap_freqs = lrModel.coefficients().toArray();
 
         // Below are some properties of the LASSO regression for debug purposes.
         // Summarize the model over the training set and print out some metrics.
