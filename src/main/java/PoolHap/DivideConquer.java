@@ -69,7 +69,7 @@ public class DivideConquer {
         String parameter_file,
         String dc_out_file) {
 
-        try{
+        try {
             this.dp = new DivideParameters(parameter_file);
             System.out.println("Finished loading the PHX parameter file from " + parameter_file);
             load_gc_outcome(parse_gc_input(gc_input_list));
@@ -110,7 +110,7 @@ public class DivideConquer {
     public void load_gc_outcome(String[] graph_coloring_outcome_files) {
         this.num_pools = graph_coloring_outcome_files.length;
         this.gc_outcome = new String[num_pools][];
-        try{
+        try {
             for (int p_index = 0; p_index < num_pools; p_index++) {
                 ArrayList<String> haps_list = new ArrayList<String>();
                 BufferedReader br = new BufferedReader(

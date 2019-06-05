@@ -39,7 +39,7 @@ public class GraphColoring {
 
         // HashMap<pos=allele;, count>
         HashMap<String, Integer> geno_dict = new HashMap<String, Integer>();
-        BufferedReader bufferedreader= new BufferedReader(new FileReader(vef));
+        BufferedReader bufferedreader = new BufferedReader(new FileReader(vef));
         String line = "";
 
         // The maximum number of times a genotype can be counted in a single pool.
@@ -54,7 +54,7 @@ public class GraphColoring {
             if (line_arr[1].contains("=")) {
                 String tmp_geno = line_arr[1];
 
-                 // If this combination of alleles hasn't been recorded yet...
+                // If this combination of alleles hasn't been recorded yet...
                 if (!geno_dict.containsKey(tmp_geno)) {
                     geno_dict.put(tmp_geno, 1);  // ... add it.
 
@@ -63,7 +63,7 @@ public class GraphColoring {
                     count = count + 1;
                     this.readinfo_arr_tmp.add(line_arr[1]);
 
-                } else { // Almost no difference if it has already been recorded yet.
+                } else { // almost no difference if it has already been recorded
                     int tmp_num = geno_dict.get(tmp_geno);
                     geno_dict.remove(tmp_geno);
                     geno_dict.put(tmp_geno, (tmp_num + 1));
@@ -146,13 +146,13 @@ public class GraphColoring {
         this.solver(gs_var_pos);
     }
 
-    // Source_Path or Source_Path
+    // Source_Path or Source_Path.
     public void solver(String gs_var_pos) throws IOException {
         // HashMap<Seg_Site, Index>
         HashMap<Integer, Integer> pos_dict = new HashMap<Integer, Integer>();
         Integer pos_index = 0;
         BufferedReader br = new BufferedReader(new FileReader(gs_var_pos));
-        String currLine = br.readLine(); // Skip header.
+        String currLine = br.readLine(); // skip header
         currLine = br.readLine();
         while (currLine != null) {
             pos_dict.put(Integer.parseInt(currLine.split(";")[1]), pos_index);
@@ -168,7 +168,7 @@ public class GraphColoring {
 
         br = new BufferedReader(new FileReader(gs_var_pos));
         currLine = br.readLine();
-        currLine = br.readLine(); // TODO: duplicate? delete?
+        currLine = br.readLine();
         int loci_index = 0;
         this.num_pools = currLine.split("\t").length - 1;
         this.locusInfo = new LocusAnnotation[this.num_loci];
@@ -195,11 +195,14 @@ public class GraphColoring {
         // ArrayList<original index of pos=allele;> TODO: Confirm!
         Vector <String> readinfo_arr = new Vector<String>();
 
+        // TODO: why not .toArray()?
         int[] index_arr_tmp = new int[this.readindex_arr_tmp.size()];
         for (int k = 0; k < index_arr_tmp.length; k++) {
             index_arr_tmp[k] = k;
         }
 
+        // TODO: why not convert from array to arraylist?
+        // e.g. ArrayList<Integer> list = ArrayList<Integer>(Arrays.asList(index_arr_tmp));
         ArrayList<Integer> list = new ArrayList<Integer>();
         for (int i = 0; i < index_arr_tmp.length; i++) {
             list.add(index_arr_tmp[i]);
@@ -214,6 +217,9 @@ public class GraphColoring {
 
         // Now, index_arr_tmp, index_arr are copies of this.readindex_arr_tmp. List is now a
         // randomized version of this.readindex_arr_tmp.
+        // TODO: why can't we clone the the shuffled list as index_arr? Is iterating
+        // through it faster?
+        // e.g. int[] index_arr = list.toArray(new int[list.size()]);
         Iterator<Integer> ite = list.iterator();
         int tmp_i = 0;
         while (ite.hasNext()) {
@@ -236,6 +242,7 @@ public class GraphColoring {
         // file.
 
         for (int i = 0; i < this.readindex_arr_tmp.size(); i++) {
+            // TODO: why is this not this.readinfo_arr_tmp?
             readinfo_arr.add(readinfo_arr_tmp.get(index_arr[i]));
             readindex_arr.add(this.readindex_arr_tmp.get(index_arr[i]));
         }

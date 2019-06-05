@@ -63,7 +63,7 @@ public class LocusAnnotation {
         this.start_loc = Integer.parseInt(the_info[1]);
         this.end_loc = Integer.parseInt(the_info[2]);
         this.alleles = the_info[3].split(":");
-        this.is_region = (this.start_loc!=this.end_loc);
+        this.is_region = (this.start_loc != this.end_loc);
         this.encode_alleles();
     }
 
@@ -117,13 +117,14 @@ public class LocusAnnotation {
      */
     void encode_alleles() {
         // If it is not a region, then just code the alleles using 0,1,2,3,... in a random order.
+        // TODO: to be safe, shouldn't this be this.is_region instead of is_region?
         if (!is_region) {
             this.alleles_coding = new HashMap<String, Double>();
             for (int i = 0; i < this.alleles.length; i++) {
                 this.alleles_coding.put(this.alleles[i], (double) i);
             }
 
-        } else { // It is a region. We assign the code based on the similarity of the alleles.
+        } else { // it is a region; we assign the code based on the similarity of the alleles
             int allele_num = this.alleles.length; // form a distance matrix
 
             // First, all of the alleles should have the same string length (covering the same
