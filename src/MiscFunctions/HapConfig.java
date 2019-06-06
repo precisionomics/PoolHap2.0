@@ -11,7 +11,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import MiscFunctions.LocusAnnotation;
+import PoolHap.Algebra;
+import PoolHap.LocusAnnotation;
 
 public class HapConfig {
 	

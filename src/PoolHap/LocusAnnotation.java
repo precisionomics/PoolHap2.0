@@ -13,13 +13,13 @@ public class LocusAnnotation {
 	 * reflecting different understanding of the relationships between alleles.
 	 */
 	
-	boolean is_region;	// whether this is a primitive locus (e.g., a SNP or indel) or a region that contains multiple primitive loci
-	int chr_index; 	// index of the chromosome, starting from ZERO
-	int start_loc; 
-	int end_loc;	// For SNPs and indels, end_loc=start_loc; start_loc!=end_loc only if it is a region, instead of a primitive locus
-	String[] alleles; // Note that the length of each allele are the same if this.is_region==false. 
+	public boolean is_region;	// whether this is a primitive locus (e.g., a SNP or indel) or a region that contains multiple primitive loci
+	public int chr_index; 	// index of the chromosome, starting from ZERO
+	public int start_loc; 
+	public int end_loc;	// For SNPs and indels, end_loc=start_loc; start_loc!=end_loc only if it is a region, instead of a primitive locus
+	public String[] alleles; // Note that the length of each allele are the same if this.is_region==false. 
 	public HashMap<String, Double> alleles_coding;
-	String annotation=null;	
+	public String annotation=null;	
 	
 	/*
 	 *  constructor using multiple variables 
