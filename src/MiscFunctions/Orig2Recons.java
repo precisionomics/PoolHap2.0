@@ -9,7 +9,7 @@ import java.util.HashSet;
 
 import MiscFunctions.HapConfigTenSQR;
 
-public class Orig2Recons3 {
+public class Orig2Recons {
 
     public static HashSet<Integer> multipool_quasispecies;
 
