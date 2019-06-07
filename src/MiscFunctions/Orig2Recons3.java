@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 
-import MiscFunctions.HapConfig;
+import MiscFunctions.HapConfigTenSQR;
 
 public class Orig2Recons3 {
 
@@ -16,31 +16,46 @@ public class Orig2Recons3 {
     public static void main(String[] args) throws IOException {
         String gs_dir = args[0] + "/";
         String out_dir = args[1] + "/";
-        String prefix = args[2];    // This is also the simulation number.
+        String prefix = args[2]; // this is also the simulation number
         int num_pools = Integer.parseInt(args[3]);
         double quasi_cutoff = Double.parseDouble(args[4]);
 
         multipool_quasispecies = new HashSet<Integer>();
-        HapConfig orig_haps = new HapConfig(gs_dir + prefix + "_haps.inter_freq_vars.txt", gs_dir + prefix + "_haps.intra_freq.txt"); // diG null); //
-        HapConfig recon_haps = new HapConfig(out_dir + prefix + ".inter_freq_vars.txt", out_dir + prefix + ".intra_freq.txt");
+        HapConfigTenSQR orig_haps = new HapConfigTenSQR(
+            gs_dir + prefix + "_haps.inter_freq_vars.txt",
+            gs_dir + prefix + "_haps.intra_freq.txt");
+            
+            // TODO: [LEFTOVER]
+            // diG null);
+            
+        HapConfigTenSQR recon_haps = new HapConfigTenSQR(
+            out_dir + prefix + ".inter_freq_vars.txt",
+            out_dir + prefix + ".intra_freq.txt");
+
         int[] o2r_indices = new int[orig_haps.num_loci];
         ArrayList<Integer> false_neg = new ArrayList<Integer>();
         ArrayList<Integer> false_pos = new ArrayList<Integer>();
         int[] o_loci = new int[orig_haps.num_loci];
         int[] r_loci = new int[recon_haps.num_loci];
-        for (int io = 0; io < orig_haps.num_loci; io++) o_loci[io] = orig_haps.locusInfo[io].start_loc;
+        
+        for (int io = 0; io < orig_haps.num_loci; io++) {
+            o_loci[io] = orig_haps.locusInfo[io].start_loc;
+        }
         for (int ir = 0; ir < recon_haps.num_loci; ir++) {
             r_loci[ir] = recon_haps.locusInfo[ir].start_loc;
             false_pos.add(r_loci[ir]);
         }
+        
         for (int io = 0; io < orig_haps.num_loci; io++) {
             int ir = find(r_loci, o_loci[io]);
+            
+            // TODO: [LEFTOVER]
             // System.out.println(ir +"\t"+o_loci[io]);
+            
             if (ir != -1) {
                 o2r_indices[io] = ir;
                 false_pos.remove(false_pos.indexOf(o_loci[io]));
-            }
-            else {
+            } else {
                 o2r_indices[io] = -1;
                 false_neg.add(o_loci[io]);
             }
@@ -48,10 +63,26 @@ public class Orig2Recons3 {
 
         double[][] multi_pool_record = new double[num_pools][4];
         int compare_loci = orig_haps.num_loci - false_neg.size();
+        
+        // TODO: [LEFTOVER]
         // System.out.println(compare_loci);
-        for (int p = 0; p < num_pools; p++) multi_pool_record[p] = pool_evaluator(orig_haps, recon_haps, compare_loci, o2r_indices, quasi_cutoff, p, out_dir + prefix);
 
-        PrintWriter pw1 = new PrintWriter(new FileWriter(out_dir + quasi_cutoff + "_extended_results.txt", true));
+        for (int p = 0; p < num_pools; p++) {
+            multi_pool_record[p] = pool_evaluator(
+                orig_haps,
+                recon_haps,
+                compare_loci,
+                o2r_indices,
+                quasi_cutoff,
+                p,
+                out_dir + prefix);
+
+        }
+        
+        PrintWriter pw1 = new PrintWriter(new FileWriter(
+            out_dir + quasi_cutoff + "_extended_results.txt",
+            true));
+
         double[] multi_pool_results = new double[4];
         for (int p = 0; p < num_pools; p++) {
             pw1.append(prefix + "\t" + p + "\t");
@@ -64,13 +95,32 @@ public class Orig2Recons3 {
         pw1.close();
 
         PrintWriter pw2 = new PrintWriter(new FileWriter(out_dir + quasi_cutoff + "_aggregated_results.txt", true));
+        
+        // TODO: [LEFTOVER]
         // String[] comb_sim = prefix.split("_"); // diG
-        pw2.append(false_neg.size() + "\t" + false_pos.size() + "\t"); // comb_sim[0] + "\t" + comb_sim[1] + "\t" + // diG
-        for (int i = 0; i < 4; i++) pw2.append(multi_pool_results[i] / num_pools + "\t");
-        pw2.append(orig_haps.num_global_hap + "\t" + recon_haps.num_global_hap + "\t" + Double.toString((double) multipool_quasispecies.size() / recon_haps.num_global_hap) + "\t");
-        for (int l : false_neg) pw2.append(l + ",");
+
+        pw2.append(false_neg.size() + "\t" + false_pos.size() + "\t");
+        
+        // TODO: [LEFTOVER]
+        // comb_sim[0] + "\t" + comb_sim[1] + "\t" + // diG
+
+        for (int i = 0; i < 4; i++) {
+            pw2.append(multi_pool_results[i] / num_pools + "\t");
+        }
+        
+        pw2.append(orig_haps.num_global_hap + "\t"
+            + recon_haps.num_global_hap + "\t"
+            + Double.toString((double) multipool_quasispecies.size()
+                / recon_haps.num_global_hap) + "\t");
+
+        for (int l : false_neg) {
+            pw2.append(l + ",");
+        }
         pw2.append("\t");
-        for (int l : false_pos) pw2.append(l + ",");
+        
+        for (int l : false_pos) {
+            pw2.append(l + ",");
+        }
         pw2.append("\n");
         pw2.close();
     }
@@ -78,7 +128,7 @@ public class Orig2Recons3 {
     // For each simulation, print 1) one multi-pool aggregated results file, 2) one line summarizing the multi-pool aggregated results to be put together across all simulations. So, we will also need the simulation.
     // 1) For each haplotype, the pool, the OHID, the closest RHID, the variant difference, the frequency difference, number of quasispecies.
     // 2) Need to track the RHID of quasispecies. Calculate the summed in-pool frequencies of all qualified quasispecies RHID.
-    public static double[] pool_evaluator(HapConfig orig_haps, HapConfig recon_haps, int compare_loci, int[] o2r_indices, double quasi_cutoff, int pool, String dir_prefix) throws IOException {
+    public static double[] pool_evaluator(HapConfigTenSQR orig_haps, HapConfigTenSQR recon_haps, int compare_loci, int[] o2r_indices, double quasi_cutoff, int pool, String dir_prefix) throws IOException {
         int max_pos_diff = (int) Math.floor(compare_loci * quasi_cutoff); // Number of differing positions that still count as quasispecies.
         // System.out.println(max_pos_diff);
         double diff_ct = 0.0;
