@@ -140,6 +140,10 @@ public class HapConfig {
 	}
 	
 	public HapConfig(HapConfig[] final_local_haps){
+		
+		/*
+		 *  TODO: [HapConfig Review]:: Changes start here.
+		 */
 		boolean[] skip_pools = new boolean[final_local_haps.length]; 
 		HashSet<Integer> all_pos = new HashSet<Integer>();
 		ArrayList<HashMap<Integer,Integer>> pool2posind = new ArrayList<HashMap<Integer,Integer>>();  
@@ -161,12 +165,20 @@ public class HapConfig {
 		int[] all_pos_final = all_pos.stream().mapToInt(Integer::intValue).toArray();
 		Arrays.sort(all_pos_final);
 		this.num_loci = all_pos_final.length; 
+		/*
+		 *  TODO: [HapConfig Review]:: First block of changes end here.
+		 */
+		
 		ArrayList<String> global_ids = new ArrayList<String>(); 
 		ArrayList<ArrayList<String>> local_ids = new ArrayList<ArrayList<String>>(); 
 		ArrayList<Double> tmp_recon = new ArrayList<Double>();
 		for (int p = 0; p < final_local_haps.length; p++) {
 			local_ids.add(new ArrayList<String>());
 			for (int h = 0; h < final_local_haps[p].num_global_hap; h++) {
+				
+				/*
+				 *  TODO: [HapConfig Review]:: More changes here
+				 */
 				if (skip_pools[p]) continue;	// If this pool failed to be reconstructed, skip it entirely.
 				String curr_vc = "";
 				// TODODONE Make accurate strings for each partial haplotype.
@@ -178,27 +190,39 @@ public class HapConfig {
 					global_ids.add(curr_vc);
 					tmp_recon.add(final_local_haps[p].prop_reconstruction[h]); 
 				}
+				/*
+				 *  TODO: [HapConfig Review]:: 2nd block of changes end.
+				 */
+				
 				local_ids.get(p).add(curr_vc); 
 			}
 		}
 		this.num_global_hap = global_ids.size();
 		this.hap_IDs = new String[this.num_global_hap];
 		this.num_pools = final_local_haps.length;
-		this.prop_reconstruction = new double[this.num_global_hap]; 
+		
+		/*
+		 *  TODO: [HapConfig Review]:: More changes here
+		 */
+		this.prop_reconstruction = new double[this.num_global_hap];
 		for (int h = 0; h < this.num_global_hap; h++) this.prop_reconstruction[h] = tmp_recon.get(h);
+		/*
+		 *  TODO: [HapConfig Review]:: 3rd block of changes end
+		 */
+
 		this.global_haps_string = new String[this.num_global_hap][this.num_loci];
 		this.in_pool_haps_freq = new double[this.num_global_hap][final_local_haps.length];
 		 // TODODONE Manage this part properly.
-		this.locusInfo = new LocusAnnotation[this.num_loci];
+		this.locusInfo = new LocusAnnotation[this.num_loci]; // TODO: [HapConfig Review]:: this is new
 		double[] tmp_global_freq = new double[this.num_global_hap]; 
 		for (int h = 0; h < this.num_global_hap; h++) {
 			String[] hap_var_comp = global_ids.get(h).split(""); 
 			for (int l = 0; l < this.num_loci; l++) {
 				this.global_haps_string[h][l] = hap_var_comp[l];
-				this.locusInfo[l] = pos2loc_anno.get(all_pos_final[l]);
+				this.locusInfo[l] = pos2loc_anno.get(all_pos_final[l]); // TODO: [HapConfig Review]:: this is new
 			}
 			for (int p = 0; p < this.num_pools; p++) {
-				if (skip_pools[p]) continue;
+				if (skip_pools[p]) continue; // TODO: [HapConfig Review]:: this is new
 				else 
 					if (local_ids.get(p).contains(global_ids.get(h))) {
 						int inpool_index = local_ids.get(p).indexOf(global_ids.get(h));
@@ -210,7 +234,7 @@ public class HapConfig {
 		}
 		this.global_haps_freq = new double[this.num_global_hap];
 		for (int h = 0; h < this.num_global_hap; h++) this.global_haps_freq[h] = tmp_global_freq[h] / this.num_pools; 
-		try {
+		try { // TODO: [HapConfig Review]:: this try-catch is new
 			this.inpool_site_freqs = final_local_haps[0].inpool_site_freqs.clone();
 		} catch (NullPointerException e) {} 
 		this.construct_hapID2index_map();
@@ -218,7 +242,7 @@ public class HapConfig {
 		this.pool_IDs = new String[this.num_pools];
 		for (int p = 0; p < this.num_pools; p++) this.pool_IDs[p] = p + "";
 		this.est_ind_pool = 0; 
-		// this.update_sigma_mu_logL();
+		// this.update_sigma_mu_logL(); TODO: [HapConfig Review]:: this line was not previously commented out
 	}
 
 	/*
@@ -239,7 +263,7 @@ public class HapConfig {
 				this.global_haps_freq[h]=Double.parseDouble(header_freqs[h+1]);
 			}
 			String line=br.readLine();
-			while(line!=null && !line.contains("Recombinate")){
+			while(line!=null && !line.contains("Recombinate")){ // TODO: [HapConfig Review]:: this is new
 				this.num_loci++;
 				line=br.readLine();
 			}br.close();
@@ -252,7 +276,11 @@ public class HapConfig {
 			int loci_index=0;
 			while(line!=null){
 				String[] tmp=line.split("\t");
-				if (tmp[0].contains("Recombinate")) {
+				
+				/*
+				 *  TODO: [HapConfig Review]:: More changes below (the if-else is new)
+				 */
+				if (tmp[0].contains("Recombinate")) { 
 					this.prop_reconstruction = new double[this.num_global_hap]; 
 					for(int h_index=0;h_index<this.num_global_hap;h_index++) this.prop_reconstruction[h_index] = Double.parseDouble(tmp[h_index + 1]); 
 				} else {
@@ -263,6 +291,10 @@ public class HapConfig {
 					loci_index++;
 					
 				}
+				/*
+				 *  TODO: [HapConfig Review]:: the 5th block of changes end here.
+				 */
+				
 				line=br.readLine();
 				// System.out.println(line);
 			}br.close();
@@ -320,6 +352,10 @@ public class HapConfig {
 			}
 		}catch(Exception e){e.printStackTrace(); this.num_global_hap = 0;}
 	}
+	
+	/*
+	 * TODO: [HapConfig Review]:: the constructor with the gc file output was removed?
+	 */
 	
 	public void construct_hapID2index_map(){
 		this.hapID2index = new HashMap<String, Integer>();
@@ -440,6 +476,10 @@ public class HapConfig {
 		}catch(Exception e){e.printStackTrace();}
 	}
 	
+	
+	/*
+	 *  TODO: [HapConfig Review]:: This method is new
+	 */
 	public void write_prop_recon(String prop_recon_file, boolean append){
 		try{
 			BufferedWriter bw = new BufferedWriter(new FileWriter(prop_recon_file, append));
