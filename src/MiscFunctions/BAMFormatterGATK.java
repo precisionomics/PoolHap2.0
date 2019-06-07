@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-public class BAMFormatter3 {
+public class BAMFormatterGATK {
 	
 	public static void main(String[] args) throws IOException {
 		
