@@ -6,7 +6,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashSet;
 
-import MiscFunctions.HapConfig;
+import MiscFunctions.HapConfigTenSQR;
 
 public class Orig2Recons2 {
 
@@ -20,8 +20,8 @@ public class Orig2Recons2 {
         double quasi_cutoff = Double.parseDouble(args[4]);
 
         multipool_quasispecies = new HashSet<Integer>();
-        HapConfig orig_haps = new HapConfig(gs_dir + prefix + "_haps.inter_freq_vars.txt", gs_dir + prefix + "_haps.intra_freq.txt");
-        HapConfig recon_haps = new HapConfig(out_dir + prefix + ".inter_freq_vars.txt", out_dir + prefix + ".intra_freq.txt");
+        HapConfigTenSQR orig_haps = new HapConfigTenSQR(gs_dir + prefix + "_haps.inter_freq_vars.txt", gs_dir + prefix + "_haps.intra_freq.txt");
+        HapConfigTenSQR recon_haps = new HapConfigTenSQR(out_dir + prefix + ".inter_freq_vars.txt", out_dir + prefix + ".intra_freq.txt");
         double[][] multi_pool_record = new double[20][4];
         for (int p = 0; p < num_pools; p++) multi_pool_record[p] = pool_evaluator(orig_haps, recon_haps, quasi_cutoff, p, out_dir + prefix);
 
@@ -47,7 +47,7 @@ public class Orig2Recons2 {
     // For each simulation, print 1) one multi-pool aggregated results file, 2) one line summarizing the multi-pool aggregated results to be put together across all simulations. So, we will also need the simulation.
     // 1) For each haplotype, the pool, the OHID, the closest RHID, the variant difference, the frequency difference, number of quasispecies.
     // 2) Need to track the RHID of quasispecies. Calculate the summed in-pool frequencies of all qualified quasispecies RHID.
-    public static double[] pool_evaluator(HapConfig orig_haps, HapConfig recon_haps, double quasi_cutoff, int pool, String dir_prefix) throws IOException {
+    public static double[] pool_evaluator(HapConfigTenSQR orig_haps, HapConfigTenSQR recon_haps, double quasi_cutoff, int pool, String dir_prefix) throws IOException {
         int max_pos_diff = (int) Math.floor(orig_haps.num_loci * quasi_cutoff); // Number of differing positions that still count as quasispecies.
         double diff_ct = 0.0;
         double diff_abs = 0;
