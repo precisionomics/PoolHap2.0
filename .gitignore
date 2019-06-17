@@ -1,3 +1,5 @@
 # Dot directories
-.settings
-.vscode
+.settings/
+.vscode/
+
+bin/
