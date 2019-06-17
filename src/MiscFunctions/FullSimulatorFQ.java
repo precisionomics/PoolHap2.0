@@ -400,7 +400,7 @@ public class FullSimulatorFQ {
                 "-s", "0",
                 "-y", "0");
             
-            System.out.println(String.join(" ", CMDLine.command()));
+            // System.out.println(String.join(" ", CMDLine.command()));  // TODO: LEFTOVER
             CMDProcess = CMDLine.start();
             CMDProcess.waitFor();
             System.out.println("Finished simulating reads for pool " + p + ".");
