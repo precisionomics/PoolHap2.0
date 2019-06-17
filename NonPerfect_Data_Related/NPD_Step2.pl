@@ -22,7 +22,7 @@ my $ref = "$input_dir/HIV_HXB2.fa";
 
 print STDOUT "Step 1) Generating coalescence-simulated haplotypes, distribute to each of the pools, and simulate reads for each pool.\n\n";
 # print STDOUT "$java_cmd -jar $own_pdir/FS3.jar $input_dir/FS3.properties $prefix $c0 $c1";
-system("$java_cmd -jar $own_pdir/FS3.jar $input_dir/FS3.properties $prefix $c0 $c1");
+system("$java_cmd -jar $own_pdir/FSFQ.jar $input_dir/FSFQ.properties $prefix $c0 $c1");
 
 
 print STDOUT "\nSteps 2 and 3) For each pool, align the simulated reads to a reference sequence, and call variants using GATK HaplotypeCaller in gVCF mode.\n";
