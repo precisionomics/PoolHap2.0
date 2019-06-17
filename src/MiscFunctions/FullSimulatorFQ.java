@@ -66,14 +66,10 @@ public class FullSimulatorFQ {
             Integer.toString(all_pool_haps),
             "1",
             "-L",
-            "-seeds",
-            Integer.toString(ThreadLocalRandom.current().nextInt(10620,1062017280)),
-            "-t",
-            Double.toString(theta),
-            "-s",
-            Integer.toString(num_var_pos),
-            "-r",
-            Double.toString(rho),
+            "-seeds", Integer.toString(ThreadLocalRandom.current().nextInt(10620,1062017280)),
+            "-t", Double.toString(theta),
+            "-s", Integer.toString(num_var_pos),
+            "-r", Double.toString(rho),
             Integer.toString(ref_seq_len));
 
         System.out.println(String.join(" ", CMDLine.command()));
@@ -133,6 +129,7 @@ public class FullSimulatorFQ {
                 }
                 var_burden_ct += (double) tmpAllele;
             }
+
             hap2cts[hap] = hapsHS.get(h);
             hap++;
         }
@@ -140,7 +137,9 @@ public class FullSimulatorFQ {
         double var_burden_avg = var_burden_ct / (double) actual_num_haps;
 
         // Step 2B: Report properties of the simulated haplotypes to the user to check if they're acceptable.
-        System.out.println("Step 2B: Report properties of the simulated haplotypes to the user to check if they're acceptable.");
+        System.out.println("Step 2B: Report properties of the simulated haplotypes to the user to "
+            + "check if they're acceptable.");
+
         int[] pwDifference = new int[actual_num_haps * (actual_num_haps - 1) / 2];
         int compare = 0;
         hap2allfreqs = new double[actual_num_haps];
@@ -150,11 +149,12 @@ public class FullSimulatorFQ {
                     if (hap2varcomp[h][p] != hap2varcomp[i][p])
                         pwDifference[compare]++;
                 if (pwDifference[compare] == 0) System.out.println(h + "\t" + i + "\t");
-                // System.out.print(pwDifference[compare] + "\t");
+                // System.out.print(pwDifference[compare] + "\t"); // TODO: LEFTOVER
                 compare++;
             }
             hap2allfreqs[h] = (double) hap2cts[h] / all_pool_haps;
         }
+        
         Arrays.sort(pwDifference);
         double meanPWDiff = mean(pwDifference);
         double stdPWDiff = stdev(pwDifference);
@@ -166,22 +166,61 @@ public class FullSimulatorFQ {
 
         System.out.println("There are " + actual_num_haps + " across-pool haplotypes.");
         System.out.println("There are " + actual_num_vars + " true variant positions.");
-        System.out.println("There average mutational burden per haplotype is " + var_burden_avg + " variants.");
-        System.out.println("The average pairwise difference is " + meanPWDiff + " and the standard deviation is " + stdPWDiff + ".");
-        System.out.println("The minimum pairwise difference is " + pwDifference[0] + " and the maximum is " + pwDifference[pwDifference.length - 1] + ".");
-        System.out.println("The average all-pool count per haplotype is " + meanCts + " and the standard deviation is " + stdCts + ".");
-        System.out.println("The minimum all-pool count is " + sortedCts[0] + " and the maximum is " + sortedCts[sortedCts.length - 1] + ".");
-        PrintWriter pw = new PrintWriter(new FileWriter(gs_dir + prefix.split("_")[0] + ".simulation_summary.txt", true));	// gs_dir/c.simulation_summary.txt
-        pw.append(prefix.split("_")[1] + "\t" + actual_num_haps + "\t" + actual_num_vars + "\t" + var_burden_avg + "\t" + meanPWDiff + "\t" + stdPWDiff + "\t" +
-                pwDifference[0] + "\t" + pwDifference[pwDifference.length - 1] + "\t" + meanCts  + "\t" + stdCts + "\t" + sortedCts[0] + "\t" + sortedCts[sortedCts.length - 1] + "\n");
+        System.out.println("There average mutational burden per haplotype is "
+            + var_burden_avg
+            + " variants.");
+            
+        System.out.println("The average pairwise difference is "
+            + meanPWDiff
+            + " and the standard deviation is "
+            + stdPWDiff + ".");
+            
+        System.out.println("The minimum pairwise difference is "
+            + pwDifference[0]
+            + " and the maximum is "
+            + pwDifference[pwDifference.length - 1]
+            + ".");
+            
+        System.out.println("The average all-pool count per haplotype is "
+            + meanCts
+            + " and the standard deviation is "
+            + stdCts
+            + ".");
+            
+        System.out.println("The minimum all-pool count is "
+            + sortedCts[0]
+            + " and the maximum is "
+            + sortedCts[sortedCts.length - 1]
+            + ".");
+            
+        PrintWriter pw = new PrintWriter(new FileWriter(
+            // gs_dir/c.simulation_summary.txt
+            gs_dir + prefix.split("_")[0] + ".simulation_summary.txt", true));
+        
+        pw.append(prefix.split("_")[1] + "\t"
+            + actual_num_haps + "\t"
+            + actual_num_vars + "\t"
+            + var_burden_avg + "\t"
+            + meanPWDiff + "\t"
+            + stdPWDiff + "\t"
+            + pwDifference[0] + "\t"
+            + pwDifference[pwDifference.length - 1] + "\t"
+            + meanCts  + "\t"
+            + stdCts + "\t"
+            + sortedCts[0] + "\t" 
+            + sortedCts[sortedCts.length - 1] + "\n");
         pw.close();
-            // System.out.print("Is this acceptable? ");
-            // answer = reader.next();
-            // reader.close();
+        
+        // TODO: LEFTOVER
+        // System.out.print("Is this acceptable? ");
+        // answer = reader.next();
+        // reader.close();
         // } while (!answer.equals("Y"));	// Basically, simulate haplotypes until the distribution makes me happy.
 
         // Step 3: Assign each haplotype individual to a patient, and write all of the gold standard files.
-        System.out.println("\nStep 3A: Assign each haplotype individual to a patient, and write all of the gold standard files.\n");
+        System.out.println("\nStep 3A: Assign each haplotype individual to a patient, and write all"
+            + " of the gold standard files.\n");
+            
         int[][] hap2incts = new int[actual_num_haps][num_pools];
         hap2infreqs = new double[actual_num_haps][num_pools];
         int[][] var2incts = new int[actual_num_vars][num_pools];
@@ -189,61 +228,93 @@ public class FullSimulatorFQ {
         for (int h = 0; h < actual_num_haps; h++) {
             while (hap2cts[h] != 0) {
                 int currPool = ThreadLocalRandom.current().nextInt(0, num_pools);
-                if (!pool2hapcomp.containsKey(currPool)) pool2hapcomp.put(currPool, new ArrayList<Integer>());
-                if (poolFull[currPool]) continue;
+                if (!pool2hapcomp.containsKey(currPool)) {
+                    pool2hapcomp.put(currPool, new ArrayList<Integer>());
+                }
+                
+                if (poolFull[currPool]) {
+                    continue;
+                }
+                
                 pool2hapcomp.get(currPool).add(h);
                 hap2incts[h][currPool]++;
-                for (int v = 0; v < num_var_pos; v++) var2incts[v][currPool] += hap2varcomp[h][v];
+                for (int v = 0; v < num_var_pos; v++) {
+                    var2incts[v][currPool] += hap2varcomp[h][v];
+                }
+                
                 hap2cts[h]--;
-                if (pool2hapcomp.get(currPool).size() == haps_per_pool) poolFull[currPool] = true;
+                if (pool2hapcomp.get(currPool).size() == haps_per_pool) {
+                    poolFull[currPool] = true;
+                }
             }
-            for(int p = 0; p < num_pools; p++)
+
+            for(int p = 0; p < num_pools; p++) {
                 hap2infreqs[h][p] = (double) hap2incts[h][p] / haps_per_pool;
+            }
         }
 
-        BufferedWriter bw = new BufferedWriter(new FileWriter(gs_dir + prefix + "_haps.inter_freq_vars.txt"));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(
+            gs_dir + prefix + "_haps.inter_freq_vars.txt"));
+            
         bw.write("Hap_ID");
-        for(int h = 0; h < actual_num_haps; h++)
+        for (int h = 0; h < actual_num_haps; h++) {
             bw.write("\t" + h);
+        }
+        
         bw.write("\nFreq");
-        for(int h = 0; h < actual_num_haps; h++)
+        for (int h = 0; h < actual_num_haps; h++) {
             bw.write("\t" + hap2allfreqs[h]);
+        }
+        
         bw.write("\n");
         for(int v = 0; v < actual_num_vars; v++){
             bw.write("0;" + sim_var_pos[v] + ";" + sim_var_pos[v] + ";0:1");
-            for(int h = 0; h < actual_num_haps; h++)
+            for (int h = 0; h < actual_num_haps; h++) {
                 bw.write("\t" + hap2varcomp[h][v]);
+            }
+            
             bw.write("\n");
-        } bw.close();
+        }
+        bw.close();
 
         bw = new BufferedWriter(new FileWriter(gs_dir + prefix + "_haps.intra_freq.txt"));
         bw.write("Hap_ID");
-        for(int h = 0; h < actual_num_haps; h++)
+        for (int h = 0; h < actual_num_haps; h++) {
             bw.write("\t" + h);
+        }
+        
         bw.write("\n");
-        for(int p = 0; p < num_pools; p++){
+        for (int p = 0; p < num_pools; p++) {
             bw.write(Integer.toString(p));
-            for(int h = 0; h < actual_num_haps; h++)
+            for (int h = 0; h < actual_num_haps; h++) {
                 bw.write("\t" + hap2infreqs[h][p]);
+            }
             bw.write("\n");
         }
         bw.close();
 
         double[][] var2infreqs = new double[actual_num_vars][num_pools];
-        for(int p = 0; p < num_pools; p++)
-            for(int v = 0; v < actual_num_vars; v++)
+        for(int p = 0; p < num_pools; p++) {
+            for(int v = 0; v < actual_num_vars; v++) {
                 var2infreqs[v][p] = (double) var2incts[v][p] / haps_per_pool;
+            }
+        }
+        
         bw = new BufferedWriter(new FileWriter(gs_dir + prefix + "_vars.intra_freq.txt"));
         bw.write("Pool_ID");
-        for (int p = 0; p < num_pools; p++)
+        for (int p = 0; p < num_pools; p++) {
             bw.write("\t" + p);
+        }
+        
         bw.write("\n");
-        for (int v = 0; v < actual_num_vars; v++){
+        for (int v = 0; v < actual_num_vars; v++) {
             bw.write("0;" + sim_var_pos[v] + ";" + sim_var_pos[v] + ";0:1");
-            for (int p = 0; p < num_pools; p++)
+            for (int p = 0; p < num_pools; p++) {
                 bw.write("\t" + var2infreqs[v][p]);
+            }
             bw.write("\n");
-        } bw.close();
+        }
+        bw.close();
 
         // Step 4) Put all reference bases in an indexed object.
         System.out.println("\nStep 4: Put all reference bases in an indexed object.\n");
@@ -256,16 +327,20 @@ public class FullSimulatorFQ {
                 currLine = br.readLine();
                 continue;
             }
+            
             for (String b : currLine.split("")) {
                 refSequence[i] = b;
                 i++;
             }
+            
             currLine = br.readLine();
         }
         br.close();
 
         // Step 5a) Simulate single nucleotide polymorphisms on the reference sequence.
-        System.out.println("\nStep 5a) Simulate single nucleotide polymorphisms on the reference sequence.\n");
+        System.out.println(
+            "\nStep 5a) Simulate single nucleotide polymorphisms on the reference sequence.\n");
+
         bw = new BufferedWriter(new FileWriter(gs_dir + prefix + "_mutations.txt"));
         String[] allAltAlleles = new String[actual_num_vars];
         for (int v = 0; v < actual_num_vars; v++) {
@@ -275,21 +350,30 @@ public class FullSimulatorFQ {
         bw.close();
 
         // Step 5b) Add simulated mutations to finish the full-length simulated haplotypes.
-        System.out.println("\nStep 5b) Add simulated mutations to finish the full-length simulated haplotypes.\n");
+        System.out.println(
+            "\nStep 5b) Add simulated mutations to finish the full-length simulated haplotypes.\n");
+
         String[][] allSimHaps = new String[actual_num_haps][ref_seq_len];
         for (int h = 0; h < actual_num_haps; h++) {
             for (int p = 0; p < ref_seq_len; p++) {
                 int pos = find(sim_var_pos, p + 1);
                 if (pos != -1) {
-                    if (hap2varcomp[h][pos]==1)	allSimHaps[h][p] = allAltAlleles[pos];
-                    else allSimHaps[h][p] = refSequence[p];
-                } else allSimHaps[h][p] = refSequence[p];
+                    if (hap2varcomp[h][pos]==1)	{
+                        allSimHaps[h][p] = allAltAlleles[pos];
+                    } else {
+                        allSimHaps[h][p] = refSequence[p];
+                    }                    
+                } else {
+                    allSimHaps[h][p] = refSequence[p];
+                }
             }
         }
 
         // Step 6) Simulate all of the pool FastA and FastQ files, given the distribution of haplotypes in step 3.
         // HashMap<Integer, ArrayList<Integer>> pool2hapcomp = new HashMap<Integer, ArrayList<Integer>>(); // pool id -> [hap_ids]
-        System.out.println("\nStep 6) Simulate all of the pool FastA files, given the distribution of haplotypes in step 3.\n");
+        System.out.println("\nStep 6) Simulate all of the pool FastA files, given the distribution"
+            + " of haplotypes in step 3.\n");
+            
         for (int p = 0; p < num_pools; p++) {
             pw = new PrintWriter(inter_dir + prefix + "_p" + p + ".fa");
             for (int h = 0; h < haps_per_pool; h++) {
@@ -301,7 +385,22 @@ public class FullSimulatorFQ {
             pw.close();
         }
         for (int p = 0; p < num_pools; p++) {
-            CMDLine = new ProcessBuilder(dwgsimCMDLine, inter_dir + prefix + "_p" + p + ".fa", inter_dir + prefix + "_p" + p, "-e", Double.toString(error_rate), "-E", Double.toString(error_rate), "-C", Integer.toString(coverage), "-1", Integer.toString(read_len), "-2", Integer.toString(read_len), "-r", "0", "-F", "0", "-H", "-d", Integer.toString(outer_dist), "-o", "1", "-s", "0", "-y", "0");
+            CMDLine = new ProcessBuilder(dwgsimCMDLine,
+                inter_dir + prefix + "_p" + p + ".fa",
+                inter_dir + prefix + "_p" + p,
+                "-e", Double.toString(error_rate),
+                "-E", Double.toString(error_rate), "-C", Integer.toString(coverage),
+                "-1", Integer.toString(read_len),
+                "-2", Integer.toString(read_len),
+                "-r", "0",
+                "-F", "0",
+                "-H",
+                "-d", Integer.toString(outer_dist),
+                "-o", "1",
+                "-s", "0",
+                "-y", "0");
+            
+            System.out.println(String.join(" ", CMDLine.command()));
             CMDProcess = CMDLine.start();
             CMDProcess.waitFor();
             System.out.println("Finished simulating reads for pool " + p + ".");
@@ -309,8 +408,10 @@ public class FullSimulatorFQ {
     }
 
     public static int sum(int[] a){
-        int result=0;
-        for(int k=0;k<a.length;k++)result+=a[k];
+        int result = 0;
+        for (int k = 0; k < a.length; k++) {
+            result += a[k];
+        }
         return result;
     }
 
@@ -324,7 +425,7 @@ public class FullSimulatorFQ {
         for (int i : a) {
             stdev += Math.pow((double) i - mean, 2);
         }
-        return Math.sqrt(stdev/a.length);
+        return Math.sqrt(stdev / a.length);
     }
 
     public static double nCr(int n, int r){
@@ -337,7 +438,7 @@ public class FullSimulatorFQ {
             if (i <= temp2) {
                 rfact *= i;
                 nrfact *= i;
-            } else if(i <= temp1) {
+            } else if (i <= temp1) {
                 nrfact *= i;
             }
             nfact *= i;
