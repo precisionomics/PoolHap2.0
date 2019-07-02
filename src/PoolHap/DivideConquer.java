@@ -56,7 +56,7 @@ public class DivideConquer {
     // The in-pool frequencies and annotations for all sites.
     public SiteInPoolFreqAnno in_pool_sites_freq_anno;
     public String[][] gc_outcome;
-    public boolean region_solve;
+    public boolean region_solve; // TODO: remove this when the degugging ends. Quan Long 2019-06-29
 
 
     /**
@@ -93,20 +93,23 @@ public class DivideConquer {
             this.generate_dividing_plan_two_level(this.gc_outcome);
 
             // If can be divided...
-            if (this.region_solve) {
+//            if (this.region_solve) {
+            	this.output_current_DC_plan(dc_out_file);
+            	System.out.println("The current dividing plan: ");
                 System.out.println(
                     "\nFinished generating divide-and-conquer plan. The plan has been written to "
                     + dc_out_file);
 
-                System.out.println("The current dividing plan: ");
-                this.output_current_DC_plan(dc_out_file);
+               
+                
 
             // If not enough gaps...
-            } else {
-                System.out.println(
-                    "There are not enough locations of linkage uncertainty to run regional "
-                    + "reconstruction. Skipping straight to linkage-informed LASSO regression.");
-            }
+//            } 
+//            else {
+//                System.out.println(
+//                    "There are not enough locations of linkage uncertainty to run regional "
+//                    + "reconstruction. Skipping straight to linkage-informed LASSO regression.");
+//            }
 
             this.in_pool_sites_freq_anno = new SiteInPoolFreqAnno(frequency_file);
 
@@ -215,9 +218,9 @@ public class DivideConquer {
     public void generate_dividing_plan_two_level(String[][] graph_coloring_outcome){
         // Step 1) Generate list of positions where there are linkage uncertainties i.e.: gaps.
         int[] gap_positions = identify_gaps(graph_coloring_outcome);
-        if (!this.region_solve) {
-            return;
-        }
+//        if (!this.region_solve) {
+//            return;
+//        }
 
         // TODO: [LEFTOVER]
         // for (int i : gap_positions) {
@@ -356,8 +359,8 @@ public class DivideConquer {
     /**
      *  Identify gaps from the GC outcome.
      *  The GC outcome file is composed of inferred haplotypes in the format of:
-     *  		0-1-0-1-0?1-0-1
-     *  where 0/1 stands for alleles, "-" stands for linked, and "?" stands for gap.
+     *  		0-1-0-1-0?1-0-1\t5
+     *  where 0/1 stands for alleles, "-" stands for linked, and "?" stands for gap. the number after \t stands for the count
      *
      *  There are two criteria:
      *      (1) the gap in a single pool, largely due to the sequencing gap
@@ -371,7 +374,7 @@ public class DivideConquer {
      *  @param graph_coloring_outcome
      *  @return
      */
-    public int[] identify_gaps(String[][] graph_coloring_outcome) {
+    public int[] identify_gaps_Lauren_iterative(String[][] graph_coloring_outcome) {
         ArrayList<Integer> gap_indexes = new ArrayList<>();
 
         // Step 1) Count up the number of gaps within each and between all of the raw GC haplotypes
@@ -515,6 +518,86 @@ public class DivideConquer {
         return gap_indexes_array;
     }
 
+    /*
+	 * identify gaps from the GC outcome. 
+	 * The GC outcome file is composed of inferred haplotypes in the format of:
+	 * 		0-1-0-1-0?1-0-1\t30
+	 * where 0/1 stands for alleles, "-" stands for linked, and "?" stands for gap. The number after \t stands for the count of the hap 
+	 * 
+	 * There are two criteria:
+	 * 	(1) the gap in a single pool, largely due to the sequencing gap
+	 * 	(2) the shared gap in all the pools, largely due to the long physical distance between two sites. 
+	 * 
+	 * Parameters involved: 
+	 * 	double gap_all_pool_cutoff
+	 * 	double gap_inpool_cutoff
+	 */
+	public int[] identify_gaps(String[][] graph_coloring_outcome){
+		ArrayList<Integer> gap_indexes=new ArrayList<>();
+		// Step 1) Count up the number of gaps within each and between all of the raw GC haplotypes and all of the pools.
+		int[][] gap_counts=new int[this.num_pools][this.num_sites-1]; // The count at each potential gap in each pool. "this.num_sites-1" potential gaps.
+		int[] gap_counts_all=new int[this.num_sites-1];	// The cumulative count at each potential gap position. 
+		double[] num_haps_inpool=new double[this.num_pools];	// The number of types of raw GC haplotypes in each pool. 
+		double num_haps_all= 0.0;
+		HashSet<String> hap_tracker = new HashSet<String>();  
+		for(int p=0;p<this.num_pools;p++){	// For each pool...
+			String[] haps=graph_coloring_outcome[p];	// The list of raw GC haplotypes.
+			num_haps_all+=haps.length;
+			num_haps_inpool[p]=haps.length;
+			for(int h=0;h<haps.length;h++){	// ...for each raw GC haplotype...
+				String curr_vc = ""; 
+				for(int k=0;k<this.num_sites-1;k++){ // ...for each potential gap... 
+					curr_vc += haps[h].charAt(k*2); 
+					if(haps[h].charAt(k*2+1)=='?'){	// If the linkage between the two variant positions is uncertain i.e.: gap is present...
+						gap_counts[p][k]++;	// ...increment the count within-pool and globally. 
+						gap_counts_all[k]++;
+					}
+				}
+				curr_vc += haps[h].charAt((this.num_sites-1)*2);
+				hap_tracker.add(curr_vc);
+			}
+		}
+		/*
+		for (int i = 0; i < this.num_pools; i++) {
+			for (int j = 0; j < this.num_sites - 1; j++) System.out.print(gap_counts[i][j] + "\t");
+			System.out.println();
+		}
+		for (double k : num_haps_inpool) System.out.println(k + "\t");
+		System.out.println();
+		*/
+		// Step 2) Check if the potential gaps meet the within- OR between-pool frequency thresholds.
+		HashSet<Integer> gap_indexes_set=new HashSet<Integer>();
+		for(int k=0;k<this.num_sites-1;k++){
+			if((double) gap_counts_all[k]/num_haps_all>=this.dp.gap_all_pool_cutoff && !gap_indexes_set.contains(k)){
+				gap_indexes.add(k);
+				gap_indexes_set.add(k);
+			}
+			for(int p=0;p<this.num_pools;p++){
+				if((double) gap_counts[p][k]/num_haps_inpool[p]>=this.dp.gap_inpool_cutoff && !gap_indexes_set.contains(k)){	
+					gap_indexes.add(k);
+					gap_indexes_set.add(k);
+				}
+			}
+		}
+		gap_indexes.add(this.num_sites-1); // add the last site index as the final "gap" so that all the sites are within gaps. 
+		gap_indexes_set.add(this.num_sites-1); // this is not useful for the moment, but keep the data integrity for potential future use. 
+		// clean the outcome and return
+		int[] gap_indexes_array=new int[gap_indexes.size()];
+		for(int i=0;i<gap_indexes.size();i++){
+			gap_indexes_array[i]=gap_indexes.get(i);
+		}
+		Arrays.sort(gap_indexes_array); // sort the indexes. 
+		
+		this.global_haps_gc = new String[hap_tracker.size()][this.num_sites];
+		this.num_haps_gc = hap_tracker.size();
+		int hap_index = 0;
+		for (String curr_vc : hap_tracker) {
+			String[] tmp = curr_vc.split("");
+			for (int l = 0; l < this.num_sites; l++) this.global_haps_gc[hap_index][l] = tmp[l]; 
+			hap_index++;
+		}	   
+		return gap_indexes_array;
+	}
 
     /**
      *  Output the current dividing plan to a file
