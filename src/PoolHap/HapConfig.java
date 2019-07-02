@@ -345,13 +345,13 @@ public class HapConfig {
 
             // Then read the local-hap file.
             if (in_pool_hap_input_file == null) {
-                this.num_pools = 20;
-                this.pool_IDs = new String[this.num_pools];
-                for (int p = 0; p < this.num_pools; p++) {
-                    this.pool_IDs[p] = p + "";
-                }
-
-                this.in_pool_haps_freq = new double[this.num_global_hap][this.num_pools];
+//                this.num_pools = 20;
+//                this.pool_IDs = new String[this.num_pools];
+//                for (int p = 0; p < this.num_pools; p++) {
+//                    this.pool_IDs[p] = p + "";
+//                }
+//
+//                this.in_pool_haps_freq = new double[this.num_global_hap][this.num_pools];
 
             } else {
                 br = new BufferedReader(new FileReader(in_pool_hap_input_file));
