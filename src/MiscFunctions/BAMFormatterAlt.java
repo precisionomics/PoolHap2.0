@@ -73,7 +73,8 @@ public class BAMFormatterAlt {
 		return trueVarPos;
 	}
 
-	private static HashMap<Integer,HashMap<String,VarObj>> VariantMapping(String VCFFile, boolean biallelic, int numPts, Boolean simmode, HashSet<Integer> trueVarPos) throws IOException { 
+	private static HashMap<Integer,HashMap<String,VarObj>> VariantMapping(String VCFFile, boolean biallelic, 
+			int numPts, Boolean simmode, HashSet<Integer> trueVarPos) throws IOException { 
 		
 		BufferedReader VCFReader = new BufferedReader(new FileReader(VCFFile));
 		String currLine = VCFReader.readLine();
