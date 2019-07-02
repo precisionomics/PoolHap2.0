@@ -3,6 +3,7 @@ package PoolHap;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashSet;
 import java.util.Properties;
 
 
@@ -44,11 +45,23 @@ public class Parameters {
     public static class GenParameters extends Parameters {
         // TODO: [ReconEP]:: refactor variable names to be more sensible (e.g. camelCase for Java).
 
+        // Added by Quan Long 2019-06-27.
+        // gc = Graph Coloring; aem = Divide and Conquer and then AEM;
+        public static String[] supported_functions_array = {"format", "gc", "aem", "lasso"};
+        public String function; // which module to run: format, gc, aem or lasso.
+
         /*
          *  General parameter set.
          */
-        public String inter_dir; // intermediate directory
-        public String gs_dir; // gold standard directory
+
+        // input files: SAM files and VCF files. Added by Quan Long 2019-07-01
+        public String input_dir;
+
+        public String inter_dir; // intermediate directory, including the following files:
+
+        // TODO: LEFTOVER ML 20190702
+        // public String gs_dir; // gold standard directory
+
         public String out_dir; // output directory
         public int fragments; // TODO: [Question]:: what is this?
         public double final_cutoff;
@@ -74,6 +87,10 @@ public class Parameters {
             // Would it affect things if we change this to:
             // InputStream is;
             InputStream is = null; // initialize input stream to null
+            HashSet<String> supported_functions = new HashSet<String>();
+            for (int k = 0; k < supported_functions_array.length; k++) {
+                supported_functions.add(supported_functions_array[k]);
+            }
 
             try {
                 /*
@@ -87,14 +104,24 @@ public class Parameters {
                 /*
                  *  Extract parameters to general parameter object variables from properties object.
                  */
+                this.function = prop.getProperty("Function");
+                if (!supported_functions.contains(this.function)) {
+                    System.out.println("Function "+this.function+" is not supported. A typo?");
+                    System.exit(0);
+                }
+
+                this.input_dir= prop.getProperty("Input_Dir");
                 this.inter_dir = prop.getProperty("Intermediate_Dir");
-                this.gs_dir = prop.getProperty("Gold-Standard_Dir");
+
+                // TODO: LEFTOVER Removed by Quan Long, 2019-07-01
+                // this.gs_dir = prop.getProperty("Gold-Standard_Dir");
+
                 this.out_dir = prop.getProperty("Output_Dir");
                 this.fragments = Integer.parseInt(prop.getProperty("Fragments"));
                 this.final_cutoff = Double.parseDouble(
                     prop.getProperty("FullLength_Local_Freq_Min"));
 
-                this.lambda = Double.parseDouble(prop.getProperty("Lambda_Lambda_Penalty"));
+                this.lambda = Double.parseDouble(prop.getProperty("Lambda_Penalty"));
                 this.lasso_weights = new double[] {
                     Double.parseDouble(prop.getProperty("One_Vector_Weight")),
                     Double.parseDouble(prop.getProperty("Hap_VC_Weight")),
@@ -104,9 +131,7 @@ public class Parameters {
                 this.lasso_penalty_step = Double.parseDouble(prop.getProperty("Penalty_Step_Size"));
 
             } catch (Exception e) {
-                // TODO: [Question]:: why not print stack trace like elsewhere?
-                System.out.println("Exception: " + e);
-
+                e.printStackTrace();
             } finally {
                 is.close(); // close input stream
             }

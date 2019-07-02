@@ -323,7 +323,7 @@ class VarObj {
 	public Integer intM; 	// The position of the variant according to the metareference.
 	public Integer varCode; // The numerical code corresponding to the desired alternative allele.  
 	
-	public VarObj(Integer i, Integer c){	// This is the constructor. 
+	public VarObj(Integer i, Integer c) {	// This is the constructor. 
 		intM = i;
 		varCode = c; 
 	}
