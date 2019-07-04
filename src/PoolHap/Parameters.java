@@ -104,31 +104,32 @@ public class Parameters {
                 /*
                  *  Extract parameters to general parameter object variables from properties object.
                  */
-                this.function = prop.getProperty("Function");
+                this.function = prop.getProperty("Function").trim();
                 if (!supported_functions.contains(this.function)) {
                     System.out.println("Function "+this.function+" is not supported. A typo?");
                     System.exit(0);
                 }
 
-                this.input_dir= prop.getProperty("Input_Dir");
-                this.inter_dir = prop.getProperty("Intermediate_Dir");
+                this.input_dir = prop.getProperty("Input_Dir").trim();
+                this.inter_dir = prop.getProperty("Intermediate_Dir").trim();
 
                 // TODO: LEFTOVER Removed by Quan Long, 2019-07-01
                 // this.gs_dir = prop.getProperty("Gold-Standard_Dir");
 
-                this.out_dir = prop.getProperty("Output_Dir");
-                this.fragments = Integer.parseInt(prop.getProperty("Fragments"));
+                this.out_dir = prop.getProperty("Output_Dir").trim();
+                this.fragments = Integer.parseInt(prop.getProperty("Fragments").trim());
                 this.final_cutoff = Double.parseDouble(
-                    prop.getProperty("FullLength_Local_Freq_Min"));
+                    prop.getProperty("FullLength_Local_Freq_Min").trim());
 
-                this.lambda = Double.parseDouble(prop.getProperty("Lambda_Penalty"));
+                this.lambda = Double.parseDouble(prop.getProperty("Lambda_Penalty").trim());
                 this.lasso_weights = new double[] {
-                    Double.parseDouble(prop.getProperty("One_Vector_Weight")),
-                    Double.parseDouble(prop.getProperty("Hap_VC_Weight")),
-                    Double.parseDouble(prop.getProperty("Hap_11_Weight"))};
+                    Double.parseDouble(prop.getProperty("One_Vector_Weight").trim()),
+                    Double.parseDouble(prop.getProperty("Hap_VC_Weight").trim()),
+                    Double.parseDouble(prop.getProperty("Hap_11_Weight").trim())};
 
-                this.min_r2 = Double.parseDouble(prop.getProperty("Minimum_R2_Fit"));
-                this.lasso_penalty_step = Double.parseDouble(prop.getProperty("Penalty_Step_Size"));
+                this.min_r2 = Double.parseDouble(prop.getProperty("Minimum_R2_Fit").trim());
+                this.lasso_penalty_step = Double.parseDouble(
+                    prop.getProperty("Penalty_Step_Size").trim());
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -205,48 +206,51 @@ public class Parameters {
                  *  properties object.
                  */
                 this.gap_inpool_cutoff = Double.parseDouble(
-                    prop.getProperty("In-pool_Gap_Support_Min"));
+                    prop.getProperty("In-pool_Gap_Support_Min").trim());
 
                 this.gap_all_pool_cutoff =  Double.parseDouble(
-                    prop.getProperty("All-pool_Gap_Support_Min"));
+                    prop.getProperty("All-pool_Gap_Support_Min").trim());
 
                 this.gap_support_step = Double.parseDouble(
-                    prop.getProperty("Gap_Support_Step_Size"));
+                    prop.getProperty("Gap_Support_Step_Size").trim());
 
                 this.min_level_I_region_size = Integer.parseInt(
-                    prop.getProperty("Level_1_Region_Size_Min"));
+                    prop.getProperty("Level_1_Region_Size_Min").trim());
 
                 this.max_level_I_region_size = Integer.parseInt(
-                    prop.getProperty("Level_1_Region_Size_Max"));
+                    prop.getProperty("Level_1_Region_Size_Max").trim());
 
                 this.min_level_I_last_size = Integer.parseInt(
-                    prop.getProperty("Level_1_Last_Region_Min"));
+                    prop.getProperty("Level_1_Last_Region_Min").trim());
 
                 this.min_level_II_region_size = Integer.parseInt(
-                    prop.getProperty("Level_2_Region_Size_Min"));
+                    prop.getProperty("Level_2_Region_Size_Min").trim());
 
                 this.max_level_II_region_size = Integer.parseInt(
-                    prop.getProperty("Level_2_Region_Size_Max"));
+                    prop.getProperty("Level_2_Region_Size_Max").trim());
 
-                this.est_ind_pool = Integer.parseInt(prop.getProperty("Est_Ind_PerPool"));
+                this.est_ind_pool = Integer.parseInt(prop.getProperty("Est_Ind_PerPool").trim());
                 this.final_cutoff = Double.parseDouble(
-                    prop.getProperty("Regional_Global_Freq_Min"));
+                    prop.getProperty("Regional_Global_Freq_Min").trim());
 
-                this.lambda = Double.parseDouble(prop.getProperty("Lambda_Penalty"));
+                this.lambda = Double.parseDouble(prop.getProperty("Lambda_Penalty").trim());
                 this.lasso_weights = new double[] {
-                    Double.parseDouble(prop.getProperty("One_Vector_Weight")),
-                    Double.parseDouble(prop.getProperty("Hap_VC_Weight")),
-                    Double.parseDouble(prop.getProperty("Hap_11_Weight"))};
+                    Double.parseDouble(prop.getProperty("One_Vector_Weight").trim()),
+                    Double.parseDouble(prop.getProperty("Hap_VC_Weight").trim()),
+                    Double.parseDouble(prop.getProperty("Hap_11_Weight").trim())};
 
-                this.min_r2 = Double.parseDouble(prop.getProperty("Minimum_R2_Fit"));
-                this.lasso_penalty_step = Double.parseDouble(prop.getProperty("Penalty_Step_Size"));
+                this.min_r2 = Double.parseDouble(prop.getProperty("Minimum_R2_Fit").trim());
+                this.lasso_penalty_step = Double.parseDouble(
+                    prop.getProperty("Penalty_Step_Size").trim());
+                    
                 this.hapset_size_max = Integer.parseInt(
-                    prop.getProperty("Regional_HapSetSize_Max"));
+                    prop.getProperty("Regional_HapSetSize_Max").trim());
 
                 this.hapset_size_min = Integer.parseInt(
-                    prop.getProperty("Regional_HapSetSize_Min"));
+                    prop.getProperty("Regional_HapSetSize_Min").trim());
 
-                this.hapset_size_rand = Double.parseDouble(prop.getProperty("DC_HapSetSize_Rand"));
+                this.hapset_size_rand = Double.parseDouble(
+                    prop.getProperty("DC_HapSetSize_Rand").trim());
 
             } catch (Exception e) {
                 // TODO: [Question]:: same as above.
@@ -302,21 +306,26 @@ public class Parameters {
                 /*
                  *  Extract parameters to AEM parameter object variables from properties object.
                  */
-                this.max_iteration = Integer.parseInt(prop.getProperty("Iterations_AEM_Max"));
-                this.est_ind_pool = Integer.parseInt(prop.getProperty("Est_Ind_PerPool"));
-                this.epsilon = Double.parseDouble(prop.getProperty("Difference_Cutoff"));
-                this.rare_cutoff = Double.parseDouble(prop.getProperty("Running_Freq_Min"));
+                this.max_iteration = Integer.parseInt(
+                    prop.getProperty("Iterations_AEM_Max").trim());
+                    
+                this.est_ind_pool = Integer.parseInt(prop.getProperty("Est_Ind_PerPool").trim());
+                this.epsilon = Double.parseDouble(prop.getProperty("Difference_Cutoff").trim());
+                this.rare_cutoff = Double.parseDouble(prop.getProperty("Running_Freq_Min").trim());
                 this.final_cutoff = Double.parseDouble(
-                    prop.getProperty("Regional_Global_Freq_Min"));
+                    prop.getProperty("Regional_Global_Freq_Min").trim());
 
                 this.hapset_size_max = Integer.parseInt(
-                    prop.getProperty("Regional_HapSetSize_Max"));
+                    prop.getProperty("Regional_HapSetSize_Max").trim());
 
-                this.adhoc_freq_cutoff = Integer.parseInt(prop.getProperty("Adhoc_Freq_Cutoff"));
+                this.adhoc_freq_cutoff = Integer.parseInt(
+                    prop.getProperty("Adhoc_Freq_Cutoff").trim());
+                    
                 this.hapset_size_min = Integer.parseInt(
-                    prop.getProperty("Regional_HapSetSize_Min"));
+                    prop.getProperty("Regional_HapSetSize_Min").trim());
 
-                this.hapset_size_rand = Integer.parseInt(prop.getProperty("AEM_HapSetSize_Rand"));
+                this.hapset_size_rand = Integer.parseInt(
+                    prop.getProperty("AEM_HapSetSize_Rand").trim());
 
             } catch (Exception e) {
                 // TODO: [Question]:: same as above.
