@@ -70,6 +70,7 @@ public class HapLASSO {
 
     // Which pool (in the HapConfig potential_haps) to work with.
     int pool_index; // WILL WORK ON GLOBAL FREQUENCES IF pool_index IS SET TO -1
+    String pool_name;
 
     /*
      *  Calculated parameters.
@@ -112,14 +113,16 @@ public class HapLASSO {
      *  gc_hap_freq_cutoff = 0;
      *
      *  @param pool_index
+     *  @param pool_name
      *  @param lambda
      *  @param potential_haps
      *  @param raw_hap_freq_cutoff
      *  @param memory_usage
-     *  @param prefix
+     *  @param prefix  // folder path + name of the pool.
      */
     public HapLASSO(
         int pool_index,
+        String pool_name,
         double lambda,
         HapConfig potential_haps,
         double raw_hap_freq_cutoff,
@@ -127,6 +130,7 @@ public class HapLASSO {
         String prefix) {
 
         this.pool_index = pool_index; // note: if pool_index==-1, then work on global frequencies
+        this.pool_name=pool_name;
         this.lambda = lambda;
         this.raw_hap_freq_cutoff = raw_hap_freq_cutoff;
         this.potential_haps = potential_haps;
@@ -184,7 +188,7 @@ public class HapLASSO {
      *  Then they share this same functions of writing to file in libsvm format (this function) and
      *  lasso regression (conduct_regression()).
      */
-    public void write_1_H_HH_to_file() {
+    public void write_1_H_HH_to_file(String lasso_in_file) {
 
         // TODO: [LEFTOVER]
         // // ArrayList<Integer> quanlified_hap_index_array = new ArrayList<Integer>();
@@ -200,7 +204,7 @@ public class HapLASSO {
         // }
 
         try {
-            BufferedWriter bw = new BufferedWriter(new FileWriter(this.prefix + ".regression.txt"));
+            BufferedWriter bw = new BufferedWriter(new FileWriter(lasso_in_file));
 
             // Write 1-vector. Format is w_allele\sh1:w\sh2:w...hn:w\n.
             bw.write(this.sum1_weight + "");
@@ -528,7 +532,7 @@ public class HapLASSO {
      *
      * @throws FileNotFoundException
      */
-    public void conduct_regression() throws FileNotFoundException {
+    public void conduct_regression(String lasso_in, String lasso_out) throws FileNotFoundException {
         // Initiate the Spark session.
         PrintStream originalOut = System.out;
         PrintStream originalErr = System.err;
@@ -538,7 +542,7 @@ public class HapLASSO {
         // String[] file_header = this.regression_data_file.split(".");
         // String file_name = file_header[0] + "out.txt";
 
-        File file = new File(this.prefix + ".lasso_out.txt");
+        File file = new File(lasso_out);
         PrintStream fileOut = new PrintStream(file);
         PrintStream fileErr = new PrintStream(file);
         System.setOut(fileOut);
@@ -551,7 +555,7 @@ public class HapLASSO {
             .getOrCreate();
 
         // Load training data.
-        Dataset<Row> training = spark.read().format("libsvm").load(this.prefix + ".regression.txt");
+        Dataset<Row> training = spark.read().format("libsvm").load(lasso_in);
 
         // Create the regression object with L1 regularization and no intercept.
         LinearRegression lr = new LinearRegression()
@@ -647,10 +651,10 @@ public class HapLASSO {
         this.setup_weights(weights);
 
         // Prepare file in libsvm format ready for Spark LASSO.
-        this.write_1_H_HH_to_file();
+        this.write_1_H_HH_to_file(this.prefix + ".lasso_in");
 
         // Run LASSO to get the output hap frequencies.
-        this.conduct_regression();
+        this.conduct_regression(this.prefix + ".lasso_in", this.prefix + ".lasso_out");
 
         // TODO: [LEFTOVER]
         // System.out.println("These are the frequencies from LASSO: ");
@@ -664,19 +668,20 @@ public class HapLASSO {
     }
 
     public HapConfig hapOut() {
+    	String[] single_pool_IDs={pool_name};
         HapConfig raw_final_haps = new HapConfig(
             this.potential_haps.global_haps_string,
             this.out_hap_freqs,
             null,
             this.potential_haps.inpool_site_freqs,
             this.potential_haps.locusInfo,
-            this.potential_haps.num_pools,
+            1,
             this.potential_haps.hap_IDs,
-            this.potential_haps.pool_IDs,
+            single_pool_IDs,
             this.potential_haps.est_ind_pool);
 
         // This gets rid of all haplotypes that have 0-frequency.
-        return raw_final_haps.clone(this.raw_hap_freq_cutoff);
+        return raw_final_haps.filter(this.raw_hap_freq_cutoff);
 
         // TODO: [LEFTOVER]
         // final_haps.write_global_file_string(vef_file + "_2.inter_freq_vars.txt", false);

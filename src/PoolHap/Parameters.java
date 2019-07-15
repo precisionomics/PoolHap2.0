@@ -54,9 +54,9 @@ public class Parameters {
          *  General parameter set.
          */
 
+        public String project_name;
         // input files: SAM files and VCF files. Added by Quan Long 2019-07-01
         public String input_dir;
-
         public String inter_dir; // intermediate directory, including the following files:
 
         // TODO: LEFTOVER ML 20190702
@@ -110,6 +110,7 @@ public class Parameters {
                     System.exit(0);
                 }
 
+                this.project_name= prop.getProperty("Proj_Name");
                 this.input_dir= prop.getProperty("Input_Dir");
                 this.inter_dir = prop.getProperty("Intermediate_Dir");
 
@@ -249,9 +250,7 @@ public class Parameters {
                 this.hapset_size_rand = Double.parseDouble(prop.getProperty("DC_HapSetSize_Rand"));
 
             } catch (Exception e) {
-                // TODO: [Question]:: same as above.
-                System.out.println("Exception: " + e);
-
+                e.printStackTrace();
             } finally {
                 is.close();
             }
