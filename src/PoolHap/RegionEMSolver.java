@@ -55,7 +55,7 @@ public class RegionEMSolver {
         //     new FileWriter("/home/lmak/Documents/v0.7_test/aem_I_0.txt"));
 
         // The current estimate of global haplotype frequencies.
-        double[] p = this.initial_Haps.global_haps_freq.clone();
+        double[] freq = this.initial_Haps.global_haps_freq.clone();
 
         // TODO: [LEFTOVER]
         // stdout.write("Initial global frequencies:\n");
@@ -66,7 +66,7 @@ public class RegionEMSolver {
 
         // The importance factor of each haplotype is the previous iteration's estimate of its
         // global frequency.
-        double[] Rh = p.clone();
+        double[] Rh = freq.clone();
         this.initial_Haps.update_sigma_mu_logL();
 
         // TODO: [LEFTOVER]
@@ -246,7 +246,7 @@ public class RegionEMSolver {
             // sum(abs(IF / Rh - 1))
             double delta1 = Algebra.sum(Algebra.abs(Algebra.add(Algebra.divide(Rh, IF), -1)));
             Rh = IF;
-            double[] p_new = Algebra.times(Rh, p);
+            double[] p_new = Algebra.times(Rh, freq);
 
             // TODO: [LEFTOVER]
             // stdout.format(
@@ -283,8 +283,8 @@ public class RegionEMSolver {
                 break;
             }
 
-            p = p_new.clone();
-            this.initial_Haps.global_haps_freq = p.clone();
+            freq = p_new.clone();
+            this.initial_Haps.global_haps_freq = freq.clone();
             this.initial_Haps.update_sigma_mu_logL();
 
             // TODO: [LEFTOVER]
@@ -309,7 +309,7 @@ public class RegionEMSolver {
         // }
         // stdout.write("\n");
 
-        for (double f : p) {
+        for (double f : freq) {
             if (Double.isNaN(f)) {
                 failure = true;
             }
@@ -317,26 +317,26 @@ public class RegionEMSolver {
 
         // TODO: [ReconEP]:: the below shoudl be split into multiple helpers?
         if (!failure) {
-            boolean[] list_rem_haps = new boolean[p.length];
+            boolean[] list_rem_haps = new boolean[freq.length];
             int num_rem_hap = 0;
             double actual_cutoff = aem_parameters.final_cutoff;
-            for (int h = 0; h < p.length; h++) {
-                if (p[h] < actual_cutoff) {
+            for (int h = 0; h < freq.length; h++) {
+                if (freq[h] < actual_cutoff) {
                     list_rem_haps[h] = true;
                     num_rem_hap++;
 
                 } else {
-                    this.initial_Haps.global_haps_freq[h] = p[h];
+                    this.initial_Haps.global_haps_freq[h] = freq[h];
                 }
             }
 
             // If too many of them are below the regional frequency minimum...
-            if (num_rem_hap > p.length - aem_parameters.hapset_size_max) {
-                list_rem_haps = new boolean[p.length];
+            if (num_rem_hap > freq.length - aem_parameters.hapset_size_max) {
+                list_rem_haps = new boolean[freq.length];
                 num_rem_hap = 0;
-                double[] haps_freq_copy = new double[p.length];	// deep instead of shallow copy
-                for (int f = 0; f < p.length; f++) {
-                    haps_freq_copy[f] = p[f];
+                double[] haps_freq_copy = new double[freq.length];	// deep instead of shallow copy
+                for (int f = 0; f < freq.length; f++) {
+                    haps_freq_copy[f] = freq[f];
                 }
 
                 Arrays.sort(haps_freq_copy);
@@ -346,39 +346,39 @@ public class RegionEMSolver {
                     - aem_parameters.adhoc_freq_cutoff];
 
                 // Don't want too many because GC gets confused.
-                for (int h = 0; h < p.length; h++) {
-                    if (p[h] < actual_cutoff) {
+                for (int h = 0; h < freq.length; h++) {
+                    if (freq[h] < actual_cutoff) {
                         list_rem_haps[h] = true;
                         num_rem_hap++;
                     } else {
-                        this.initial_Haps.global_haps_freq[h] = p[h];
+                        this.initial_Haps.global_haps_freq[h] = freq[h];
                     }
                 }
             }
 
             // ...and then if all of them are about the same low frequency...
-            if (num_rem_hap < p.length - aem_parameters.hapset_size_min) {
-                list_rem_haps = new boolean[p.length];
+            if (num_rem_hap < freq.length - aem_parameters.hapset_size_min) {
+                list_rem_haps = new boolean[freq.length];
                 num_rem_hap = 0;
 
                 // AEM starts with 2^l haplotypes, so we need to keep much less than 20%.
                 ArrayList<Integer> haps_to_keep = new ArrayList<Integer>();
                 for (int h = 0; h < aem_parameters.hapset_size_rand; h++) {
-                    haps_to_keep.add((int) ThreadLocalRandom.current().nextDouble() * p.length);
+                    haps_to_keep.add((int) ThreadLocalRandom.current().nextDouble() * freq.length);
                 }
-                for (int h = 0; h < p.length; h++) {
+                for (int h = 0; h < freq.length; h++) {
                     if (!haps_to_keep.contains(h)) {
                         list_rem_haps[h] = true;
                         num_rem_hap++;
                     } else {
-                        this.initial_Haps.global_haps_freq[h] = p[h];
+                        this.initial_Haps.global_haps_freq[h] = freq[h];
                     }
                 }
                 actual_cutoff = Double.NaN;
             }
 
             System.out.println("Of the "
-                + p.length
+                + freq.length
                 + " regional haplotypes, "
                 + num_rem_hap
                 + " were removed. The frequency cutoff was "

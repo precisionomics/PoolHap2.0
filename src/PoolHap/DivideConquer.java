@@ -70,7 +70,7 @@ public class DivideConquer {
      */
     public DivideConquer(
         String frequency_file,
-        String gc_input_list,
+        String[] gc_input_list,
         String parameter_file,
         String dc_out_file) {
 
@@ -79,8 +79,10 @@ public class DivideConquer {
              *  Load files.
              */
             this.dp = new DivideParameters(parameter_file);
-            System.out.println("Finished loading the PHX parameter file from " + parameter_file);
-            load_gc_outcome(parse_gc_input(gc_input_list));
+            System.out.println("Finished loading the PoolHapX parameter file from " + parameter_file);
+            //load_gc_outcome(parse_gc_input(gc_input_list)); 
+            // above was removed and replaced by the line below by Quan Long 2019-07-07
+            load_gc_outcome((gc_input_list));
             System.out.println("Finished loading graph-coloring files from " + gc_input_list);
             System.out.println("Number of pools = "
                 + this.num_pools
@@ -680,50 +682,48 @@ public class DivideConquer {
      *  @param regions
      *  @param parameter_file
      *  @param dir_prefix
-     *  @param l
+     *  @param level_index
      *  @return
      *  @throws Exception
      */
-    public HapConfig[] analyze_regions(
+    public HapConfig[] regional_AEM(
+    	String[] pool_IDs,
         int[][] regions,
         String parameter_file,
         String dir_prefix,
-        int l) throws Exception {
+        int level_index) throws Exception {
 
-        int num_region = regions.length;
-        HapConfig[] region_haps = new HapConfig[num_region];
-        for (int r = 0; r < num_region; r++) {
-            System.out.print("Now solving for level " + l + " region " + r + "... ");
-            HapConfig hap_config = generate_hapconfig_2n(regions, r);
+        HapConfig[] region_haps = new HapConfig[regions.length];
+        for (int r_index = 0; r_index < regions.length; r_index++) {
+            System.out.print("AEM for level " + level_index + " region " + r_index + "... ");
+            HapConfig hap_config = generate_hapconfig_2n(regions, r_index, pool_IDs);
             RegionEMSolver hap_solver = new RegionEMSolver(hap_config, parameter_file);
             if (hap_solver.failure) {
                 System.out.println("AEM failed to converge. Initiating regional LASSO... ");
 
                 // If AEM fails, at least some of the frequencies will be NaN. In that case, use
-                // sub-optimal GC results.
-                region_haps[r] = generate_hapconfig_gc(regions[r], l, r, dir_prefix);
+                // sub-optimal GC results. TODO [Quan] 
+                region_haps[r_index] = generate_hapconfig_gc(regions[r_index], level_index, r_index, dir_prefix);
 
             } else {
-                region_haps[r] = hap_solver.final_Haps;
+                region_haps[r_index] = hap_solver.final_Haps;
             }
-
-            region_haps[r].write_global_file_string(dir_prefix
+            region_haps[r_index].recode_HapIDs_to_base16();
+            region_haps[r_index].write_global_file_string(dir_prefix
                 + "_level_"
-                + l
+                + level_index
                 + "_region_"
-                + r
-                + ".inter_freq_vars.txt",
-                false);
+                + r_index
+                + ".inter_freq_haps.txt");
 
             System.out.print("Done. AEM ");
             if (hap_solver.failure) {
                 System.out.print("failed to converge. ");
-
             } else {
                 System.out.print("successfully converged. ");
             }
 
-            System.out.println(region_haps[r].num_global_hap
+            System.out.println(region_haps[r_index].num_global_hap
                 + " regional haplotypes have been generated.");
         }
 
@@ -732,15 +732,16 @@ public class DivideConquer {
 
 
     /**
+     *	generate the HapConfig with 2^n haplotypes (n is the number of sites).
      *
      *  @param the_region
      *  @param region_index
+     *  @param pool_IDs
      *  @return
      *  @throws IOException
      */
     public HapConfig generate_hapconfig_2n(
-        int[][] the_region,
-        int region_index) throws IOException {
+        int[][] the_region, int region_index, String[] pool_IDs) throws IOException {
 
         int region_start = the_region[region_index][0];
         int region_end = the_region[region_index][1];
@@ -761,7 +762,7 @@ public class DivideConquer {
             inpool_site_freqs[l] = this.in_pool_sites_freq_anno.inpool_freqs[l + region_start];
         }
 
-        String[] pool_IDs = null;
+ //       String[] pool_IDs = null;
         int haps_2n = (int) Math.pow(2, num_site_regional);
         String[][] global_haps_string = new String[haps_2n][num_site_regional];
         String[] hap_IDs = new String[haps_2n];
@@ -769,21 +770,20 @@ public class DivideConquer {
             String curr_ID = "";
             String vc_str = Integer.toBinaryString(h);
             String[] vc_arr  = vc_str.split("");
-            for (int l = 0; l < num_site_regional - vc_arr.length; l++) {
-                global_haps_string[h][l] = "0";
+            // the length of vc_str may not reach num_site_regional; so put zeros in.
+            for (int locus = 0; locus < num_site_regional - vc_arr.length; locus++) {
+                global_haps_string[h][locus] = "0";
                 curr_ID += "0";
             }
-
-            for (int l = num_site_regional - vc_arr.length; l < num_site_regional; l++) {
-                global_haps_string[h][l] = vc_arr[l - num_site_regional + vc_arr.length];
-                curr_ID += vc_arr[l - num_site_regional + vc_arr.length];
+            for (int locus = num_site_regional - vc_arr.length; locus<num_site_regional; locus++) {
+                global_haps_string[h][locus] = vc_arr[locus - num_site_regional + vc_arr.length];
+                curr_ID += vc_arr[locus - num_site_regional + vc_arr.length];
             }
-
             hap_IDs[h] = curr_ID;
         }
 
         double[] global_haps_freq = new double[haps_2n];
-        Arrays.fill(global_haps_freq, 1 / (double) haps_2n);
+        Arrays.fill(global_haps_freq, 1.0 / (double) haps_2n);
         return new HapConfig(
             global_haps_string,
             global_haps_freq,
@@ -814,7 +814,7 @@ public class DivideConquer {
      *  @return
      *  @throws FileNotFoundException
      */
-    public HapConfig generate_hapconfig_gc(
+    public HapConfig generate_hapconfig_gc( //TODO [Quan] disk-version! 
         int[] region,
         int l,
         int r,
@@ -877,6 +877,7 @@ public class DivideConquer {
 
         HapLASSO regional_lasso = new HapLASSO( // This is the global implementation of LASSO.
             -1,
+            null,   // TODO: pool_IDs to be assigned.
             dp.lambda,
             gc_regional_haps,
             0,

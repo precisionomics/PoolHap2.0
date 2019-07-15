@@ -112,7 +112,7 @@ public class GraphColoring {
         /*
          *  Solve and produce haplotype configurations.
          */
-        this.solver(gs_var_pos);
+        this.gc_solver(gs_var_pos);
         this.fileOut(out_file);
     }
 
@@ -139,14 +139,11 @@ public class GraphColoring {
         this.readindex_arr_tmp = new Vector<Integer>();
         this.readinfo_arr_tmp = new Vector<String>();
         int count = 0;
-
-
         /*
          *  Parse level 1 regions.
          */
         // For each region in all level 1 regions...
         for (int r = 0; r < level_1.length; r++) {
-
             // For each haplotype in all global haplotypes in region...
             for (int h = 0; h < level_1[r].num_global_hap; h++) {
                 String curr_vc = ""; // TODO: [Question]:: what is vc?
@@ -216,7 +213,7 @@ public class GraphColoring {
             + count
             + " individual fragments (reads or regional haplotypes) in the dataset.");
 
-        this.solver(gs_var_pos);
+        this.gc_solver(gs_var_pos);
     }
 
 
@@ -232,7 +229,7 @@ public class GraphColoring {
      *  @param gs_var_pos (required) gold standard variant positions file path string.
      *  @throws IOException on input error.
      */
-    public void solver(String gs_var_pos) throws IOException {
+    public void gc_solver(String gs_var_pos) throws IOException {
         /*
          *  Initialize variables.
          */
@@ -707,7 +704,7 @@ public class GraphColoring {
      *
      * @return
      */
-    public HapConfig hapOut() {
+    public HapConfig hapOut(String[] pool_IDs) {
         //
         int num_global_hap = this.output_ref_arr.size();
         String[][] global_haps_string = new String[num_global_hap][num_loci];
@@ -742,7 +739,7 @@ public class GraphColoring {
             this.locusInfo,
             this.num_pools,
             null,
-            null,
+            pool_IDs,
             0);
 
     }
