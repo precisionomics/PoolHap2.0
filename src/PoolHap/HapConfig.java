@@ -5,6 +5,7 @@ import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -583,8 +584,8 @@ public class HapConfig {
     	}
     	// after check, convert the IDs:
     	for(int h=0;h<this.num_global_hap;h++) {
-    		int the_integer=Integer.parseInt(this.hap_IDs[h], 2);
-    		this.hap_IDs[h]="h"+Integer.toHexString(the_integer);
+    		BigInteger the_integer=new BigInteger(this.hap_IDs[h], 2);
+    		this.hap_IDs[h]="h"+the_integer.toString(16);
     	}
     }
 
@@ -728,7 +729,6 @@ public class HapConfig {
             for (int h = 0; h < this.num_global_hap; h++) {
                 bw.write("\t" + this.hap_IDs[h]);
             }
-
             bw.write("\n");
 
             // TODO: [LEFTOVER]
@@ -738,22 +738,17 @@ public class HapConfig {
 
             for (int p = 0; p < this.num_pools; p++) {
                 bw.write(this.pool_IDs[p]);
-
                 // TODO (old) [Review]:: Report error! Formerly, this.num_pools.
                 for (int h = 0; h < this.num_global_hap; h++) {
                     if (this.in_pool_haps_freq[h].length == 0) {
                         bw.write("\t0");
-
                     } else {
                         bw.write("\t" + this.in_pool_haps_freq[h][p]);
                     }
                 }
-
                 bw.write("\n");
             }
-
             bw.close();
-
         } catch(Exception e) {
             e.printStackTrace();
         }
