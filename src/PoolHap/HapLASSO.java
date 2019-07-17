@@ -667,8 +667,8 @@ public class HapLASSO {
 
     }
 
-    public HapConfig hapOut() {
-    	String[] single_pool_IDs={pool_name};
+    public HapConfig hapOut(String[] pool_IDs) {
+    	//String[] single_pool_IDs={pool_name};
         HapConfig raw_final_haps = new HapConfig(
             this.potential_haps.global_haps_string,
             this.out_hap_freqs,
@@ -677,7 +677,7 @@ public class HapLASSO {
             this.potential_haps.locusInfo,
             1,
             this.potential_haps.hap_IDs,
-            single_pool_IDs,
+            pool_IDs,
             this.potential_haps.est_ind_pool);
 
         // This gets rid of all haplotypes that have 0-frequency.

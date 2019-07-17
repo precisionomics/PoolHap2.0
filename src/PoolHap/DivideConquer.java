@@ -688,9 +688,11 @@ public class DivideConquer {
      */
     public HapConfig[] regional_AEM(
     	String[] pool_IDs,
+    	String[] vef_files,
         int[][] regions,
         String parameter_file,
         String dir_prefix,
+        String aem_fail_lasso_path,
         int level_index) throws Exception {
 
         HapConfig[] region_haps = new HapConfig[regions.length];
@@ -703,8 +705,8 @@ public class DivideConquer {
 
                 // If AEM fails, at least some of the frequencies will be NaN. In that case, use
                 // sub-optimal GC results. TODO [Quan] 
-                region_haps[r_index] = generate_hapconfig_gc(regions[r_index], level_index, r_index, dir_prefix);
-
+                region_haps[r_index] = generate_hapconfig_gc(pool_IDs, vef_files,
+                    regions[r_index], level_index, r_index, aem_fail_lasso_path);
             } else {
                 region_haps[r_index] = hap_solver.final_Haps;
             }
@@ -808,35 +810,36 @@ public class DivideConquer {
     /**
      *
      *  @param region
-     *  @param l
-     *  @param r
-     *  @param dir_prefix
+     *  @param level
+     *  @param r_index
+     *  @param dir_prefix intermediate folder
      *  @return
      *  @throws FileNotFoundException
      */
     public HapConfig generate_hapconfig_gc( //TODO [Quan] disk-version! 
+        String[] pool_IDs,
+        String[] vef_files,
         int[] region,
-        int l,
-        int r,
-        String dir_prefix) throws FileNotFoundException {
+        int level,
+        int r_index,
+        String aem_fail_lasso_path)  // i 
+            throws FileNotFoundException {
 
-        int start = region[0]; int end = region[1];
+        new File(aem_fail_lasso_path).mkdir();
+        int start = region[0]; 
+        int end = region[1];
         int num_site_regional = end - start + 1;
+        // collect all regional haps from raw GC output. 
         HashMap<String, Double> hap_tracker = new HashMap<String, Double>();
         for (int h = 0; h < this.num_haps_gc; h++) {
-            String curr_vc = String.join(
-                "",
-                Arrays.copyOfRange(this.global_haps_gc[h], start, end + 1));
-
+            String curr_vc = String.join("",Arrays.copyOfRange(this.global_haps_gc[h],start,end+1));
             if (!hap_tracker.containsKey(curr_vc)) {
                 hap_tracker.put(curr_vc, this.global_gc_freq[h]);
-
             } else {
                 double new_freq = hap_tracker.get(curr_vc) + this.global_gc_freq[h];
                 hap_tracker.put(curr_vc, new_freq);
             }
         }
-
         int num_hap_regional = hap_tracker.size();
         String[][] reg_haps_string = new String[num_hap_regional][num_site_regional];
         int hap_index = 0;
@@ -847,6 +850,7 @@ public class DivideConquer {
             for (int s = 0; s < num_site_regional; s++) reg_haps_string[hap_index][s] = tmp[s];
             global_haps_freq[hap_index] = hap_tracker.get(curr_vc) / num_pools;
             hap_IDs[hap_index] = Integer.toString(hap_index);
+            //TODO [Quan] still index as ID. But perhaps OK locally
             hap_index++;
         }
 
@@ -855,13 +859,6 @@ public class DivideConquer {
         for (int s = 0; s < num_site_regional; s++) {
             locusInfo[s] = this.in_pool_sites_freq_anno.loci_annotations[s + start];
             inpool_site_freqs[s] = this.in_pool_sites_freq_anno.inpool_freqs[s + start];
-
-            // TODO: [LEFTOVER]
-            // System.out.println("DivideConquer:\t"
-            //     + k
-            //     + "\t"
-            //     + locusInfo[k].alleles_coding.size());
-
         }
 
         HapConfig gc_regional_haps = new HapConfig(
@@ -872,22 +869,17 @@ public class DivideConquer {
             locusInfo,
             this.num_pools,
             hap_IDs,
-            null,
+            pool_IDs,
             this.dp.est_ind_pool);
 
-        HapLASSO regional_lasso = new HapLASSO( // This is the global implementation of LASSO.
-            -1,
-            null,   // TODO: pool_IDs to be assigned.
+        HapLASSO regional_lasso = new HapLASSO( 
+            -1,    // Specified by pool_index==-1, this is the *multi_pool* implementation of LASSO.
+            null,  // pool_IDs is null as it is the multi_pool LASSO.
             dp.lambda,
             gc_regional_haps,
             0,
             "500000000",
-            dir_prefix + "_level_" + l + "_region_" + r + ".regression.txt");
-
-        String[] vef_files = new String[num_pools];
-        for (int p = 0; p < this.num_pools; p++) {
-            vef_files[p] = dir_prefix + "_p" + p + ".vef";
-        }
+            aem_fail_lasso_path + "/_level_" + level + "_region_" + r_index + ".lasso_in");
 
         regional_lasso.estimate_frequencies_lasso(null, vef_files, dp.lasso_weights);
         double new_penalty = dp.lambda;
@@ -901,10 +893,7 @@ public class DivideConquer {
             regional_lasso.estimate_frequencies_lasso(null, vef_files, dp.lasso_weights);
         }
 
-        // TODO: [LEFTOVER]
-        // System.out.println("Initial GC haplotypes: " + gc_regional_haps.num_global_hap);
-
-        HapConfig final_reg_haps = regional_lasso.hapOut();
+        HapConfig final_reg_haps = regional_lasso.hapOut(pool_IDs);
 
         boolean[] list_rem_haps = new boolean[final_reg_haps.num_global_hap];
         double actual_cutoff = dp.final_cutoff;
@@ -957,7 +946,6 @@ public class DivideConquer {
                     num_rem_hap++;
                 }
             }
-
             actual_cutoff = Double.NaN;
         }
 
@@ -974,10 +962,8 @@ public class DivideConquer {
             for (int h = 0; h < final_reg_haps.num_global_hap; h++) {
                 tmp[h] = 1.0 / ((double) final_reg_haps.num_global_hap);
             }
-
             final_reg_haps.global_haps_freq = tmp;
         }
-
         return final_reg_haps;
     }
 }
