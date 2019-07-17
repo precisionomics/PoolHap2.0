@@ -226,12 +226,16 @@ public class Entrance {
             // Apply divide and conquer across all pools.
             String dc_out_file = gp.inter_dir + gp.project_name + "_dc_plan.txt"; // dc output
                                                                                   // filepath string
+            String[] vef_files =
+                Entrance.get_filepaths(name_file, gp.inter_dir + "vef", "vef", false);
+            String[] gcf_files = 
+                Entrance.get_filepaths(name_file, gp.inter_dir + "gcf", "gcf", false);
             DivideConquer dc_maker = new DivideConquer(gs_var_pos,
-                Entrance.get_filepaths(name_file, gp.inter_dir + "gcf", "gcf", false),
+                gcf_files,
                 // gp.inter_dir + prefix + "_p.in.list",
                 parameter_file,
                 dc_out_file);
-
+            
             System.out.println("DC Finished: " + dtf.format(LocalDateTime.now()) + "\n");
             new File(gp.inter_dir + "/aem/").mkdir();
             /*
@@ -243,19 +247,27 @@ public class Entrance {
             // if (dc_maker.region_solve) {
 
             // Resolve level 1 regions with AEM; regional LASSO if AEM fails.
-            HapConfig[] level_I_config = dc_maker.regional_AEM(Entrance.names_array,
+            
+         
+            HapConfig[] level_I_config = dc_maker.regional_AEM(
+                Entrance.names_array,
+                vef_files,
                 dc_maker.regions_level_I,
                 parameter_file,
                 gp.inter_dir + "/aem/" + gp.project_name,
+                gp.inter_dir + "/aem_fail_regional_lasso/",
                 1);
 
             System.out.println("Level 1 AEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
 
             // Resolve level 2 regions with the same strategy as above.
-            HapConfig[] level_II_config = dc_maker.regional_AEM(Entrance.names_array,
+            HapConfig[] level_II_config = dc_maker.regional_AEM(
+                Entrance.names_array,
+                vef_files,
                 dc_maker.regions_level_II,
                 parameter_file,
                 gp.inter_dir + "/aem/" + gp.project_name,
+                gp.inter_dir + "/aem_fail_regional_lasso/",
                 2);
 
             System.out.println("Level 2 AEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
@@ -337,9 +349,10 @@ public class Entrance {
                         + Entrance.names_array[pool_index] + ".vef", null, gp.lasso_weights);
 
                 }
-
-                final_inpool_haps[pool_index] = inpool_lasso.hapOut(); // add final intra pool
-                                                                       // HapConfig to array
+                String[] single_pool_IDs=new String[] {names_array[pool_index]};
+                //     add final intra pool
+                final_inpool_haps[pool_index] = inpool_lasso.hapOut(single_pool_IDs); 
+                // HapConfig to array
                 System.out.println(final_inpool_haps[pool_index].num_global_hap
                     + " haplotypes were generated for pool " + pool_index + ":"
                     + Entrance.names_array[pool_index] + ".");
