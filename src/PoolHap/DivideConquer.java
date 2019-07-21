@@ -82,7 +82,7 @@ public class DivideConquer {
             System.out.println("Finished loading the PoolHapX parameter file from " + parameter_file);
             //load_gc_outcome(parse_gc_input(gc_input_list)); 
             // above was removed and replaced by the line below by Quan Long 2019-07-07
-            load_gc_outcome((gc_input_list));
+            this.load_gc_outcome((gc_input_list));
             System.out.println("Finished loading graph-coloring files from " + gc_input_list);
             System.out.println("Number of pools = "
                 + this.num_pools
@@ -124,9 +124,9 @@ public class DivideConquer {
     /**
      *  Read files recording the outcome of GC:
      *
-     *  0?0-0-0?1-0-0-0-0-0-0-1-0-0-0-0-0?0-0-0?1?0?0-0-0-1-0-0?0-0
-     *  0?0-0-0?1-0-0-0-0-0-0-1-0-1-1-0-1?0-0-0?1?0?0-0-0-0-0-0?1-1
-     *  1?1-0-1?1-0-0-0-0-0-0-1-0-1-1-0-1?0-1-0?0?0?0-1-0-0-0-0?1-1
+     *  0?0-0-0?1-0-0-0-0-0-0-1-0-0-0-0-0?0-0-0?1?0?0-0-0-1-0-0?0-0\t25
+     *  0?0-0-0?1-0-0-0-0-0-0-1-0-1-1-0-1?0-0-0?1?0?0-0-0-0-0-0?1-1\t10
+     *  1?1-0-1?1-0-0-0-0-0-0-1-0-1-1-0-1?0-1-0?0?0?0-1-0-0-0-0?1-1\t8
      *
      *  It will return GC outcomes in the form of strings.
      *
@@ -203,12 +203,12 @@ public class DivideConquer {
             e.printStackTrace();
         }
 
-        String[] gc_input = new String[this.num_pools];
+        String[] gc_input_files = new String[this.num_pools];
         for (int p = 0; p < this.num_pools; p++) {
-            gc_input[p] = pathes.get(p);
+            gc_input_files[p] = pathes.get(p);
         }
 
-        return gc_input;
+        return gc_input_files;
     }
 
 
@@ -359,7 +359,7 @@ public class DivideConquer {
     }
 
 
-    /**
+    /** TODO: remove this funtion when everything is stablized. 
      *  Identify gaps from the GC outcome.
      *  The GC outcome file is composed of inferred haplotypes in the format of:
      *  		0-1-0-1-0?1-0-1\t5
@@ -378,14 +378,14 @@ public class DivideConquer {
      *  @param graph_coloring_outcome
      *  @return
      */
-    public int[] identify_gaps_Lauren_iterative(String[][] graph_coloring_outcome) {
+    public int[] identify_gaps_Lauren_iterative_tobe_deleted_later(String[][] graph_coloring_outcome) {
         ArrayList<Integer> gap_indexes = new ArrayList<>();
 
         // Step 1) Count up the number of gaps within each and between all of the raw GC haplotypes
         // and all of the pools.
         // TODO: [ReconEP]:: separate helpers for each step?
         // The count at each potential gap in each pool. "this.num_sites-1" potential gaps.
-        int[][] gap_counts = new int[this.num_pools][this.num_sites - 1];
+        int[][] gap_counts_inpool = new int[this.num_pools][this.num_sites - 1];
 
         // The cumulative count at each potential gap position.
         int[] gap_counts_all = new int[this.num_sites - 1];
@@ -408,7 +408,7 @@ public class DivideConquer {
                     // If the linkage between the two variant positions is uncertain
                     // i.e.: gap is present...
                     if (haps[h].charAt(k * 2 + 1) == '?'){
-                        gap_counts[p][k] += hap_ct; // increment the count within-pool and globally
+                        gap_counts_inpool[p][k] += hap_ct; // increment the count within-pool and globally
                         gap_counts_all[k] += hap_ct;
                     }
                 }
@@ -446,7 +446,7 @@ public class DivideConquer {
                 }
 
                 for (int p = 0; p < this.num_pools; p++) {
-                    if ((double) gap_counts[p][k] / num_haps_inpool[p] >= local_cutoff
+                    if ((double) gap_counts_inpool[p][k] / num_haps_inpool[p] >= local_cutoff
                         && !gap_indexes_set.contains(k)){
 
                         gap_indexes.add(k);
@@ -543,51 +543,43 @@ public class DivideConquer {
         // Step 1) Count up the number of gaps within each and between all of the raw GC haplotypes
         // and all of the pools.
         // The count at each potential gap in each pool. "this.num_sites-1" potential gaps.
-        int[][] gap_counts = new int[this.num_pools][this.num_sites-1];
-
+        int[][] gap_counts_inpool = new int[this.num_pools][this.num_sites-1];
         // The cumulative count at each potential gap position.
         int[] gap_counts_all=new int[this.num_sites-1];
-
         // The number of types of raw GC haplotypes in each pool.
         double[] num_haps_inpool=new double[this.num_pools];
-
-        double num_haps_all= 0.0;
-        HashSet<String> hap_tracker = new HashSet<String>();
-        for (int p = 0; p < this.num_pools; p++){ // for each pool...
+  
+        double num_haps_all = 0.0;
+        HashMap<String,Integer> hap_tracker = new HashMap<String,Integer>();
+        int tot_ct = 0;
+        for (int p = 0; p < this.num_pools; p++) { // for each pool...
             String[] haps = graph_coloring_outcome[p]; // the list of raw GC haplotypes
             num_haps_all += haps.length;
             num_haps_inpool[p] = haps.length;
             for (int h = 0; h < haps.length; h++){ // ...for each raw GC haplotype...
-                String curr_vc = "";
-                for (int k = 0; k < this.num_sites - 1; k++){ // ...for each potential gap...
+                String curr_vc = ""; // the hap_string
+                int hap_ct = Integer.parseInt(haps[h].split("\t")[1]);
+                for(int k = 0; k < this.num_sites - 1; k++) { // ...for each potential gap...
                     curr_vc += haps[h].charAt(k * 2);
-
-                    // If the linkage between the two variant positions is uncertain i.e.: gap is
-                    // present...
-                    if (haps[h].charAt(k * 2 + 1) == '?') {
-                        gap_counts[p][k]++;	// ...increment the count within-pool and globally.
-                        gap_counts_all[k]++;
+                    // If the linkage between the two variant positions is uncertain
+                    // i.e.: gap is present...
+                    if (haps[h].charAt(k * 2 + 1) == '?'){
+                        gap_counts_inpool[p][k] += hap_ct; // increment the count within-pool and globally
+                        gap_counts_all[k] += hap_ct;
                     }
                 }
                 curr_vc += haps[h].charAt((this.num_sites - 1) * 2);
-                hap_tracker.add(curr_vc);
+                // put the haplotype "curr_vc" and its count to the table "hap_tracker"
+                if (!hap_tracker.containsKey(curr_vc)) {
+                    hap_tracker.put(curr_vc, hap_ct);
+                } else {
+                    int new_ct = hap_tracker.get(curr_vc) + hap_ct;
+                    hap_tracker.put(curr_vc, new_ct);
+                }
+                tot_ct += hap_ct;
             }
         }
-
-        // TODO: LEFTOVER ML 20190702
-        // for (int i = 0; i < this.num_pools; i++) {
-        // 	for (int j = 0; j < this.num_sites - 1; j++) {
-        //         System.out.print(gap_counts[i][j] + "\t");
-        //     }
-        // 	System.out.println();
-        // }
-        // for (double k : num_haps_inpool) {
-        //     System.out.println(k + "\t");
-        // }
-        // System.out.println();
-
-        // Step 2) Check if the potential gaps meet the within- OR between-pool frequency
-        // thresholds.
+        //Step 2) Check if the potential gaps meet the within- OR between-pool frequency thresholds.
         HashSet<Integer> gap_indexes_set = new HashSet<Integer>();
         for (int k = 0; k < this.num_sites - 1; k++) {
             if ((double) gap_counts_all[k] / num_haps_all >= this.dp.gap_all_pool_cutoff
@@ -598,7 +590,7 @@ public class DivideConquer {
             }
 
             for (int p = 0; p < this.num_pools; p++) {
-                if ((double) gap_counts[p][k] / num_haps_inpool[p] >= this.dp.gap_inpool_cutoff
+                if ((double) gap_counts_inpool[p][k] / num_haps_inpool[p] >= this.dp.gap_inpool_cutoff
                     && !gap_indexes_set.contains(k)) {
 
                     gap_indexes.add(k);
@@ -606,10 +598,8 @@ public class DivideConquer {
                 }
             }
         }
-
         // Add the last site index as the final "gap" so that all the sites are within gaps.
         gap_indexes.add(this.num_sites - 1);
-
         // This is not useful for the moment, but keep the data integrity for potential future use.
         gap_indexes_set.add(this.num_sites - 1);
 
@@ -618,14 +608,18 @@ public class DivideConquer {
         for (int i = 0; i < gap_indexes.size(); i++) {
             gap_indexes_array[i] = gap_indexes.get(i);
         }
-        Arrays.sort(gap_indexes_array); // sort the indexes.
+        Arrays.sort(gap_indexes_array); // sort the indices
 
         this.global_haps_gc = new String[hap_tracker.size()][this.num_sites];
+        this.global_gc_freq = new double[hap_tracker.size()];
         this.num_haps_gc = hap_tracker.size();
         int hap_index = 0;
-        for (String curr_vc : hap_tracker) {
+        for (String curr_vc : hap_tracker.keySet()) {
             String[] tmp = curr_vc.split("");
-            for (int l = 0; l < this.num_sites; l++) this.global_haps_gc[hap_index][l] = tmp[l];
+            for (int l = 0; l < this.num_sites; l++) {
+                this.global_haps_gc[hap_index][l] = tmp[l];
+            }
+            this.global_gc_freq[hap_index] = ((double)hap_tracker.get(curr_vc))/ ((double)tot_ct);
             hap_index++;
         }
         return gap_indexes_array;
@@ -834,7 +828,7 @@ public class DivideConquer {
         for (int h = 0; h < this.num_haps_gc; h++) {
             String curr_vc = String.join("",Arrays.copyOfRange(this.global_haps_gc[h],start,end+1));
             if (!hap_tracker.containsKey(curr_vc)) {
-                hap_tracker.put(curr_vc, this.global_gc_freq[h]);
+                hap_tracker.put(curr_vc, this.global_gc_freq[h]); 
             } else {
                 double new_freq = hap_tracker.get(curr_vc) + this.global_gc_freq[h];
                 hap_tracker.put(curr_vc, new_freq);
