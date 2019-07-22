@@ -148,6 +148,7 @@ public class Parameters {
         /*
          *  Divide and conquer parameter set.
          */
+        public String project_name;
         public double gap_inpool_cutoff; // a ratio
         public double gap_all_pool_cutoff; // a ratio
         public double gap_support_step; // a ratio
@@ -205,6 +206,7 @@ public class Parameters {
                  *  Extract parameters to divide and conquer parameter object variables from
                  *  properties object.
                  */
+                this.project_name= prop.getProperty("Proj_Name");
                 this.gap_inpool_cutoff = Double.parseDouble(
                     prop.getProperty("In-pool_Gap_Support_Min"));
 

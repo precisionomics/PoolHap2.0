@@ -873,19 +873,19 @@ public class DivideConquer {
             gc_regional_haps,
             0,
             "500000000",
-            aem_fail_lasso_path + "/_level_" + level + "_region_" + r_index + ".lasso_in");
+            aem_fail_lasso_path + "/"+dp.project_name+"_level_" + level + "_region_" + r_index + ".lasso_in");
 
         regional_lasso.estimate_frequencies_lasso(null, vef_files, dp.lasso_weights);
-        double new_penalty = dp.lambda;
-        while (regional_lasso.r2 == this.dp.min_r2) {
-            new_penalty -= this.dp.lasso_penalty_step;
-            System.out.println("Regional LASSO has failed. Adjust the lambda penalty to "
-                + new_penalty
-                + " and trying again.");
-
-            regional_lasso.lambda = new_penalty;
-            regional_lasso.estimate_frequencies_lasso(null, vef_files, dp.lasso_weights);
-        }
+//        double new_penalty = dp.lambda;
+//        while (regional_lasso.r2 == this.dp.min_r2) {
+//            new_penalty -= this.dp.lasso_penalty_step;
+//            System.out.println("Regional LASSO has failed. Adjust the lambda penalty to "
+//                + new_penalty
+//                + " and trying again.");
+//
+//            regional_lasso.lambda = new_penalty;
+//            regional_lasso.estimate_frequencies_lasso(null, vef_files, dp.lasso_weights);
+//        }
 
         HapConfig final_reg_haps = regional_lasso.hapOut(pool_IDs);
 
