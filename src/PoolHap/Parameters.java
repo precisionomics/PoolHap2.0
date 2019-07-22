@@ -81,7 +81,7 @@ public class Parameters {
          *  @throws IOException On input error.
          */
         // TODO: [Question]:: why isn't this public?
-        GenParameters(String propFilePath) throws IOException {
+        public GenParameters(String propFilePath) throws IOException {
             // TODO: [Question]:: why does this have to be initialized to a value? There are other
             // instances of the variable name being set but initialized.
             // Would it affect things if we change this to:

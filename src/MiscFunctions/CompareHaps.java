@@ -1,4 +1,4 @@
-package PoolHap;
+package MiscFunctions;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -6,7 +6,8 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashSet;
 
-import MiscFunctions.HapConfigTenSQR;
+import PoolHap.HapConfig;
+import PoolHap.Parameters;
 import PoolHap.Parameters.GenParameters;
 
 public class CompareHaps {
