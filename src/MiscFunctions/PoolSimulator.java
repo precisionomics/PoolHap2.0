@@ -16,7 +16,7 @@ import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 
 // For generating VEFs directly.
-public class PoolHapsSimulator {
+public class PoolSimulator {
 	
     // directories and project name
     String input_dir;
@@ -58,7 +58,7 @@ public class PoolHapsSimulator {
     int all_pool_haps;  // total number of haps in all pools.
     double var_burden_avg;
     
-	public PoolHapsSimulator(String parameter_file) throws IOException {
+	public PoolSimulator(String parameter_file) throws IOException {
 	    InputStream is = new FileInputStream(parameter_file);
         Properties prop = new Properties();
         prop.load(is);
@@ -101,7 +101,8 @@ public class PoolHapsSimulator {
         all_pool_haps = haps_per_pool  * num_pools;
         double theta = 2 * est_ind_pool * mutation_rate; // Population-wide mutation rate per base for haploids
         double rho = theta / 2; // Population-wide recombination rate for haploids
-        ProcessBuilder CMDLine = new ProcessBuilder(msCMDLine, Integer.toString(all_pool_haps), "1", "-L", 
+        ProcessBuilder CMDLine = new ProcessBuilder(msCMDLine, 
+            Integer.toString(all_pool_haps), "1", "-L", 
             "-seeds", Integer.toString(ThreadLocalRandom.current().nextInt(10620,1062017280)), 
             "-t", Double.toString(theta), 
             "-s", Integer.toString(num_var_pos), 
@@ -204,16 +205,22 @@ public class PoolHapsSimulator {
         
         System.out.println("There are " + actual_num_haps + " across-pool haplotypes.");
         System.out.println("There are " + actual_num_vars + " true variant positions.");
-        System.out.println("There average mutational burden per haplotype is " + var_burden_avg + " variants.");
-        System.out.println("The average pairwise difference is " + meanPWDiff + " and the standard deviation is " + stdPWDiff + ".");
-        System.out.println("The minimum pairwise difference is " + pwDifference[0] + " and the maximum is " + pwDifference[pwDifference.length - 1] + "."); 
-        System.out.println("The average all-pool count per haplotype is " + meanCts + " and the standard deviation is " + stdCts + ".");
-        System.out.println("The minimum all-pool count is " + sortedCts[0] + " and the maximum is " + sortedCts[sortedCts.length - 1] + "."); 
-        PrintWriter pw = new PrintWriter(new FileWriter(gs_dir + "PD.simulation_summary.txt", true));   // gs_dir/c.simulation_summary.txt
-        pw.append(project_name + "\t" + actual_num_haps + "\t" + actual_num_vars + "\t" + var_burden_avg 
-            + "\t" + meanPWDiff + "\t" + stdPWDiff + "\t" + pwDifference[0] + "\t" 
-            + pwDifference[pwDifference.length - 1] + "\t" + meanCts  + "\t" + stdCts + "\t" 
-            + sortedCts[0] + "\t" + sortedCts[sortedCts.length - 1] + "\n");
+        System.out.println("There average mutational burden per haplotype is " 
+        + var_burden_avg + " variants.");
+        System.out.println("The average pairwise difference is " + meanPWDiff 
+            + " and the standard deviation is " + stdPWDiff + ".");
+        System.out.println("The minimum pairwise difference is " + pwDifference[0] 
+            + " and the maximum is " + pwDifference[pwDifference.length - 1] + "."); 
+        System.out.println("The average all-pool count per haplotype is " 
+            + meanCts + " and the standard deviation is " + stdCts + ".");
+        System.out.println("The minimum all-pool count is " + sortedCts[0] 
+            + " and the maximum is " + sortedCts[sortedCts.length - 1] + "."); 
+        PrintWriter pw = new PrintWriter(new FileWriter(gs_dir 
+            + "PD.simulation_summary.txt", true));   // gs_dir/c.simulation_summary.txt
+        pw.append(project_name + "\t" + actual_num_haps + "\t" + actual_num_vars 
+            + "\t" + var_burden_avg + "\t" + meanPWDiff + "\t" + stdPWDiff + "\t" 
+            + pwDifference[0] + "\t" + pwDifference[pwDifference.length - 1] + "\t" + meanCts  
+            + "\t" + stdCts + "\t" + sortedCts[0] + "\t" + sortedCts[sortedCts.length - 1] + "\n");
         pw.close();
         // System.out.print("Is this acceptable? ");
         // answer = reader.next();
@@ -299,63 +306,135 @@ public class PoolHapsSimulator {
 	
 	/**
 	 * Step 3B: Make all of the patient FASTA files, and simulate reads for them. 
-     * Step 4A: Generate FASTQ files and 
-     * Step 4B: Convert each patient's FASTQ file(s) to a VEF file. 
-     *   Really only need one of the read pair FASTQs because read and insert lengths are fixed.
+     * Step 4A: Generate FASTQ files  
+     * 
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
         // 
-	public void write_fastq_vef()  throws IOException, InterruptedException {
+	public void generate_fastq()  throws IOException, InterruptedException {
         System.out.println("Step 3B: Make all of the patient FASTA files.");
         System.out.println("Concurrently, Step 4: Convert each patient's FASTQ file(s) to a VEF file. \n");
-        BufferedReader br = new BufferedReader(new FileReader(ref_seq_file_path)); 
-        ArrayList<String> refSequence = new ArrayList<String>();
+//        BufferedReader br = new BufferedReader(new FileReader(ref_seq_file_path)); 
+//        ArrayList<String> refSequence = new ArrayList<String>();
+//        String currLine = br.readLine();
+//        while (currLine != null) {
+//            if (currLine.contains(">")) {
+//                currLine = br.readLine();
+//                continue; 
+//            }
+//            refSequence.add(currLine);
+//            currLine = br.readLine();
+//        }
+//        br.close();
+
+        BufferedReader br = new BufferedReader(new FileReader(input_dir + ref_seq_file_path));
+        String[] refSequence = new String[ref_seq_len];
         String currLine = br.readLine();
+        int i = 0;
         while (currLine != null) {
             if (currLine.contains(">")) {
                 currLine = br.readLine();
-                continue; 
-            }
-            refSequence.add(currLine);
+                continue;
+            }            
+            for (String b : currLine.split("")) {
+                refSequence[i] = b;
+                i++;
+            }            
             currLine = br.readLine();
         }
         br.close();
+        
+        // Step 5a) Simulate single nucleotide polymorphisms on the reference sequence.
+        System.out.println(
+            "\nStep 5a) Simulate single nucleotide polymorphisms on the reference sequence.\n");
+        BufferedWriter bw = new BufferedWriter(new FileWriter(gs_dir + project_name + "_mutations.txt"));
+        String[] allAltAlleles = new String[actual_num_vars];
+        for (int v = 0; v < actual_num_vars; v++) {
+            allAltAlleles[v] = simVariant(refSequence[sim_var_pos[v] - 1]);
+            bw.append(v + "\t" + sim_var_pos[v] + "\t" + refSequence[sim_var_pos[v] - 1] 
+                + "\t" + allAltAlleles[v] + "\n");
+        }
+        bw.close();        
+        
+     // Step 5b) Add simulated mutations to finish the full-length simulated haplotypes.
+        System.out.println(
+            "\nStep 5b) Add simulated mutations to finish the full-length simulated haplotypes.\n");
 
-        int startOne = 0, startTwo = 0, endOne = 0, endTwo = 0; 
+        String[][] allSimHaps = new String[actual_num_haps][ref_seq_len];
+        for (int h = 0; h < actual_num_haps; h++) {
+            for (int p = 0; p < ref_seq_len; p++) {
+                int pos = find(sim_var_pos, p + 1);
+                if (pos != -1) {
+                    if (hap2varcomp[h][pos]==1) {
+                        allSimHaps[h][p] = allAltAlleles[pos];
+                    } else {
+                        allSimHaps[h][p] = refSequence[p];
+                    }                    
+                } else {
+                    allSimHaps[h][p] = refSequence[p];
+                }
+            }
+        }
+        
+        // Step 6) Simulate all of the pool FastA and FastQ files, given the distribution of haplotypes in step 3.
+        // HashMap<Integer, ArrayList<Integer>> pool2hapcomp = new HashMap<Integer, ArrayList<Integer>>(); // pool id -> [hap_ids]
+        System.out.println("\nStep 6) Simulate all of the pool FastA files, given the distribution"
+            + " of haplotypes in step 3.\n");
+            
         for (int p = 0; p < num_pools; p++) {
             PrintWriter pw = new PrintWriter(fasta_folder + project_name + "_p" + p + ".fa");
             for (int h = 0; h < haps_per_pool; h++) {
-                pw.append(">Haplotype_" + pool2hapcomp.get(p).get(h) + " \n");
-                for (String s : refSequence) pw.append(s + "\n");
-                pw.append("\n\n"); 
+                int currHap = pool2hapcomp.get(p).get(h);
+                pw.append(">Haplotype_" + currHap + " \n");
+                for (String s : allSimHaps[currHap]) pw.append(s);
+                pw.append("\n\n");
             }
             pw.close();
-            ProcessBuilder CMDLine = new ProcessBuilder(dwgsimCMDLine, 
+        }
+        for (int p = 0; p < num_pools; p++) {
+            ProcessBuilder CMDLine = new ProcessBuilder(dwgsimCMDLine,
                 fasta_folder + project_name + "_p" + p + ".fa", 
                 fastq_folder + project_name + "_p" + p, 
-                "-e", Double.toString(error_rate), 
-                "-E", Double.toString(error_rate), "-C", Integer.toString(coverage), 
-                "-1", Integer.toString(read_len), 
-                "-2", Integer.toString(read_len), 
-                "-r", "0", 
-                "-F", "0", 
-                "-H", 
-                "-d", Integer.toString(outer_dist), 
-                "-o", "1", 
-                "-s", "0", 
+                "-e", Double.toString(error_rate),
+                "-E", Double.toString(error_rate), "-C", Integer.toString(coverage),
+                "-1", Integer.toString(read_len),
+                "-2", Integer.toString(read_len),
+                "-r", "0",
+                "-F", "0",
+                "-H",
+                "-d", Integer.toString(outer_dist),
+                "-o", "1",
+                "-s", "0",
                 "-y", "0");
-            // System.out.println(String.join(" ", CMDLine.command()));
-            Process CMDProcess = CMDLine.start();  
+            
+            // System.out.println(String.join(" ", CMDLine.command()));  // TODO: LEFTOVER
+            Process CMDProcess = CMDLine.start();
             CMDProcess.waitFor();
-            System.out.println("Finished simulating reads for pool p" + p + ".");
-            CMDLine = new ProcessBuilder("gunzip", fastq_folder + project_name + "_p" + p + ".bwa.read1.fastq.gz");
-            // System.out.println(String.join(" ", CMDLine.command()));
+            System.out.println("Finished simulating reads for pool " + p + ".");
+        }
+    
+	}
+	
+	/**
+	 * Step 4B: Convert each patient's FASTQ file(s) to a VEF file. 
+	 * @param 
+	 * @return
+	 */
+	
+	public void generate_VEF() throws IOException, InterruptedException {
+	    int startOne = 0, startTwo = 0, endOne = 0, endTwo = 0; 
+	    for(int p=0;p<num_pools;p++) {
+	        ProcessBuilder CMDLine = new ProcessBuilder("gunzip", fastq_folder + project_name 
+	            + "_p" + p + ".bwa.read1.fastq.gz");
             Process CMDProcess2 = CMDLine.start();  
             CMDProcess2.waitFor();
-            br = new BufferedReader(new FileReader(fastq_folder + project_name + "_p" + p + ".bwa.read1.fastq"));
-            currLine = br.readLine();
-            BufferedWriter bw  = new BufferedWriter(new FileWriter(vef_folder + project_name  + "_p" + p + ".vef")); 
+            
+            BufferedReader br = new BufferedReader(new FileReader(fastq_folder + project_name + 
+                "_p" + p + ".bwa.read1.fastq"));
+            String currLine = br.readLine();
+            BufferedWriter bw  = new BufferedWriter(new FileWriter(vef_folder + project_name  
+                + "_p" + p + ".vef")); 
             while (currLine != null) {
                 String[] readInfo = currLine.split("_");
                 StringBuilder readOutput = new StringBuilder(); 
@@ -395,12 +474,29 @@ public class PoolHapsSimulator {
             br.close();
             bw.close();
             System.out.println("Finished converting FASTQ format to VEF format for pool " + p + ".");
-        }
-    
+            
+            // gzip the gastq file back.
+            ProcessBuilder CMDLine_gzip = new ProcessBuilder("gzip", fastq_folder + project_name 
+                + "_p" + p + ".bwa.read1.fastq");
+            Process CMDProcess_gzip = CMDLine_gzip.start();  
+            CMDProcess_gzip.waitFor();
+	    }
 	}
 	
-	
-	
+	static String simVariant(String refBase) {
+	        ArrayList<String> bases = new ArrayList<String>();
+	        if (!refBase.equals("A")) bases.add("A");
+	        if (!refBase.equals("C")) bases.add("C");
+	        if (!refBase.equals("G")) bases.add("G");
+	        if (!refBase.equals("T")) bases.add("T");
+	        return bases.get(ThreadLocalRandom.current().nextInt(0, 3));
+	}
+
+	static int find(int[] a, int target) {
+	        int index = Arrays.binarySearch(a, target);
+	        return (index < 0) ? -1 : index;
+	}
+	  
 	public static void main(String[] args) throws IOException, InterruptedException {
 	    
 	}
