@@ -5,6 +5,7 @@ import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -132,31 +133,17 @@ public class HapConfig {
         this.num_global_hap = global_haps_freq.length;
         this.num_loci = locusInput.length;
         this.global_haps_freq = global_haps_freq.clone();
-        Boolean setID = false;
-        if (hap_IDs != null) { // *** Changed from this.hap_IDs (global) to hap_IDs (parameter)
-            this.hap_IDs = hap_IDs.clone();
-
-        } else { // if no IDs assigned, use indexes
-            this.hap_IDs = new String[this.num_global_hap];
-            setID = true;
-        }
-
         this.global_haps_string = global_haps_string.clone();
         for (int k = 0; k < this.num_global_hap; k++) {
             this.global_haps_string[k]=global_haps_string[k].clone();
-            if (setID) {
-                String id = "";
-                for (int p = 0; p < this.num_loci; p++) {
-                    id += global_haps_string[k][p];
-                }
-                this.hap_IDs[k] = id;
-            }
-
-            // TODO: [LEFTOVER]
+            // TODO: [LEFTOVER] Quan to Michael: I have moved the setID to a function, if this is what you meant.
             // System.out.println(this.hap_IDs[k]);
-
         }
-
+        if (hap_IDs != null) { // *** Changed from this.hap_IDs (global) to hap_IDs (parameter)
+            this.hap_IDs = hap_IDs.clone();
+        } else { // if no IDs assigned, use its haplotype 0/1 string for the moment. 
+        	this.set_binary_hap_IDs_using_hapString();        	
+        }
         if (in_pool_haps_freq != null) { // *** Matched format as above
             this.in_pool_haps_freq = in_pool_haps_freq.clone();
             for (int j = 0; j < this.num_global_hap; j++) {
@@ -164,11 +151,9 @@ public class HapConfig {
                     this.in_pool_haps_freq[j][k] = in_pool_haps_freq[j][k];
                 }
             }
-
         } else { // if no intra-pool frequencies provided, start at 0
             this.in_pool_haps_freq = new double[this.num_global_hap][this.num_pools];
         }
-
         if (inpool_site_freqs != null) {
             this.inpool_site_freqs = inpool_site_freqs.clone();
         }
@@ -208,82 +193,97 @@ public class HapConfig {
         this.num_pools = num_pools;
         if (pool_IDs != null) { // *** matched format as above
             this.pool_IDs = pool_IDs.clone();
-
-        } else{ // if no IDs assigned, use indices
-            this.pool_IDs = new String[this.num_pools];
-            for (int k = 0; k < this.num_pools; k++) {
-                this.pool_IDs[k] = k + "";
-            }
+        } 
+        else {
+        	System.out.println("ERROR: pool_IDs == null");
+        	System.exit(0);
         }
+//        else{ // if no IDs assigned, use indices
+//            this.pool_IDs = new String[this.num_pools];
+//            for (int k = 0; k < this.num_pools; k++) {
+//                this.pool_IDs[k] = "p"+k;
+//            }
+//        }
 
         this.est_ind_pool = est_ind_pool;
         this.update_sigma_mu_logL();
     }
 
-
     /**
-     *
-     *  @param final_local_haps
+     * Use haplotype strings to set a binary ID.
      */
-    public HapConfig(HapConfig[] final_local_haps) {
-        this.num_loci = final_local_haps[0].num_loci;
+    public void set_binary_hap_IDs_using_hapString() {
+    	this.hap_IDs=new String[this.num_global_hap];
+    	for(int h=0;h<this.num_global_hap;h++) {
+    		String id = "";
+            for (int locus = 0; locus < this.num_loci; locus++) {
+                id += this.global_haps_string[h][locus];
+            }
+            this.hap_IDs[h] = id;
+    	}
+    }
+    /**
+     *	Combine inpool_haps into a multi-pool HapConfig
+     *  Initially by Lauren, modified and commented by Quan 2019-07
+     *  Before entering the method, one needs to ensure that only one pool in each inpool_haps[p]
+     *  
+     *  @param inpool_haps  // renamed from @param final_local_haps in Lauren's version
+     */
+    public HapConfig(HapConfig[] inpool_haps) {
+        this.num_loci = inpool_haps[0].num_loci;
         ArrayList<String> global_ids = new ArrayList<String>();
         ArrayList<ArrayList<String>> local_ids = new ArrayList<ArrayList<String>>();
-        for (int p = 0; p < final_local_haps.length; p++) {
+        for (int p = 0; p < inpool_haps.length; p++) {
             local_ids.add(new ArrayList<String>());
-            for (int h = 0; h < final_local_haps[p].num_global_hap; h++) {
+            for (int h = 0; h < inpool_haps[p].num_global_hap; h++) {
                 String curr_vc = "";
                 for (int l = 0; l < this.num_loci; l++) {
-                    curr_vc += final_local_haps[p].global_haps_string[h][l];
+                    curr_vc += inpool_haps[p].global_haps_string[h][l];
                 }
-
                 if (!global_ids.contains(curr_vc)) {
                     global_ids.add(curr_vc);
                 }
-
                 local_ids.get(p).add(curr_vc);
             }
         }
-
         this.num_global_hap = global_ids.size();
-        this.hap_IDs = new String[this.num_global_hap];
-        this.num_pools = final_local_haps.length;
+        //this.hap_IDs = new String[this.num_global_hap];
+        this.num_pools = inpool_haps.length;
         this.global_haps_string = new String[this.num_global_hap][this.num_loci];
-        this.in_pool_haps_freq = new double[this.num_global_hap][final_local_haps.length];
+        this.in_pool_haps_freq = new double[this.num_global_hap][inpool_haps.length];
         double[] tmp_global_freq = new double[this.num_global_hap];
         for (int h = 0; h < this.num_global_hap; h++) {
             String[] hap_var_comp = global_ids.get(h).split("");
-            for (int l = 0; l < this.num_loci; l++) {
-                this.global_haps_string[h][l] = hap_var_comp[l];
+            for (int locus = 0; locus < this.num_loci; locus++) {
+                this.global_haps_string[h][locus] = hap_var_comp[locus];
             }
-
             for (int p = 0; p < this.num_pools; p++) {
                 if (local_ids.get(p).contains(global_ids.get(h))) {
                     int inpool_index = local_ids.get(p).indexOf(global_ids.get(h));
                     this.in_pool_haps_freq[h][p] =
-                        final_local_haps[p].global_haps_freq[inpool_index];
-
-                    tmp_global_freq[h] += final_local_haps[p].global_haps_freq[inpool_index];
+                    		inpool_haps[p].global_haps_freq[inpool_index];
+                    // inpool_haps[p] has only one pool, therefore its global_haps_freq is the inpool frequency
+                    tmp_global_freq[h] += inpool_haps[p].global_haps_freq[inpool_index];
                 }
             }
-
-            this.hap_IDs[h] = h + "";
+            //this.hap_IDs[h] = "h"+h;
         }
-
+        // normalize the global_haps_freq
         this.global_haps_freq = new double[this.num_global_hap];
         for (int h = 0; h < this.num_global_hap; h++) {
             this.global_haps_freq[h] = tmp_global_freq[h] / this.num_pools;
         }
-
-        this.inpool_site_freqs = final_local_haps[0].inpool_site_freqs.clone();
-        this.locusInfo = final_local_haps[0].locusInfo;
+        // set up the rest 
+        this.set_binary_hap_IDs_using_hapString();
+        this.recode_HapIDs_to_base16();
+        this.inpool_site_freqs = inpool_haps[0].inpool_site_freqs.clone();
+        this.locusInfo = inpool_haps[0].locusInfo;
         this.construct_hapID2index_map();
         this.encoding_haps();
         this.pool_IDs = new String[this.num_pools];
         for (int p = 0; p < this.num_pools; p++) {
-            this.pool_IDs[p] = p + "";
+            this.pool_IDs[p] = inpool_haps[p].pool_IDs[0];  // there is only one ID in each pool.
         }
-
         this.est_ind_pool = 0;
         this.update_sigma_mu_logL();
     }
@@ -345,13 +345,15 @@ public class HapConfig {
 
             // Then read the local-hap file.
             if (in_pool_hap_input_file == null) {
-                this.num_pools = 20;
-                this.pool_IDs = new String[this.num_pools];
-                for (int p = 0; p < this.num_pools; p++) {
-                    this.pool_IDs[p] = p + "";
-                }
 
-                this.in_pool_haps_freq = new double[this.num_global_hap][this.num_pools];
+                // TODO: LEFTOVER ML 20190702
+                // this.num_pools = 20;
+                // this.pool_IDs = new String[this.num_pools];
+                // for (int p = 0; p < this.num_pools; p++) {
+                //    this.pool_IDs[p] = p + "";
+                // }
+
+                // this.in_pool_haps_freq = new double[this.num_global_hap][this.num_pools];
 
             } else {
                 br = new BufferedReader(new FileReader(in_pool_hap_input_file));
@@ -396,11 +398,9 @@ public class HapConfig {
                                 Double.parseDouble(tmp[h]);
 
                         }
-
                         pool_index++;
                         line = br.readLine();
                     }
-
                     br.close();
 
                 // A *_vars.intra_freq.txt (in-pool frequencies of alternate alleles) has been
@@ -422,7 +422,6 @@ public class HapConfig {
                         locus_index++;
                         line = br.readLine();
                     }
-
                     br.close();
                 }
             }
@@ -440,144 +439,155 @@ public class HapConfig {
      *  @param num_pools
      *  @throws IOException
      */
-    public HapConfig(
-        String gc_header,
-        String var_file,
-        int num_pools) throws IOException {
+//    public HapConfig(
+//        String gc_header,
+//        String var_file,
+//        int num_pools) throws IOException {
+//
+//        HashSet<String> hap_tracker = new HashSet<String>();
+//        ArrayList<HashMap<String, Integer>> freq_tracker =
+//            new ArrayList<HashMap<String, Integer>>();
+//
+//        String[] tmp = null;
+//        this.num_pools = num_pools;
+//        for (int p = 0; p < this.num_pools; p++) {
+//            freq_tracker.add(new HashMap<String, Integer>());
+//            //BufferedReader br = new BufferedReader(new FileReader(gc_header +  p + ".in"));
+//    			TODO: [Quan] hard-coded file path above!!
+//            String line = br.readLine();
+//            while (line != null) {
+//                tmp = line.split("\\t|-|\\?");
+//                String hap = "";
+//                for (int l = 0; l < tmp.length - 1; l++) {
+//                    hap += tmp[l];
+//                }
+//                int hap_ct = Integer.parseInt(tmp[tmp.length - 1]);
+//                if (!hap_tracker.contains(hap)) {
+//                    hap_tracker.add(hap);
+//                }
+//                if (!freq_tracker.get(p).containsKey(hap)) {
+//                    freq_tracker.get(p).put(hap, hap_ct);
+//                } else {
+//                    int prev_ct = freq_tracker.get(p).get(hap);
+//                    freq_tracker.get(p).put(hap, prev_ct + hap_ct);
+//                }
+//                line = br.readLine();
+//            }
+//            br.close();
+//        }
+//
+//        this.num_loci = tmp.length - 1;
+//        this.num_global_hap = hap_tracker.size();
+//        this.global_haps_string = new String[this.num_global_hap][this.num_loci];
+//        //this.hap_IDs = new String[this.num_global_hap];
+//        int[][] hap_ct = new int[this.num_global_hap][this.num_pools];
+//        int hap_index = 0;
+//        for (String hap : hap_tracker) {
+//            String[] tmp2 = hap.split("");
+//            for (int l = 0; l < this.num_loci; l++) {
+//                this.global_haps_string[hap_index][l] = tmp2[l];
+//            }
+//
+//            for (int p = 0; p < this.num_pools; p++) {
+//                if (freq_tracker.get(p).containsKey(hap)) {
+//                    hap_ct[hap_index][p] = freq_tracker.get(p).get(hap);
+//
+//                } else {
+//                    hap_ct[hap_index][p] = 0;
+//                }
+//
+//            }
+////            this.hap_IDs[hap_index] = "h"+Integer.toString(hap_index);
+//            hap_index++;
+//        }
+//        this.set_binary_hap_IDs_using_hapString();
+//        this.global_haps_freq = new double[this.num_global_hap];
+//        this.in_pool_haps_freq = new double[this.num_global_hap][this.num_pools];
+//        for (int p = 0; p < this.num_pools; p++) {
+//            int pool_size = 0;
+//            for (int h = 0; h < this.num_global_hap; h++) {
+//                pool_size += hap_ct[h][p];
+//            }
+//
+//            for (int h = 0; h < this.num_global_hap; h++) {
+//                this.in_pool_haps_freq[h][p] = (double) hap_ct[h][p] / pool_size;
+//            }
+//
+//        }
+//
+//        for (int h = 0; h < this.num_global_hap; h++) {
+//            double curr_hap_global = 0;
+//            for (int p = 0; p < num_pools; p++) {
+//                curr_hap_global += this.in_pool_haps_freq[h][p];
+//            }
+//
+//            this.global_haps_freq[h] = curr_hap_global / num_pools;
+//        }
+//
+//        this.locusInfo = new LocusAnnotation[this.num_loci];
+//        this.pool_IDs = new String[num_pools];
+//        for (int k = 0; k < this.num_pools; k++) {
+//            this.pool_IDs[k] = "p"+k;//TODO Quan
+//        }
+//
+//        this.inpool_site_freqs = new double[this.num_loci][this.num_pools];
+//        BufferedReader br = new BufferedReader(new FileReader(var_file));
+//        String line = br.readLine();
+//        line = br.readLine();
+//        int locus_index = 0;
+//        while (line != null) {
+//            tmp = line.split("\t");
+//
+//            // The first column is the locus-info.
+//            this.locusInfo[locus_index] = new LocusAnnotation(tmp[0]);
+//            for (int p = 0; p < this.num_pools; p++) {
+//                this.inpool_site_freqs[locus_index][p] = Double.parseDouble(tmp[p + 1]);
+//            }
+//            locus_index++;
+//            line = br.readLine();
+//        }
+//
+//        br.close();
+//        this.construct_hapID2index_map();
+//        this.encoding_haps(); // initialize this.global_haps;
+//
+//        // TODO: [LEFTOVER]
+//        // this.write_global_file_string(
+//        //    "/home/lmak/Documents/v0.7_test/Both_V2_Plus_GC_800/gc.inter_freq.txt", false);
+//
+//    }
 
-        HashSet<String> hap_tracker = new HashSet<String>();
-        ArrayList<HashMap<String, Integer>> freq_tracker =
-            new ArrayList<HashMap<String, Integer>>();
-
-        String[] tmp = null;
-        this.num_pools = num_pools;
-        for (int p = 0; p < this.num_pools; p++) {
-            freq_tracker.add(new HashMap<String, Integer>());
-            BufferedReader br = new BufferedReader(new FileReader(gc_header +  p + ".in"));
-            String line = br.readLine();
-            while (line != null) {
-                tmp = line.split("\\t|-|\\?");
-                String hap = "";
-                for (int l = 0; l < tmp.length - 1; l++) {
-                    hap += tmp[l];
-                }
-
-                int hap_ct = Integer.parseInt(tmp[tmp.length - 1]);
-                if (!hap_tracker.contains(hap)) {
-                    hap_tracker.add(hap);
-                }
-
-                if (!freq_tracker.get(p).containsKey(hap)) {
-                    freq_tracker.get(p).put(hap, hap_ct);
-
-                } else {
-                    int prev_ct = freq_tracker.get(p).get(hap);
-                    freq_tracker.get(p).put(hap, prev_ct + hap_ct);
-                }
-
-                line = br.readLine();
-            }
-
-            br.close();
-        }
-
-        this.num_loci = tmp.length - 1;
-        this.num_global_hap = hap_tracker.size();
-        this.global_haps_string = new String[this.num_global_hap][this.num_loci];
-        this.hap_IDs = new String[this.num_global_hap];
-        int[][] hap_ct = new int[this.num_global_hap][this.num_pools];
-        int hap_index = 0;
-        for (String hap : hap_tracker) {
-            String[] tmp2 = hap.split("");
-            for (int l = 0; l < this.num_loci; l++) {
-                this.global_haps_string[hap_index][l] = tmp2[l];
-            }
-
-            for (int p = 0; p < this.num_pools; p++) {
-                if (freq_tracker.get(p).containsKey(hap)) {
-                    hap_ct[hap_index][p] = freq_tracker.get(p).get(hap);
-
-                } else {
-                    hap_ct[hap_index][p] = 0;
-                }
-
-            }
-
-            this.hap_IDs[hap_index] = Integer.toString(hap_index);
-            hap_index++;
-        }
-
-        this.global_haps_freq = new double[this.num_global_hap];
-        this.in_pool_haps_freq = new double[this.num_global_hap][this.num_pools];
-        for (int p = 0; p < this.num_pools; p++) {
-            int pool_size = 0;
-            for (int h = 0; h < this.num_global_hap; h++) {
-                pool_size += hap_ct[h][p];
-            }
-
-            for (int h = 0; h < this.num_global_hap; h++) {
-                this.in_pool_haps_freq[h][p] = (double) hap_ct[h][p] / pool_size;
-            }
-
-        }
-
-        for (int h = 0; h < this.num_global_hap; h++) {
-            double curr_hap_global = 0;
-            for (int p = 0; p < num_pools; p++) {
-                curr_hap_global += this.in_pool_haps_freq[h][p];
-            }
-
-            this.global_haps_freq[h] = curr_hap_global / num_pools;
-        }
-
-        this.locusInfo = new LocusAnnotation[this.num_loci];
-        this.pool_IDs = new String[num_pools];
-        for (int k = 0; k < this.num_pools; k++) {
-            this.pool_IDs[k] = k + "";
-        }
-
-        this.inpool_site_freqs = new double[this.num_loci][this.num_pools];
-        BufferedReader br = new BufferedReader(new FileReader(var_file));
-        String line = br.readLine();
-        line = br.readLine();
-        int locus_index = 0;
-        while (line != null) {
-            tmp = line.split("\t");
-
-            // The first column is the locus-info.
-            this.locusInfo[locus_index] = new LocusAnnotation(tmp[0]);
-            for (int p = 0; p < this.num_pools; p++) {
-                this.inpool_site_freqs[locus_index][p] = Double.parseDouble(tmp[p + 1]);
-            }
-            locus_index++;
-            line = br.readLine();
-        }
-
-        br.close();
-        this.construct_hapID2index_map();
-        this.encoding_haps(); // initialize this.global_haps;
-
-        // TODO: [LEFTOVER]
-        // this.write_global_file_string(
-        //    "/home/lmak/Documents/v0.7_test/Both_V2_Plus_GC_800/gc.inter_freq.txt", false);
-
-    }
-
-
-    /**
-     *
-     */
     public void construct_hapID2index_map(){
         this.hapID2index = new HashMap<String, Integer>();
         for (int h = 0; h < this.num_global_hap; h++) {
             this.hapID2index.put(this.hap_IDs[h], h);
-
             // TODO: [LEFTOVER]
             // System.out.println(this.hap_IDs[h] + "\t" + h);
-
         }
     }
 
+    /**
+     * The HapID is naturally coded by 0 and 1 strings. For very long haplotypes, we hope to convert
+     * them in to an integer of base 16. To indicate it is a haplotype, we add an "h" before the 
+     * integer 
+     */
+    public void recode_HapIDs_to_base16() {
+    	// check if the current hap-IDs are indeed 0/1 coded
+    	for(int h=0;h<this.num_global_hap;h++) {
+    		for(int locus=0;locus<this.num_loci;locus++) {
+    			if(this.hap_IDs[h].charAt(locus)!='1' && this.hap_IDs[h].charAt(locus)!='0') {
+    				System.out.println("Exception: hap-ID "+this.hap_IDs[h]+" is not 1/0 coded."
+    						+ "Returned without converting to base 16");
+    				return;
+    			}
+    		}
+    	}
+    	// after check, convert the IDs:
+    	for(int h=0;h<this.num_global_hap;h++) {
+    		BigInteger the_integer=new BigInteger(this.hap_IDs[h], 2);
+    		this.hap_IDs[h]="h"+the_integer.toString(16);
+    	}
+    }
 
     /**
      *  Maps global_haps_string to global_haps (that is coded by integers).
@@ -626,11 +636,10 @@ public class HapConfig {
         df.setRoundingMode(RoundingMode.CEILING);
         System.out.println("Hap.\tVar. Comp.\tInter. Freq.");
         for (int h = 0; h < this.num_global_hap; h++) {
-            System.out.print(h + "\t");
+            System.out.print(this.hap_IDs[h] + "\t");
             for (int l = 0; l < this.num_loci; l++) {
                 System.out.print(this.global_haps_string[h][l]);
             }
-
             System.out.println("\t" + df.format(this.global_haps_freq[h]));
         }
     }
@@ -640,33 +649,28 @@ public class HapConfig {
      *  Output the in global_haplotypes using string alleles.
      *
      *  @param global_hap_output_file
-     *  @param append
+     *  
      */
-    public void write_global_file_string(String global_hap_output_file, boolean append) {
+    public void write_global_file_string(String global_hap_output_file) {
         try {
-            BufferedWriter bw = new BufferedWriter(new FileWriter(global_hap_output_file, append));
+            BufferedWriter bw = new BufferedWriter(new FileWriter(global_hap_output_file));
             bw.write("Hap_ID");
             for (int h = 0; h < this.num_global_hap; h++) {
-                bw.write("\t" + h);
+                bw.write("\t" + this.hap_IDs[h]);
             }
-
             bw.write("\nFreq");
             for (int h = 0; h < this.num_global_hap; h++) {
                 bw.write("\t" + this.global_haps_freq[h]);
             }
-
             bw.write("\n");
             for (int l = 0; l < this.num_loci; l++) {
                 bw.write(this.locusInfo[l].output2string());
                 for (int h = 0; h < this.num_global_hap; h++) {
                     bw.write("\t" + this.global_haps_string[h][l]);
                 }
-
                 bw.write("\n");
             }
-
             bw.close();
-
         } catch(Exception e) {
             e.printStackTrace();
         }
@@ -679,11 +683,11 @@ public class HapConfig {
      *  will become strings and then the next round of coding will be performed.
      *
      *  @param global_hap_output_file
-     *  @param append
+     *  
      */
-    public void write_global_file_code(String global_hap_output_file, boolean append) {
+    public void write_global_file_code(String global_hap_output_file) {
         try {
-            BufferedWriter bw = new BufferedWriter(new FileWriter(global_hap_output_file, append));
+            BufferedWriter bw = new BufferedWriter(new FileWriter(global_hap_output_file));
             bw.write("Hap_ID");
             for (int h = 0; h < this.num_global_hap; h++) {
                 bw.write("\t" + this.hap_IDs[h]);
@@ -717,16 +721,14 @@ public class HapConfig {
      *  Output the in pool frequencies.
      *
      *  @param inpool_hap_output_file
-     *  @param append
      */
-    public void write_inpool(String inpool_hap_output_file, boolean append) {
+    public void write_inpool(String inpool_hap_output_file) {
         try {
-            BufferedWriter bw = new BufferedWriter(new FileWriter(inpool_hap_output_file, append));
+            BufferedWriter bw = new BufferedWriter(new FileWriter(inpool_hap_output_file));
             bw.write("Hap_ID");
             for (int h = 0; h < this.num_global_hap; h++) {
-                bw.write("\t" + h);
+                bw.write("\t" + this.hap_IDs[h]);
             }
-
             bw.write("\n");
 
             // TODO: [LEFTOVER]
@@ -736,22 +738,17 @@ public class HapConfig {
 
             for (int p = 0; p < this.num_pools; p++) {
                 bw.write(this.pool_IDs[p]);
-
                 // TODO (old) [Review]:: Report error! Formerly, this.num_pools.
                 for (int h = 0; h < this.num_global_hap; h++) {
                     if (this.in_pool_haps_freq[h].length == 0) {
                         bw.write("\t0");
-
                     } else {
                         bw.write("\t" + this.in_pool_haps_freq[h][p]);
                     }
                 }
-
                 bw.write("\n");
             }
-
             bw.close();
-
         } catch(Exception e) {
             e.printStackTrace();
         }
@@ -768,15 +765,14 @@ public class HapConfig {
     public void write2files(
         String global_hap_output_file,
         String in_pool_hap_output_file,
-        String type,
-        boolean append) {
+        String type) {
 
-        write_inpool(in_pool_hap_output_file, append);
+        write_inpool(in_pool_hap_output_file);
         if (type.equals("string")) {
-            write_global_file_string(global_hap_output_file, append);
+            write_global_file_string(global_hap_output_file);
 
         } else if(type.equals("code")) {
-            write_global_file_code(global_hap_output_file, append);
+            write_global_file_code(global_hap_output_file);
 
         } else {
             System.out.println("Error: the type has to be string or code!");
@@ -895,7 +891,7 @@ public class HapConfig {
      *
      *  @param freq_cutoff frequency cutoff.
      */
-    public HapConfig clone(double freq_cutoff) {
+    public HapConfig filter(double freq_cutoff) {
         if (freq_cutoff == 0) {
             return new HapConfig(
                 this.global_haps_string,

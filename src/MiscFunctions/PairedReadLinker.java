@@ -10,15 +10,14 @@ import java.util.HashMap;
 
 public class PairedReadLinker {
 	
-	public static void main(String[] args) throws IOException{	
-		String prefix = args[0];
+	public static void link_paired_vef(String input_raw_vef, String output_vef) throws IOException {
 		HashMap<String,Integer> dict_read = new HashMap<String,Integer>();
 		ArrayList<String>  readname_arr= new ArrayList<String >();
 		ArrayList<String>  pos_arr= new ArrayList<String >();
 		ArrayList<Integer>  readstart_arr= new ArrayList<Integer >();
 		ArrayList<Integer>  readend_arr= new ArrayList<Integer >();
 		ArrayList<String>  readrange_arr= new ArrayList<String >();
-		BufferedReader bufferedreader= new BufferedReader(new FileReader(prefix + ".raw.vef"));
+		BufferedReader bufferedreader= new BufferedReader(new FileReader(input_raw_vef));
 		String line= null;
 		int index=0;
 		
@@ -31,10 +30,12 @@ public class PairedReadLinker {
 				String[] vars = line_arr[1].split(";|=");
 				String to_add = ""; 
 				for (int v = 0; v < vars.length; v += 2)
-					if (!pos_arr.get(dict_read.get(readname)).contains(vars[v])) to_add = to_add + vars[v] + "=" + vars[v + 1] + ";"; 
+					if (!pos_arr.get(dict_read.get(readname)).contains(vars[v])) {
+						to_add = to_add + vars[v] + "=" + vars[v + 1] + ";"; 
+					}
 				if 	(readstart>=readstart_arr.get(dict_read.get(readname))){
-					readrange_arr.set(dict_read.get(readname), readrange_arr.get(dict_read.get(readname))+"\t"+line_arr[3]
-							+ "\t"+line_arr[4]); 
+					readrange_arr.set(dict_read.get(readname), 
+							readrange_arr.get(dict_read.get(readname))+"\t"+line_arr[3]+ "\t"+line_arr[4]); 
 					pos_arr.set(dict_read.get(readname), pos_arr.get(dict_read.get(readname))+to_add);
 				}else {
 					readrange_arr.set(dict_read.get(readname),line_arr[3]+ "\t"+line_arr[4]+"\t" 
@@ -54,7 +55,7 @@ public class PairedReadLinker {
 		}
 		bufferedreader.close();
 		
-		PrintWriter pw = new PrintWriter(new FileWriter(prefix + ".vef",false));		
+		PrintWriter pw = new PrintWriter(new FileWriter(output_vef));		
 		for (int i =0;i<readname_arr.size();i++ ) {
 			String tmp_str = readname_arr.get(i)+"\t"+pos_arr.get(i)+"\t"+"//"+"\t"+readrange_arr.get(i)+"\n";
 			pw.write(tmp_str);
@@ -62,6 +63,12 @@ public class PairedReadLinker {
 		}
         pw.flush();
 		pw.close();
+		System.out.println(output_vef+" based on "+input_raw_vef+" has been generated.");
 	}
+	
+//	public static void main(String[] args) {	
+//		String prefix = args[0];
+//		
+//	}
 
 }
