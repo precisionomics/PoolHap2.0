@@ -16,28 +16,60 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import PoolHap.Entrance;
+
 public class BAMFormatterGATK {
 	
-	public static void main(String[] args) throws IOException {
+	/**
+	 * @author quanlong 2019-07
+	 * 
+	 * Generate vef files and var_freq file based on SAM files and a single VCF file that contains 
+	 * variants information. 
+	 * 
+	 * Before entering this function, Entrance.get_filepaths() will sort out the Pool-IDs and their
+	 * orders by reading the SAM files in the input_dir/sam/ folder. This order will be fixed 
+	 * throughout the PoolHapX program.   
+	 * 
+	 * @param input_dir
+	 * @param inter_dir
+	 * @param project_name
+	 * @param pool_IDs
+	 * @throws IOException
+	 */
+	public static void generate_vef_varfreq(String input_dir, String inter_dir, 
+			String project_name, String[] sam_files, 
+			HashMap<String, Integer> pool_name2index) throws IOException {
 		
-		String outdir = args[0]; // inter_dir/
-		String prefix = args[1]; // c_s 
-		Integer numPts = Integer.parseInt(args[2]);	// p
 		Boolean simmode = false; // Boolean.parseBoolean(args[3]);
 		HashSet<Integer> trueVarPos = new HashSet<Integer>(); 
+		int numPts=pool_name2index.size();
+		String[] pool_IDs=new String[numPts];
+		for(String pool_id: pool_name2index.keySet()) {
+			int index=pool_name2index.get(pool_id);
+			pool_IDs[index]=pool_id;
+		}
 		if (simmode) {
-			trueVarPos = simvarsReader(outdir + "/simvars.intra_freq.txt", numPts); 
+			trueVarPos = simvarsReader(inter_dir + "/simvars.intra_freq.txt", numPts); 
 		}
-		PrintWriter VEFList = new PrintWriter(outdir + prefix + ".vef.list"); 
-		HashMap<Integer,HashMap<String,VarObj>> variantEncoder = VariantMapping(outdir + prefix + ".vcf", true, outdir + prefix, numPts, simmode, trueVarPos);	// args[1] needs to be interdir + prefix + .all.vcf.
+		//PrintWriter VEFList = new PrintWriter(inter_dir + project_name + ".vef.list"); 
+		HashMap<Integer,HashMap<String,VarObj>> variantEncoder = VariantMapping(
+				input_dir + project_name + ".vcf", true, 
+				inter_dir + project_name+"_vars.intra_freq.txt", 
+				pool_name2index, simmode, trueVarPos);	
+		// args[1] needs to be interdir + prefix + .all.vcf.
+		new File(inter_dir+"/vef_raw/").mkdir();
+		new File(inter_dir+"/vef/").mkdir();
 		for (int p = 0; p < numPts; p++) {
-			VEFMaker(outdir + prefix + "_p" + p, variantEncoder);
-			VEFList.println(outdir + prefix + "_p" + p + ".vef"); 
+			String raw_vef=inter_dir+"/vef_raw/" + pool_IDs[p] + ".raw.vef";
+			String linked_vef=inter_dir+"/vef/" + pool_IDs[p] + ".vef";
+			VEFMaker(sam_files[p], raw_vef, variantEncoder);
+			PairedReadLinker.link_paired_vef(raw_vef, linked_vef);
+		//	VEFList.println(outdir + prefix + "_p" + p + ".vef"); 
 		}
-		VEFList.close();
+//		VEFList.close();
 	}
 	
-	private static HashSet<Integer> simvarsReader(String simvarsFile, int numPts) throws IOException {
+	public static HashSet<Integer> simvarsReader(String simvarsFile, int numPts) throws IOException {
 		BufferedReader SVReader = new BufferedReader(new FileReader(simvarsFile)); 
 		String currLine = SVReader.readLine();	// Skip the first line.
 		currLine = SVReader.readLine();
@@ -58,21 +90,31 @@ public class BAMFormatterGATK {
 		return trueVarPos;
 	}
 
-	private static HashMap<Integer,HashMap<String,VarObj>> VariantMapping(String VCFFile, boolean biallelic, String dir_pref, int numPts, Boolean simmode, HashSet<Integer> trueVarPos) throws IOException { 
-		
-		BufferedReader VCFReader = new BufferedReader(new FileReader(VCFFile));
+	public static HashMap<Integer,HashMap<String,VarObj>> VariantMapping(
+			String input_VCF, boolean biallelic, 
+			String out_put_vars_freq_file, 
+			HashMap<String, Integer> pool_name2index, Boolean simmode, 
+			HashSet<Integer> trueVarPos) throws IOException { 	
+		int numPts=pool_name2index.size();
+		// name2vcf_index maps the names in SAM files to the columns in the multi-individual VCF file. 
+		HashMap<String, Integer> name2vcf_index=new HashMap<String, Integer>();
+		BufferedReader VCFReader = new BufferedReader(new FileReader(input_VCF));
 		String currLine = VCFReader.readLine();
 		// System.out.println(currLine);
 		while (!currLine.contains("#CHROM")) currLine = VCFReader.readLine();
 		String[] header_line = currLine.split("\t"); // Match up the order of the pool IDs in the VCF to their actual row number.
 		int[] actual_row = new int[numPts]; 
-		for (int i = 9; i < header_line.length; i++) actual_row[i - 9] = Integer.parseInt(header_line[i]);
+		for (int i = 9; i < header_line.length; i++) {
+			//actual_row[i - 9] = Integer.parseInt(header_line[i]); // Lauren's old code
+			actual_row[i - 9] = pool_name2index.get(header_line[i]); 
+			// above uses new mapping using actual pool-IDs from SAM files 
+		}
 		currLine = VCFReader.readLine();
-		// System.out.println(currLine);
+		// variantEncoder stores position to alleles mapping.
 		HashMap<Integer,HashMap<String,VarObj>> variantEncoder = new HashMap<Integer,HashMap<String,VarObj>>();
 		ArrayList<double[]> poolFreqs = new ArrayList<double[]>();
 		ArrayList<Integer> posTracker = new ArrayList<Integer>();
-		int v = 0; 
+		int variant_index = 0; 
 		while (currLine != null) {
 			String[] var_info = currLine.split("\t");
 			int pos = Integer.parseInt(var_info[1]);
@@ -82,9 +124,10 @@ public class BAMFormatterGATK {
 					continue;	// If this is not a true variant position, skip it.
 				}
 			posTracker.add(pos);
-			// System.out.println(pos);
 			variantEncoder.put(pos, new HashMap<String,VarObj>());
-			Scanner altAlleleScanner = new Scanner(var_info[4]);	// This Scanner runs through the String containing all of the alternate allele(s). There is at least one. 
+			// var_info[4] is the 5th column in a VCF file, denoting the ALT (alternative alleles).
+			Scanner altAlleleScanner = new Scanner(var_info[4]);	
+			// This Scanner runs through the String containing all of the alternate allele(s). There is at least one. 
 			altAlleleScanner.useDelimiter(",");
 			int variantCode = 1;
 			while(altAlleleScanner.hasNext()) {					// In case of highly polymorphic (>=2 alternate alleles) positions.
@@ -96,37 +139,48 @@ public class BAMFormatterGATK {
 			} altAlleleScanner.close();
 			poolFreqs.add(new double[numPts]); 
 			for (int p = 0; p < numPts; p++) {
-				String[] varCts = var_info[p + 9].split(":")[1].split(",");	// This is the AD of the GT:AD:DP:GQ:PL of the p0 block of genotypes. 
+				String[] varCts = var_info[p + 9].split(":")[1].split(",");	
+				// This is the AD of the GT:AD:DP:GQ:PL of the p0 block of genotypes. 
 				double ref = Double.parseDouble(varCts[0]); 
 				double alt = Double.parseDouble(varCts[1]); 
-				if (ref != 0 || alt != 0) poolFreqs.get(v)[actual_row[p]] = alt / (ref + alt);
-				else poolFreqs.get(v)[actual_row[p]] = 0;	// In case there are no reads at this position at all.
+				if (ref != 0 || alt != 0) poolFreqs.get(variant_index)[actual_row[p]] = alt / (ref + alt);
+				else poolFreqs.get(variant_index)[actual_row[p]] = 0;	// In case there are no reads at this position at all.
 				// System.out.println(poolFreqs.get(v)[p]);
 			}
-			v++; 
+			variant_index++; 
 			currLine = VCFReader.readLine();
 		}
 		VCFReader.close();
-		// System.out.println("Done.");
+		System.out.println("Reading VCF file: Done.");
 		
-		BufferedWriter br = new BufferedWriter(new FileWriter(dir_pref + "_vars.intra_freq.txt"));
+		// Write the in-pool variants frequencies to file. The IDs of the pools are based on the 
+		// pre-specified order in the pool_name2index;
+		String[] pool_IDs=new String[numPts];
+		for(String pool_id: pool_name2index.keySet()) {
+			int index=pool_name2index.get(pool_id);
+			pool_IDs[index]=pool_id;
+		}
+		BufferedWriter br = new BufferedWriter(new FileWriter(out_put_vars_freq_file));
 		br.write("Pool_ID\t"); 
-		for(int p=0;p<numPts;p++) br.write(p + "\t");
-		for(int a=0;a<v;a++) {
-			br.write("\n0;" + posTracker.get(a) + ";" + posTracker.get(a) + ";0:1"); // TODO This only allows for biallelic simple loci (single alternate allele) for now. 
+		for(int p=0;p<numPts;p++) br.write(pool_IDs[p] + "\t");
+		for(int a=0;a<variant_index;a++) {
+			br.write("\n0;" + posTracker.get(a) + ";" + posTracker.get(a) + ";0:1"); 
+			// TODO This only allows for biallelic simple loci (single alternate allele) for now. 
 			for(int p=0;p<numPts;p++) br.write("\t" + poolFreqs.get(a)[p]);
 		}
 		br.close();
-		
+		System.out.println("In-Pool variants frequncy have been written to "+ out_put_vars_freq_file);
 		return variantEncoder;
 	}
 	
-	private static void VEFMaker(String BAMPrefix, HashMap<Integer,HashMap<String,VarObj>> variantEncoder) throws FileNotFoundException {
+	public static void VEFMaker(String input_SAM, String output_vef_raw,
+			HashMap<Integer,HashMap<String,VarObj>> variantEncoder) 
+			throws FileNotFoundException {
 		Set<Integer> keyMATCH, keyINS, keyDEL, variantKS = variantEncoder.keySet(), tempSet, indelKS; 
 		SortedSet<Integer> variantSS = new TreeSet<Integer>();
 		variantSS.addAll(variantKS); 
 
-		File BAMPath = new File(BAMPrefix + ".srt.sam"); 
+		File BAMPath = new File(input_SAM); 
 		Scanner BAMScanner = new Scanner(BAMPath);
 		BAMScanner.useDelimiter("\t");
 		String currLine = BAMScanner.nextLine(); 
@@ -151,7 +205,8 @@ public class BAMFormatterGATK {
 		}
 		int readCount = 0; */
 		
-		PrintWriter VEFFile = new PrintWriter(BAMPrefix + ".raw.vef"); 
+		//PrintWriter VEFFile = new PrintWriter(BAMPrefix + ".raw.vef");// replaced with the line below
+		PrintWriter VEFFile = new PrintWriter(output_vef_raw);
 		
 		while (BAMScanner.hasNextLine()) {
 			// readCount++; 
@@ -316,6 +371,7 @@ public class BAMFormatterGATK {
 		}
 		VEFFile.close();
 		BAMScanner.close();
+		System.out.println(output_vef_raw +" has been generated.");
 	}
 }
 class VarObj {

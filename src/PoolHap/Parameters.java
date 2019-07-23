@@ -54,9 +54,9 @@ public class Parameters {
          *  General parameter set.
          */
 
+        public String project_name;
         // input files: SAM files and VCF files. Added by Quan Long 2019-07-01
         public String input_dir;
-
         public String inter_dir; // intermediate directory, including the following files:
 
         // TODO: LEFTOVER ML 20190702
@@ -81,7 +81,7 @@ public class Parameters {
          *  @throws IOException On input error.
          */
         // TODO: [Question]:: why isn't this public?
-        GenParameters(String propFilePath) throws IOException {
+        public GenParameters(String propFilePath) throws IOException {
             // TODO: [Question]:: why does this have to be initialized to a value? There are other
             // instances of the variable name being set but initialized.
             // Would it affect things if we change this to:
@@ -110,6 +110,7 @@ public class Parameters {
                     System.exit(0);
                 }
 
+                this.project_name= prop.getProperty("Proj_Name");
                 this.input_dir= prop.getProperty("Input_Dir");
                 this.inter_dir = prop.getProperty("Intermediate_Dir");
 
@@ -147,6 +148,7 @@ public class Parameters {
         /*
          *  Divide and conquer parameter set.
          */
+        public String project_name;
         public double gap_inpool_cutoff; // a ratio
         public double gap_all_pool_cutoff; // a ratio
         public double gap_support_step; // a ratio
@@ -204,6 +206,7 @@ public class Parameters {
                  *  Extract parameters to divide and conquer parameter object variables from
                  *  properties object.
                  */
+                this.project_name= prop.getProperty("Proj_Name");
                 this.gap_inpool_cutoff = Double.parseDouble(
                     prop.getProperty("In-pool_Gap_Support_Min"));
 
@@ -249,9 +252,7 @@ public class Parameters {
                 this.hapset_size_rand = Double.parseDouble(prop.getProperty("DC_HapSetSize_Rand"));
 
             } catch (Exception e) {
-                // TODO: [Question]:: same as above.
-                System.out.println("Exception: " + e);
-
+                e.printStackTrace();
             } finally {
                 is.close();
             }
