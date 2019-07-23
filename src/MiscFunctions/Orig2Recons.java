@@ -125,11 +125,31 @@ public class Orig2Recons {
         pw2.close();
     }
 
-    // For each simulation, print 1) one multi-pool aggregated results file, 2) one line summarizing the multi-pool aggregated results to be put together across all simulations. So, we will also need the simulation.
+    /**
+     * 
+     * @param orig_haps
+     * @param recon_haps
+     * @param compare_loci
+     * @param o2r_indices
+     * @param quasi_cutoff
+     * @param pool
+     * @param dir_prefix
+     * @return
+     * @throws IOException
+     * 
+     * For each simulation, print 
+    // 1) one multi-pool aggregated results file, 
+     * 2) one line summarizing the multi-pool aggregated results to be put together across all simulations. 
+     * So, we will also need the simulation.
     // 1) For each haplotype, the pool, the OHID, the closest RHID, the variant difference, the frequency difference, number of quasispecies.
     // 2) Need to track the RHID of quasispecies. Calculate the summed in-pool frequencies of all qualified quasispecies RHID.
-    public static double[] pool_evaluator(HapConfigTenSQR orig_haps, HapConfigTenSQR recon_haps, int compare_loci, int[] o2r_indices, double quasi_cutoff, int pool, String dir_prefix) throws IOException {
-        int max_pos_diff = (int) Math.floor(compare_loci * quasi_cutoff); // Number of differing positions that still count as quasispecies.
+
+     */
+     public static double[] pool_evaluator(HapConfigTenSQR orig_haps, HapConfigTenSQR recon_haps, 
+    		 int compare_loci, int[] o2r_indices, double quasi_cutoff, int pool, String dir_prefix) 
+    				 throws IOException {
+        int max_pos_diff = (int) Math.floor(compare_loci * quasi_cutoff); 
+        // Number of differing positions that still count as quasispecies.
         // System.out.println(max_pos_diff);
         double diff_ct = 0.0;
         double diff_abs = 0;
