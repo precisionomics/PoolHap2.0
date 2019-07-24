@@ -502,7 +502,7 @@ public class PoolSimulator {
 		String parameter=args[0];
 	    Boolean is_perfect=Boolean.parseBoolean(args[1]);
 		PoolSimulator ps=new PoolSimulator(parameter);
-	    //2nd step: Simulate all pool haplotypes using ms, and then processing the outcome
+	    //2nd step: Simulate all pool haplotypes using ms, and write outcome
 	    ps.simulate_backwards_ms();
 	    ps.processing_ms_outcome();
 	    //3rd step: Report the properties of the simulated haplotypes
