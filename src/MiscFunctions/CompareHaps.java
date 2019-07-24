@@ -236,5 +236,26 @@ public class CompareHaps {
         pw2.close();
 
     }
-
+    
+    public static void main(String[] args) throws IOException, InterruptedException {
+    	String property_file=args[0]; // the property_file that using PoolHapX
+    	GenParameters gp=new GenParameters(property_file);
+    	String project_name=gp.project_name;
+    	double quasi_cutoff=Double.parseDouble(args[1]); // "0.01"
+    	String gs_dir=args[2];
+    	String output_dir=args[3];
+        String ori_inter_file=gs_dir+project_name+"_haps.inter_freq_vars.txt";
+        String ori_intra_file=gs_dir+project_name+"_haps.intra_freq.txt";
+        String recon_inter_file=output_dir+project_name+".inter_freq_vars.txt";
+        String recon_intra_file=output_dir+project_name+".inter_freq_vars.txt";
+    	String output_files_prefix=output_dir+project_name;
+    	multi_pool_summary(
+    	        property_file,
+    	        quasi_cutoff,
+    	        ori_inter_file,
+    	        ori_intra_file,
+    	        recon_inter_file,
+    	        recon_intra_file,
+    	        output_files_prefix);
+	}
 }
