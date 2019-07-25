@@ -176,7 +176,7 @@ public class CompareHaps {
     }
 
     public static void multi_pool_summary(
-        String property_file,
+        String project_name,
         double quasi_cutoff,
         String ori_inter_file,
         String ori_intra_file,
@@ -184,7 +184,6 @@ public class CompareHaps {
         String recon_intra_file,
         String output_files_prefix) throws IOException{
 
-        GenParameters gp = new GenParameters(property_file);
         CompareHaps.multipool_quasispecies = new HashSet<Integer>();
         HapConfig orig_haps = new HapConfig(ori_inter_file, ori_intra_file);
         int num_ori_pools = orig_haps.num_pools;
@@ -199,7 +198,7 @@ public class CompareHaps {
         }
         PrintWriter pw1 = new PrintWriter(
             new FileWriter(output_files_prefix + quasi_cutoff + "_extended_results.txt", true));
-        pw1.append("## parameters: " + property_file + "\n");
+        pw1.append("## parameters: cut-off = " + quasi_cutoff + "\n");
 //        pw1.append("## orig_hap_files: " + ori_inter_file + "\t" + ori_intra_file + "\n");
 //        pw1.append("## recon_hap_files: " + recon_inter_file + "\t" + recon_intra_file + "\n");
         pw1.append(
@@ -207,7 +206,7 @@ public class CompareHaps {
                 + "Ave_freq_diff_btw OH_closest_RH\t" + "Sum_in-pool_freq_valid_quasispecies\n");
         double[] multi_pool_results = new double[4];
         for (int p = 0; p < num_ori_pools; p++) {
-            pw1.append(gp.project_name + "\t" + orig_haps.pool_IDs[p] + "\t");
+            pw1.append(project_name + "\t" + orig_haps.pool_IDs[p] + "\t");
             for (int i = 0; i < 4; i++) {
                 pw1.append(multi_pool_record[p][i] + "\t");
                 multi_pool_results[i] += multi_pool_record[p][i];
@@ -218,7 +217,7 @@ public class CompareHaps {
 
         PrintWriter pw2 = new PrintWriter(
             new FileWriter(output_files_prefix + quasi_cutoff + "_aggregated_results.txt", true));
-        pw1.append("## parameters: " + property_file + "\n");
+        pw1.append("## parameters: cut-off = " + quasi_cutoff + "\n");
 //        pw1.append("## orig_hap_files: " + ori_inter_file + "\t" + ori_intra_file + "\n");
 //        pw1.append("## recon_hap_files: " + recon_inter_file + "\t" + recon_intra_file + "\n");
 //        pw1.append(
@@ -237,20 +236,17 @@ public class CompareHaps {
     }
     
     public static void main(String[] args) throws IOException, InterruptedException {
-    	String property_file="D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\input\\PHX.properties";//args[0]; // // the property_file that using PoolHapX
-    	GenParameters gp=new GenParameters(property_file);
-    	String project_name=gp.project_name;
-    	System.out.print(gp.project_name);
+    	String project_name=args[0];
     	double quasi_cutoff=0.01;//Double.parseDouble(args[1]); // "0.01"
-    	String gs_dir=args[2];//"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\gold_standard\\";
-    	String output_dir=args[3];//"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\output\\"; 
+    	String gs_dir="D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\gold_standard\\";//args[2];//
+    	String output_dir="D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\output\\";//args[3];// 
         String ori_inter_file=gs_dir+project_name+"_haps.inter_freq_vars.txt";
         String ori_intra_file=gs_dir+project_name+"_haps.intra_freq.txt";
         String recon_inter_file=output_dir+project_name+".inter_freq_vars.txt";
         String recon_intra_file=output_dir+project_name+".intra_freq.txt";
     	String output_files_prefix=output_dir+project_name;
     	multi_pool_summary(
-    	        property_file,
+    	        project_name,
     	        quasi_cutoff,
     	        ori_inter_file,
     	        ori_intra_file,
