@@ -107,8 +107,6 @@ public class GraphColoring {
             }
         }
         bufferedreader.close();
-
-
         /*
          *  Solve and produce haplotype configurations.
          */
@@ -124,93 +122,60 @@ public class GraphColoring {
      *  @param level_1 all level 1 haplotype configurations
      *  @param level_2 all level 2 haplotype configurations
      *  @param gs_var_pos (required) gold standard variant positions file path string
-     *  @param dosage TODO: [Question]:: what is this?
+     *  @param virtual_cov_link_gc // See property file for the explanation of this parameter
      *  @throws IOException on input error.
      */
-    public GraphColoring(
-        HapConfig[] level_1,
-        HapConfig[] level_2,
-        String gs_var_pos,
-        int dosage) throws IOException {
-
-        /*
-         *  Initialize read indices and read information variables.
-         */
+    public GraphColoring(HapConfig[] level_1,  HapConfig[] level_2,  String gs_var_pos,
+        int virtual_cov_link_gc) throws IOException {
+        // Initialize read indices and read information variables.
         this.readindex_arr_tmp = new Vector<Integer>();
         this.readinfo_arr_tmp = new Vector<String>();
         int count = 0;
-        /*
-         *  Parse level 1 regions.
-         */
+        // Covert regional haplotypes to VEF format.
         // For each region in all level 1 regions...
         for (int r = 0; r < level_1.length; r++) {
             // For each haplotype in all global haplotypes in region...
             for (int h = 0; h < level_1[r].num_global_hap; h++) {
                 String curr_vc = ""; // TODO: [Question]:: what is vc?
-
                 // For each locus in all loci in region
                 for (int l = 0; l < level_1[r].num_loci; l++) {
                     curr_vc += (level_1[r].locusInfo[l].start_loc // format read info
                         + "="
                         + level_1[r].global_haps_string[h][l]
                         + ";");
-
                 }
-
                 // TODO: [Question]:: what is ct? Count?
-                int hap_ct = (int) (level_1[r].global_haps_freq[h] * dosage); // haplotype count(?)
+                int hap_ct = (int) (level_1[r].global_haps_freq[h] * virtual_cov_link_gc); // haplotype count(?)
                 for (int c = 0; c < hap_ct; c++) { // add reads and corresponding indices to vectors
                     // The index of readinfo_arr_tmp that corresponds to this genotype.
-                    this.readindex_arr_tmp.add(count);
+                    this.readindex_arr_tmp.add(count);  // the number of line in the file
                     count++;
                     this.readinfo_arr_tmp.add(curr_vc);
                 }
-
-                // TODO: [LEFTOVER]
-                // System.out.println(curr_vc);
-
             }
         }
-
-
-        /*
-         * Parse level 2 regions.
-         */
         // For each region in all level 2 regions...
         for (int r = 0; r < level_2.length; r++) {
-
             // For each haplotype in all global haplotypes in region...
             for (int h = 0; h < level_2[r].num_global_hap; h++) {
                 String curr_vc = "";
-
                 // For each locus in all loci in region...
                 for (int l = 0; l < level_2[r].num_loci; l++) {
                     curr_vc += (level_2[r].locusInfo[l].start_loc // format read info
                     + "="
                     + level_2[r].global_haps_string[h][l]
                     + ";");
-
                 }
-
-                int hap_ct = (int) (level_2[r].global_haps_freq[h] * dosage); // haplotype count(?)
+                int hap_ct = (int) (level_2[r].global_haps_freq[h] * virtual_cov_link_gc); // haplotype count(?)
                 for (int c = 0; c < hap_ct; c++) { // add reads and corresponding indices to vectors
                     // The index of readinfo_arr_tmp that corresponds to this genotype.
                     this.readindex_arr_tmp.add(count);
                     count++;
                     this.readinfo_arr_tmp.add(curr_vc);
                 }
-
-                // TODO: [LEFTOVER]
-                // System.out.println(curr_vc);
-
             }
         }
-
-        // TODO: [LEFTOVER]
-        // System.out.println("Finished reading in all of the source files.");
-
-        System.out.println("There are "
-            + count
+        System.out.println("There are " + count
             + " individual fragments (reads or regional haplotypes) in the dataset.");
 
         this.gc_solver(gs_var_pos);

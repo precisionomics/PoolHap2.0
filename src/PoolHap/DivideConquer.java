@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.ThreadLocalRandom;
 
-import PoolHap.Parameters.*;
+import PoolHap.Parameters;
 import PoolHap.HapConfig;
 import PoolHap.SiteInPoolFreqAnno;
 import PoolHap.LocusAnnotation;
@@ -38,7 +38,7 @@ public class DivideConquer {
      *  All parameters are in the Object "parameters" to facilitate Machine Learning-based training.
      */
 
-    public DivideParameters dp;
+    public Parameters dp;
 
     public int num_pools;
     public int num_sites;
@@ -78,7 +78,7 @@ public class DivideConquer {
             /*
              *  Load files.
              */
-            this.dp = new DivideParameters(parameter_file);
+            this.dp = new Parameters(parameter_file);
             System.out.println("Finished loading the PoolHapX parameter file from " + parameter_file);
             //load_gc_outcome(parse_gc_input(gc_input_list)); 
             // above was removed and replaced by the line below by Quan Long 2019-07-07
@@ -161,9 +161,9 @@ public class DivideConquer {
                     line = br.readLine();
                 }
 
-                gc_outcome[p_index] = new String[haps_list.size()];
+                this.gc_outcome[p_index] = new String[haps_list.size()];
                 for (int h = 0; h < haps_list.size(); h++) {
-                    gc_outcome[p_index][h] = haps_list.get(h);
+                    this.gc_outcome[p_index][h] = haps_list.get(h);
                 }
 
                 br.close();
@@ -207,7 +207,6 @@ public class DivideConquer {
         for (int p = 0; p < this.num_pools; p++) {
             gc_input_files[p] = pathes.get(p);
         }
-
         return gc_input_files;
     }
 
@@ -219,17 +218,6 @@ public class DivideConquer {
     public void generate_dividing_plan_two_level(String[][] graph_coloring_outcome){
         // Step 1) Generate list of positions where there are linkage uncertainties i.e.: gaps.
         int[] gap_positions = identify_gaps(graph_coloring_outcome);
-
-        // TODO: LEFTOVER ML 20190702
-        // if (!this.region_solve) {
-        //     return;
-        // }
-
-        // TODO: [LEFTOVER]
-        // for (int i : gap_positions) {
-        //     System.out.print(i + "\t");
-        // }
-        // System.out.println();
 
         // Step 2) Make the level 1 regions i.e.: windows of variants based on the generated gaps.
         // These are the boundaries of the regions/windows of variants.
@@ -266,10 +254,6 @@ public class DivideConquer {
             // ...otherwise, if the region currently being made is larger than the max allowable
             // size, split it up so that everything after the max size is added to the next region.
             } else if (curr_unmatched_len + gap_len > dp.max_level_I_region_size) {
-
-                // TODO: [LEFTOVER]
-                // System.out.print(gap_positions[gap] + "\t" + gap_len + "\t");
-
                 curr_unmatched_len = curr_unmatched_len + gap_len - dp.max_level_I_region_size;
                 if (gap_positions[gap] + 1 > this.num_sites - this.dp.min_level_I_last_size) {
                     break;
@@ -284,9 +268,6 @@ public class DivideConquer {
             } else { // curr_unmatched_len + gap_len < parameters.min_level_I_region_size
                 // Extend the current unmatched length; do not form a region
                 curr_unmatched_len += gap_len;
-
-                // TODO: [LEFTOVER]
-                // System.out.qprint(gap_positions[gap] + "\t" + gap_len + "\t" + num_uncert);
 
             }
         }
@@ -378,6 +359,7 @@ public class DivideConquer {
      *  @param graph_coloring_outcome
      *  @return
      */
+    /**
     public int[] identify_gaps_Lauren_iterative_tobe_deleted_later(String[][] graph_coloring_outcome) {
         ArrayList<Integer> gap_indexes = new ArrayList<>();
 
@@ -521,6 +503,7 @@ public class DivideConquer {
 
         return gap_indexes_array;
     }
+    */
 
     /*
      *  Identify gaps from the GC outcome.
@@ -699,7 +682,7 @@ public class DivideConquer {
 
                 // If AEM fails, at least some of the frequencies will be NaN. In that case, use
                 // sub-optimal GC results. TODO [Quan] 
-                region_haps[r_index] = generate_hapconfig_gc(pool_IDs, vef_files,
+                region_haps[r_index] = generate_hapconfig_gc_regional_lasso(pool_IDs, vef_files,
                     regions[r_index], level_index, r_index, aem_fail_lasso_path);
             } else {
                 region_haps[r_index] = hap_solver.final_Haps;
@@ -745,20 +728,10 @@ public class DivideConquer {
         double[][] inpool_site_freqs = new double[num_site_regional][];
         LocusAnnotation[] locusInfo = new LocusAnnotation[num_site_regional];
 
-        // TODO: [LEFTOVER]
-        // System.out.println("Region "
-        //     + region_index
-        //     + ": "
-        //     + this.in_pool_sites_freq_anno.loci_annotations.length
-        //     + "\t"
-        //     + region_end);
-
         for (int l = 0; l < num_site_regional; l++) {
             locusInfo[l] = this.in_pool_sites_freq_anno.loci_annotations[l + region_start];
             inpool_site_freqs[l] = this.in_pool_sites_freq_anno.inpool_freqs[l + region_start];
         }
-
- //       String[] pool_IDs = null;
         int haps_2n = (int) Math.pow(2, num_site_regional);
         String[][] global_haps_string = new String[haps_2n][num_site_regional];
         String[] hap_IDs = new String[haps_2n];
@@ -790,14 +763,6 @@ public class DivideConquer {
             hap_IDs,
             pool_IDs,
             this.dp.est_ind_pool);
-
-        // TODO: [LEFTOVER]
-        // stdout.write("There are, in total, "
-        //     + global_haps_freq.length
-        //     + " regional haplotypes.");
-        //
-        // stdout.close();
-
     }
 
 
@@ -810,7 +775,7 @@ public class DivideConquer {
      *  @return
      *  @throws FileNotFoundException
      */
-    public HapConfig generate_hapconfig_gc( //TODO [Quan] disk-version! 
+    public HapConfig generate_hapconfig_gc_regional_lasso( 
         String[] pool_IDs,
         String[] vef_files,
         int[] region,
@@ -843,8 +808,7 @@ public class DivideConquer {
             String[] tmp = curr_vc.split("");
             for (int s = 0; s < num_site_regional; s++) reg_haps_string[hap_index][s] = tmp[s];
             global_haps_freq[hap_index] = hap_tracker.get(curr_vc) / num_pools;
-            hap_IDs[hap_index] = Integer.toString(hap_index);
-            //TODO [Quan] still index as ID. But perhaps OK locally
+            hap_IDs[hap_index] = "h"+Integer.toString(hap_index);
             hap_index++;
         }
 
@@ -869,95 +833,68 @@ public class DivideConquer {
         HapLASSO regional_lasso = new HapLASSO( 
             -1,    // Specified by pool_index==-1, this is the *multi_pool* implementation of LASSO.
             null,  // pool_IDs is null as it is the multi_pool LASSO.
-            dp.lambda,
+            dp.lasso_regional_lambda,
             gc_regional_haps,
             0,
-            "500000000",
+            dp.lasso_regional_memory,
             aem_fail_lasso_path + "/"+dp.project_name+"_level_" + level + "_region_" + r_index + ".lasso_in");
 
         regional_lasso.estimate_frequencies_lasso(null, vef_files, dp.lasso_weights);
-//        double new_penalty = dp.lambda;
-//        while (regional_lasso.r2 == this.dp.min_r2) {
-//            new_penalty -= this.dp.lasso_penalty_step;
-//            System.out.println("Regional LASSO has failed. Adjust the lambda penalty to "
-//                + new_penalty
-//                + " and trying again.");
-//
-//            regional_lasso.lambda = new_penalty;
-//            regional_lasso.estimate_frequencies_lasso(null, vef_files, dp.lasso_weights);
-//        }
 
         HapConfig final_reg_haps = regional_lasso.hapOut(pool_IDs);
 
-        boolean[] list_rem_haps = new boolean[final_reg_haps.num_global_hap];
-        double actual_cutoff = dp.final_cutoff;
-        int num_rem_hap = 0;
+        // filter out low-frequent haps 
+        boolean[] list_remove_haps = new boolean[final_reg_haps.num_global_hap];      
+        int num_remove_hap = 0;
         for (int h = 0; h < final_reg_haps.num_global_hap; h++) {
-            if (final_reg_haps.global_haps_freq[h] < actual_cutoff) {
-                list_rem_haps[h] = true;
-                num_rem_hap++;
+            if (final_reg_haps.global_haps_freq[h] < dp.lasso_regional_cross_pool_cutoff) {
+                list_remove_haps[h] = true;
+                num_remove_hap++;
             }
         }
-
-        // If too many of them are below the regional frequency minimum...
-        if (num_rem_hap > final_reg_haps.num_global_hap - this.dp.hapset_size_max) {
-            list_rem_haps = new boolean[final_reg_haps.num_global_hap];
-            num_rem_hap = 0;
-
-            // Deep instead of shallow copy.
-            double[] haps_freq_copy = new double[final_reg_haps.global_haps_freq.length];
-            for (int f = 0; f < final_reg_haps.global_haps_freq.length; f++) {
-                haps_freq_copy[f] = final_reg_haps.global_haps_freq[f];
-            }
-
-            Arrays.sort(haps_freq_copy);
-            if (haps_freq_copy.length > 5) {
-                // Take the haplotypes that are the top 5 frequencies or more common.
-                actual_cutoff = haps_freq_copy[haps_freq_copy.length - 5];
-
+        double actual_cutoff = dp.lasso_regional_cross_pool_cutoff;
+        
+        // If too many of them are below the regional frequency minimum,
+        // i.e., too few haps are remained 
+        if (dp.lasso_hapset_size_min > final_reg_haps.num_global_hap - num_remove_hap) {
+            if(final_reg_haps.num_global_hap >= dp.lasso_hapset_size_min) {
+                list_remove_haps = Algebra.permute_sort_and_remove(
+                    final_reg_haps.global_haps_freq.clone(), 
+                    dp.lasso_hapset_size_min);
+            }            
+        }
+        // Or, if too many haps are remained...
+        else if (dp.lasso_hapset_size_max < final_reg_haps.num_global_hap - num_remove_hap) {
+            list_remove_haps = Algebra.permute_sort_and_remove(
+                final_reg_haps.global_haps_freq.clone(), 
+                dp.lasso_hapset_size_max);
+        }
+        num_remove_hap = 0;
+        actual_cutoff=1;
+        for(int h=0; h < final_reg_haps.num_global_hap; h++) {
+            if(list_remove_haps[h]) {
+                num_remove_hap++;
             } else {
-                // But if there are fewer than 5 haplotypes, take all of them.
-                actual_cutoff = haps_freq_copy[0];
-            }
-
-            // Don't want too many because GC gets confused.
-            for (int h = 0; h < final_reg_haps.num_global_hap; h++) {
-                if (final_reg_haps.global_haps_freq[h] < actual_cutoff) {
-                    list_rem_haps[h] = true;
-                    num_rem_hap++;
+                //this.initial_Haps.global_haps_freq[h] = freq[h];
+                if(actual_cutoff > final_reg_haps.global_haps_freq[h]) { 
+                    actual_cutoff = final_reg_haps.global_haps_freq[h];
                 }
             }
-        }
-
-        // ...and then if all of them are about the same low frequency...
-        if (num_rem_hap < final_reg_haps.num_global_hap - this.dp.hapset_size_min) {
-            list_rem_haps = new boolean[final_reg_haps.num_global_hap];
-            num_rem_hap = 0;
-            for (int h = 0; h < final_reg_haps.num_global_hap; h++) {
-                // Take a random 20% of the GC regional haplotypes.
-                if (ThreadLocalRandom.current().nextDouble() > this.dp.hapset_size_rand) {
-                    list_rem_haps[h] = true;
-                    num_rem_hap++;
-                }
-            }
-            actual_cutoff = Double.NaN;
-        }
-
+        }     
+        final_reg_haps.remHaps(list_remove_haps, num_remove_hap);
         System.out.println("Of the "
             + final_reg_haps.num_global_hap
             + " regional haplotypes, "
-            + num_rem_hap
+            + num_remove_hap
             + " were removed. "
-            + "The frequency cutoff was " + actual_cutoff + ".");
-
-        final_reg_haps.remHaps(list_rem_haps, num_rem_hap);
-        if (Double.isNaN(actual_cutoff)) {
-            double[] tmp = new double[final_reg_haps.num_global_hap];
-            for (int h = 0; h < final_reg_haps.num_global_hap; h++) {
-                tmp[h] = 1.0 / ((double) final_reg_haps.num_global_hap);
-            }
-            final_reg_haps.global_haps_freq = tmp;
-        }
+            + "The frequency cutoff was " + actual_cutoff + ".");        
+//        if (Double.isNaN(actual_cutoff)) {
+//            double[] tmp = new double[final_reg_haps.num_global_hap];
+//            for (int h = 0; h < final_reg_haps.num_global_hap; h++) {
+//                tmp[h] = 1.0 / ((double) final_reg_haps.num_global_hap);
+//            }
+//            final_reg_haps.global_haps_freq = tmp;
+//        }
         return final_reg_haps;
     }
 }
