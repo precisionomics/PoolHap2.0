@@ -283,7 +283,7 @@ public class PoolSimulator {
             bw.write("\t" + "h"+h);
         bw.write("\n");
         for(int p = 0; p < num_pools; p++){
-            bw.write("p"+p);
+            bw.write(project_name + "_p"+p);
             for(int h = 0; h < actual_num_haps; h++)
                 bw.write("\t" + hap2infreqs[h][p]);
             bw.write("\n");
@@ -297,7 +297,7 @@ public class PoolSimulator {
         bw = new BufferedWriter(new FileWriter(gs_dir + project_name + "_vars.intra_freq.txt"));
         bw.write("Pool_ID");
         for (int p = 0; p < num_pools; p++)
-            bw.write("\t" + "p" + p); 
+            bw.write("\t" + project_name + "_p" + p); 
         bw.write("\n");
         for (int v = 0; v < actual_num_vars; v++){
             bw.write("0;" + sim_var_pos[v] + ";" + sim_var_pos[v] + ";0:1");

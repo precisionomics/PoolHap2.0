@@ -6,39 +6,6 @@ import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Properties;
 
-
-/*
- *  A typical property file looks like:
- *
- *  # FullSimulator Parameters
- *  ##########
- *  # General: Commands and file locations
- *  Input_Dir = /gpfs/home/lmak/PHX_Perfect_Data/input/
- *  Intermediate_Dir = /gpfs/home/lmak/PHX_Perfect_Data/intermediate/
- *  Gold-Standard_Dir = /gpfs/home/lmak/PHX_Perfect_Data/gold_standard/
- *  ms = /gpfs/home/lmak/programs/msdir/ms
- *  DWGSIM = /gpfs/home/lmak/programs/DWGSIM-master/dwgsim
- *  ##########
- *  # ms: Generates populations of genotypes under a variety of neutral models to investige their
- *  # stati
- *  Haps_Per_Pool = 10
- *  Num_Pools = 20
- *  Est_Ind_Per_Pool = 1000000
- *  Mutaton_Rate_Per_Base = 0.00001
- *  Segregating_Sites = 80
- *  Ref_Seq_Len = 9718
- *  ##########
- *  # dwgsim: Simulating a variety of next- and third-generation sequencing reads from input
- *  # genetic se
- *  Reference_Seq = HIV_HXB2.fa
- *  Error_Rate_Per_Base = 0
- *  Coverage = 100
- *  Read_Len = 100
- *  Outer_Dist = 400
- *  ##########
- */
-
-
 public class Parameters {
     // TODO: [ReconEP]:: add any new parameters as needed.
 
