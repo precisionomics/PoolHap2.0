@@ -197,7 +197,7 @@ public class CompareHaps {
                 output_files_prefix);
         }
         PrintWriter pw1 = new PrintWriter(
-            new FileWriter(output_files_prefix + quasi_cutoff + "_extended_results.txt", true));
+            new FileWriter(output_files_prefix + "_" + quasi_cutoff + "_extended_results.txt", true));
         pw1.append("## parameters: cut-off = " + quasi_cutoff + "\n");
 //        pw1.append("## orig_hap_files: " + ori_inter_file + "\t" + ori_intra_file + "\n");
 //        pw1.append("## recon_hap_files: " + recon_inter_file + "\t" + recon_intra_file + "\n");
@@ -216,7 +216,7 @@ public class CompareHaps {
         pw1.close();
 
         PrintWriter pw2 = new PrintWriter(
-            new FileWriter(output_files_prefix + quasi_cutoff + "_aggregated_results.txt", true));
+            new FileWriter(output_files_prefix + "_" + quasi_cutoff + "_aggregated_results.txt", true));
         pw1.append("## parameters: cut-off = " + quasi_cutoff + "\n");
 //        pw1.append("## orig_hap_files: " + ori_inter_file + "\t" + ori_intra_file + "\n");
 //        pw1.append("## recon_hap_files: " + recon_inter_file + "\t" + recon_intra_file + "\n");
@@ -236,10 +236,10 @@ public class CompareHaps {
     }
     
     public static void main(String[] args) throws IOException, InterruptedException {
-    	String project_name=args[0];
-    	double quasi_cutoff=0.01;//Double.parseDouble(args[1]); // "0.01"
-    	String gs_dir="D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\gold_standard\\";//args[2];//
-    	String output_dir="D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\output\\";//args[3];// 
+    	String project_name= args[0];
+    	double quasi_cutoff= Double.parseDouble(args[1]); // "0.01"
+    	String gs_dir= args[2];
+    	String output_dir= args[3]; 
         String ori_inter_file=gs_dir+project_name+"_haps.inter_freq_vars.txt";
         String ori_intra_file=gs_dir+project_name+"_haps.intra_freq.txt";
         String recon_inter_file=output_dir+project_name+".inter_freq_vars.txt";
