@@ -100,7 +100,7 @@ public class HapLASSO {
     // int[] quanlified_hap_index;
 
     // Used to assess the success/failure of LASSO. If failure, adjust lambda and try again.
-    public double r2;
+    //public double r2;
 
     // The countcome, i.e., the coefficients from LASSO, corresponding to the haps in
     // quanlified_hap_index.
@@ -520,9 +520,7 @@ public class HapLASSO {
 
                 // COV(XY) = E(XY) - E(X)E(Y)
                 this.ld_matrix[loc1][loc2] = this.ld_matrix[loc1][loc2]
-                    - this.maf[loc1]
-                    * this.maf[loc2];
-
+                    - this.maf[loc1] * this.maf[loc2];
             }
         }
     }
@@ -536,11 +534,6 @@ public class HapLASSO {
         // Initiate the Spark session.
         PrintStream originalOut = System.out;
         PrintStream originalErr = System.err;
-
-        // TODO: [LEFTOVER]
-        // // Should split into path/header.regression.txt
-        // String[] file_header = this.regression_data_file.split(".");
-        // String file_name = file_header[0] + "out.txt";
 
         File file = new File(lasso_out);
         PrintStream fileOut = new PrintStream(file);
@@ -564,10 +557,6 @@ public class HapLASSO {
             .setElasticNetParam(1) // setElasticNetParam to 1 applies LASSO
             .setFitIntercept(false);
 
-        // TODO: DONE?(old): Quan to Lauren: I think setFitIntercept(false) will ensure that the regression
-        // without fitting intercept. Please double check.
-        // setFitIntercept(false) sets the y-intercept to 0. If true, the y-intercept will be
-        // determined by the line of best fit.
         // Fit the model.
         LinearRegressionModel lrModel = lr.fit(training);
 
@@ -590,7 +579,7 @@ public class HapLASSO {
         trainingSummary.residuals().show();
         System.out.println("RMSE: " + trainingSummary.rootMeanSquaredError());
         System.out.println("r2: " + trainingSummary.r2());
-        this.r2 = trainingSummary.r2();
+        //this.r2 = trainingSummary.r2();
     }
 
 
@@ -620,9 +609,6 @@ public class HapLASSO {
             this.get_MAF_single_pool();
             this.setup_site_locations2index_map();
             this.ld_matrix = calcualte_LD_matrix_single_pool(vef_file);
-
-            // TODO: [LEFTOVER]
-            // this.calcualte_LD_matrix_multi_pool_reads(vef_files);
 
         } else if (vef_file == null) { // multiple pools.
             if (this.pool_index != -1) {
@@ -655,16 +641,6 @@ public class HapLASSO {
 
         // Run LASSO to get the output hap frequencies.
         this.conduct_regression(this.prefix + ".lasso_in", this.prefix + ".lasso_out");
-
-        // TODO: [LEFTOVER]
-        // System.out.println("These are the frequencies from LASSO: ");
-        // for (double d : this.out_hap_freqs) {
-        //     System.out.print(d + "\t");
-        // }
-        // System.out.println();
-        // // NOTE- here, for the local haplotypes, the global frequency is actually the local
-        // // frequency because less memory to store an array vs. 2D array.
-
     }
 
     public HapConfig hapOut(String[] pool_IDs) {
