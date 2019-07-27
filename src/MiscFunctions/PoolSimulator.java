@@ -17,6 +17,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 // For generating VEFs directly.
 public class PoolSimulator {
+	
     // directories and project name
     String input_dir;
     String gs_dir;
@@ -497,22 +498,6 @@ public class PoolSimulator {
 	}
 	  
 	public static void main(String[] args) throws IOException, InterruptedException {
-	    //1st step: Read the property file
-		String parameter=args[0];
-	    Boolean is_perfect=Boolean.parseBoolean(args[1]);
-		PoolSimulator ps=new PoolSimulator(parameter);
-	    //2nd step: Simulate all pool haplotypes using ms, and then processing the outcome
-	    ps.simulate_backwards_ms();
-	    ps.processing_ms_outcome();
-	    //3rd step: Report the properties of the simulated haplotypes
-	    ps.ms_reports();
-	    //4th step: Assign haplotypes to individuals
-	    ps.assign_haps_to_pools();
-	    //5th step: Generate FASTA and FASTQ files
-	    ps.generate_fastq();
-	    //6th step: Only if is_perfect=true, run the 6th step
-	    if(is_perfect==true) {
-	    	ps.generate_VEF();
-	    }
+	    
 	}
 }
