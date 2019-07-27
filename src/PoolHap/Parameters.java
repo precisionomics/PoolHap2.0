@@ -116,10 +116,6 @@ public class Parameters {
             Double.parseDouble(prop.getProperty("LASSO_One_Vector_Weight")),
             Double.parseDouble(prop.getProperty("LASSO_Hap_VC_Weight")),
             Double.parseDouble(prop.getProperty("LASSO_Hap_11_Weight"))};
-        this.lasso_weights = new double[] {
-            Double.parseDouble(prop.getProperty("One_Vector_Weight")),
-            Double.parseDouble(prop.getProperty("Hap_VC_Weight")),
-            Double.parseDouble(prop.getProperty("Hap_11_Weight"))};
 
 //        this.min_r2 = Double.parseDouble(prop.getProperty("Minimum_R2_Fit"));
 //        this.lasso_penalty_step = Double.parseDouble(prop.getProperty("Penalty_Step_Size"));

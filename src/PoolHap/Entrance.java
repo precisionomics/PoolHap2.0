@@ -218,7 +218,7 @@ public class Entrance {
             // Apply divide and conquer across all pools.
             String dc_out_file = gp.inter_dir + gp.project_name + "_dc_plan.txt"; // dc output
                                                                                   // filepath string
-            String[] vef_files =
+            String[] vef_files = 
                 Entrance.get_filepaths(name_file, gp.inter_dir + "vef", "vef", false);
             String[] gcf_files = 
                 Entrance.get_filepaths(name_file, gp.inter_dir + "gcf", "gcf", false);
