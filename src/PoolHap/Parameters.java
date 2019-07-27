@@ -28,7 +28,7 @@ public class Parameters {
 //    public double gap_support_step; // a ratio
     public int min_level_I_region_size;
     public int max_level_I_region_size;
-    public int min_level_I_last_size;
+//    public int min_level_I_last_size; // Quan removed it July 27, 2019.
     public int min_level_II_region_size;
     public int max_level_II_region_size;
     public int est_ind_pool;
@@ -96,8 +96,8 @@ public class Parameters {
             prop.getProperty("Level_1_Region_Size_Min"));
         this.max_level_I_region_size = Integer.parseInt(
             prop.getProperty("Level_1_Region_Size_Max"));
-        this.min_level_I_last_size = Integer.parseInt(
-            prop.getProperty("Level_1_Last_Region_Min"));
+ //       this.min_level_I_last_size = Integer.parseInt(
+ //           prop.getProperty("Level_1_Last_Region_Min"));
         this.min_level_II_region_size = Integer.parseInt(
             prop.getProperty("Level_2_Region_Size_Min"));
         this.max_level_II_region_size = Integer.parseInt(
