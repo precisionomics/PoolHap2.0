@@ -17,24 +17,46 @@ public class Transfer_output_to_fasta {
 	 *  The final output format looks like this:
 	 *  >Reference
 	 *  TGGAAGGGCTAATTCACTCCCAACGAAGACAAGATATCCTTGATCTGTGGATCTACCACA
-	 *  >Hap0_p0_0.4
+	 *  >Hap0_pool0_0.4
 	 *  TGGAAGGGCTAATTCACTCCCAACGAAGACAAGATATCCTTGATCTGTGGATCTACCACA
-	 *  >Hap1_p0_0.6
+	 *  >Hap1_pool0_0.6
 	 *  TGGAAGGGCTAATTCACTCCCAACGAAGACAAGATATCCTTGATCTGTGGATCTACCACA
-	 *  >Hap0_p1_0.5
+	 *  >Hap0_pool1_0.5
 	 *  TGGAAGGGCTAATTCACTCCCAACGAAGACAAGATATCCTTGATCTGTGGATCTACCACA
-	 *  >Hap1_p1_0.5
+	 *  >Hap1_pool1_0.5
 	 *  TGGAAGGGCTAATTCACTCCCAACGAAGACAAGATATCCTTGATCTGTGGATCTACCACA
 	**/
-	public static void output_to_fasta(String ref_seq_file_path, 
-			String output_dir, String project_name, String output_suffix, 
-			int num_pools) throws IOException, InterruptedException {
+	
+	  String ref_seq_file_path;
+	  String output_dir;
+	  String project_name;
+	  String output_suffix; 
+	  String fasta_folder;
+	  int num_pools;
+	  
+	public Transfer_output_to_fasta(String parameter_file) throws IOException {
+	    InputStream is = new FileInputStream(parameter_file);
+		Properties prop = new Properties();
+		prop.load(is);
+		this.output_dir = prop.getProperty("Output_Dir");
+		this.ref_seq_file_path = prop.getProperty("Ref_Seq_Path");
+		this.output_suffix = prop.getProperty("Output_Suffix");		
+		this.project_name=prop.getProperty("Proj_Name");
+		this.num_pools= Integer.parseInt(prop.getProperty("Num_Pools"));
+		this.fasta_folder=this.output_dir+"fasta/";
+		 is.close();
+		     
+		}
+		
+//	public static void output_to_fasta(String ref_seq_file_path, 
+//			String output_dir, String project_name, String output_suffix, 
+//			int num_pools) throws IOException, InterruptedException {
 		// First read the reference_sequence file
-		String final_fasta_dir = output_dir + "fasta/";
+	public void output_to_fasta() throws IOException, InterruptedException{
 		BufferedReader br_ref_file = new BufferedReader(new FileReader(
 				ref_seq_file_path));
 		BufferedWriter bw_fasta_file = new BufferedWriter(new FileWriter(
-				final_fasta_dir + project_name + ".fasta"));
+				fasta_folder + project_name + ".fasta"));
 		    bw_fasta_file.write(">Reference"+"\n");
 			String ref_line=br_ref_file.readLine();
 			ref_line=br_ref_file.readLine();
@@ -78,13 +100,9 @@ public class Transfer_output_to_fasta {
 	}
 	
 	public static void main(String[] args) throws IOException, InterruptedException {
-		String ref_seq_file_path = "D:\\PhD-Studying\\Informatics\\Project\\HIV project\\Viral_reconstruction\\Other_tools_results\\HIV_HXB2.fa";
-		String final_fasta_dir = "D:\\PhD-Studying\\Informatics\\Project\\HIV project\\Viral_reconstruction\\Other_tools_results\\CliqueSNV\\";
-		String project_name = "0_1";
-		String output_suffix = "fasta";
-		int num_pools = 20 ;
-		output_to_fasta(ref_seq_file_path,final_fasta_dir, project_name,output_suffix,num_pools);
-		
+		String parameter = "D:\\PhD-Studying\\Informatics\\Project\\HIV project\\Viral_reconstruction\\Other_tools_results\\CliqueSNV\\fasta\\FS3.properties";
+		Transfer_output_to_fasta tf = new Transfer_output_to_fasta(parameter);
+		tf.output_to_fasta();
 	}
 	
 	
