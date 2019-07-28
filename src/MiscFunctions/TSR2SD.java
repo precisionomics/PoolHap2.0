@@ -53,7 +53,7 @@ public class TSR2SD {
 				for(int i=0;i<each_base.length;i++) {	
 					sequence_row.add(each_base[i]);
 					seg_site_number.add(true_seg_site); // For diG testing.
-					if (!each_base[i].equals("-")) true_seg_site++; // If the reference sequence does not align with an insertion, the segregating site index is incremented.
+					if (!each_base[i+1].equals("-")) true_seg_site++; // If the reference sequence does not align with an insertion, the segregating site index is incremented.
 				}
 				reference_listlist.add(sequence_row);
 				fa_line=br_fa_file.readLine();
