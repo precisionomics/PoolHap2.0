@@ -8,11 +8,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Properties;
 
 import spire.optional.intervalGeometricPartialOrder;
+
 
 public class generate_inter_intra_file {
     String output_dir;
@@ -24,9 +26,14 @@ public class generate_inter_intra_file {
 	ArrayList<ArrayList<String>> hap_seq_listlist=new ArrayList<ArrayList<String>>();
 	ArrayList<String> hap_string_list=new ArrayList<String>();
 	ArrayList<Integer> gs_variant_position = new ArrayList<Integer>(); 
-	//ArrayList<Integer> rc_variant_position = new ArrayList<Integer>(); 
-	HashSet<Integer> rc_variant_position = new HashSet<>();
-	HashMap<String, ArrayList<Double>> hap2poolfre = new HashMap<String, ArrayList<Double>>();
+	ArrayList<Integer> potiential_variant_position_list = new ArrayList<Integer>();
+	HashSet<Integer> potential_rc_variant_position_set = new HashSet<>();
+	HashSet<Integer> true_rc_variant_position_set = new HashSet<>();
+	
+	ArrayList<Integer> false_positive_variant_position_list = new ArrayList<Integer>();
+
+	HashMap<String, double[]> hap2poolfre = new HashMap<String, double[]>();
+	
 	
 	public generate_inter_intra_file(String parameter_file) throws IOException {
 		 InputStream is = new FileInputStream(parameter_file);
@@ -89,9 +96,11 @@ public class generate_inter_intra_file {
 				//bw_file.write(fa_line + "\n"); 
 				String[] fre_position = fa_line.split("_");
 				ArrayList<String> hap_sequence=new ArrayList<String>();
-				for(int i=0; i < fre_position.length; i++) {
-					hap_sequence.add(fre_position[i]);
-				}
+				hap_sequence.add(fre_position[0]); // add ">Hap0"
+				String curr_pool=fre_position[1].split("")[1];
+				hap_sequence.add(curr_pool); // add the pool ID index
+				hap_sequence.add(fre_position[2]); //add the frequency
+				
 				fa_line=br_fa.readLine();//read the next line, the sequence line
 				each_base=fa_line.split("");
 				int sequence_line_count=0;
@@ -148,17 +157,46 @@ public class generate_inter_intra_file {
 		// and set it as "0"
 		for (int i=0; i< hap_seq_listlist.size(); i++) {
 			for (int j =3;j< hap_seq_listlist.get(i).size();j++ ) {
-				if(hap_seq_listlist.get(i).get(j).equals("-")||hap_seq_listlist.get(i).get(j).equals("1")) {
+				 if(hap_seq_listlist.get(i).get(j).equals("-")||
+						 hap_seq_listlist.get(i).get(j).equals("1")) {
+					 this.potential_rc_variant_position_set.add(j-2);
 					for(int pos = 0; pos < gs_variant_position.size(); pos++) {
 						if(j == (gs_variant_position.get(pos)-1+3)) {
-							this.rc_variant_position.add(gs_variant_position.get(pos));
-						}else {
-							hap_seq_listlist.get(i).set(j,"0");
-						}						
+							this.true_rc_variant_position_set.add(
+									gs_variant_position.get(pos));
+							//hap_seq_listlist.get(i).set(j,"1");
+						}
 					}
 				}
 			}
 		}
+		//Transfer potential_rc_variant_position_set to arraylist
+		this.potiential_variant_position_list= 
+				new ArrayList<Integer>(potential_rc_variant_position_set);
+		
+		// generate false_positive_variant_position_list
+		for (int i=0; i < potiential_variant_position_list.size(); i++) {
+			if(!true_rc_variant_position_set.contains(potiential_variant_position_list.get(i))){
+				this.false_positive_variant_position_list.add(
+						potiential_variant_position_list.get(i));
+			}
+		}
+		
+		
+		// change the false_positive_variant_position to 0
+		for (int i=0; i< hap_seq_listlist.size(); i++) {
+			for (int j =3;j< hap_seq_listlist.get(i).size();j++ ) {
+				 if(hap_seq_listlist.get(i).get(j).equals("-")||
+						 hap_seq_listlist.get(i).get(j).equals("1")) {
+					 		if(false_positive_variant_position_list.contains(
+					 				(j-2))) {
+					 	         hap_seq_listlist.get(i).set(j,"1");
+					 		}
+				 		}
+					}
+				}
+
+		
 		
 		// Convert listlist to String
 		for (int i=0; i< hap_seq_listlist.size(); i++) {
@@ -169,24 +207,78 @@ public class generate_inter_intra_file {
 			this.hap_string_list.add(tmp_hap);
 		}
 		
+//		System.out.println(gs_variant_position.size());
+//		System.out.println(true_rc_variant_position_set.size());
+//		System.out.println(false_positive_variant_position_list.size());
+//		System.out.println(potential_rc_variant_position_set.size());
+//		System.out.println(potiential_variant_position_list.size());
+		
+
 		// Generate hap2poolfre_hashmap
-//		for(int h =0; h < hap_string_list.size(); h++) {
-//			if(hap2poolfre)
+		int current_pool;
+		// go over all the hapletypes that in the hap_string_list
+		for(int h =0; h < hap_string_list.size(); h++) {
+			if(!hap2poolfre.containsKey(hap_string_list.get(h))) {
+				this.hap2poolfre.put(hap_string_list.get(h), new double[num_pools]);
+				current_pool = Integer.parseInt(hap_seq_listlist.get(h).get(1));
+				hap2poolfre.get(hap_string_list.get(h))[current_pool] = 
+						hap2poolfre.get(hap_string_list.get(h))[current_pool] 
+						+ Double.parseDouble(hap_seq_listlist.get(h).get(2));
+			}else if (hap2poolfre.containsKey(hap_string_list.get(h))){
+				current_pool = Integer.parseInt(hap_seq_listlist.get(h).get(1));
+				hap2poolfre.get(hap_string_list.get(h))[current_pool] = 
+						hap2poolfre.get(hap_string_list.get(h))[current_pool] 
+						+ Double.parseDouble(hap_seq_listlist.get(h).get(2));
+			}
+		}
+		
+		int num =0;
+		for(int j=0; j < hap_seq_listlist.size(); j++) {
+			for (int i=0; i< hap_seq_listlist.get(0).size(); i++) {
+				if(hap_seq_listlist.get(j).get(i).equals("1")) {
+					num++;
+				}
+			}
+		}
+		
+		//System.out.println(num);
+
+
+		System.out.println(hap2poolfre);
+		System.out.println(hap2poolfre.size());
+		System.out.println(hap2poolfre.get(hap_string_list.get(15)).length);
+//		for (int i=0; i< num_pools; i++) {
+//			System.out.println(hap2poolfre.get(hap_string_list.get(15))[i]);
 //		}
+		
+		
+		//TO DO: the freq of the double are wrong
+		for (int j=0; j < hap2poolfre.size(); j++) {
+			
+			System.out.println(hap2poolfre.get(hap_string_list.get(j)).length + "-"+ hap2poolfre.get(hap_string_list.get(j))[1]);
+			
+		}
+		
 
 		
 		
-		System.out.println(gs_variant_position);
-		System.out.println(gs_variant_position.size());
-		System.out.println(hap_seq_listlist.size());
+//		System.out.println(gs_variant_position);
+//		System.out.println(gs_variant_position.size());
+//		System.out.println(hap_seq_listlist.size());
 //		System.out.println(hap_seq_listlist.get(1));
 //		System.out.println(hap_seq_listlist.get(hap_seq_listlist.size()-2));
 //		System.out.println(hap_seq_listlist.get(0).size());
 //		System.out.println(hap_seq_listlist.get(hap_seq_listlist.size()-1).size());
-		System.out.println(rc_variant_position);
-		System.out.println(rc_variant_position.size());
-//		System.out.println(hap_string_list);
-		System.out.println(hap_string_list.size());
+//		System.out.println(rc_variant_position);
+//		System.out.println(rc_variant_position.size());
+		
+//		for (int i=0; i< hap_string_list.size(); i++) {
+//			System.out.println(hap_string_list.get(i));
+//			System.out.println();
+//			
+//		}
+
+//		System.out.println(hap_string_list.size());
 	}
 	
 	
