@@ -61,7 +61,7 @@ public class Transfer_output_to_fasta {
 					bw_fasta_file.write("\n");
 					String[] strain_fre_line=currline.split("_");
 					bw_fasta_file.write(">"+ "Hap" + num_haps_per_pool
-							+ "_p"+ p + "_" 
+							+ "_pool"+ p + "_" 
 					+ strain_fre_line[strain_fre_line.length-1] + "\n" );
 					num_haps_per_pool++;
 				}else {

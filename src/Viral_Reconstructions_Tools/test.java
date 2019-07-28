@@ -27,31 +27,48 @@ public class test {
 			System.out.println(hap2poolfre.get("key_0")[i]);
 		}
 		
-		System.out.println(hap2poolfre.size());
-		System.out.println(hap2poolfre.containsKey("0_key"));
-		System.out.println(hap2poolfre.containsKey("3_key"));
+//		System.out.println(hap2poolfre.size());
+//		System.out.println(hap2poolfre.containsKey("0_key"));
+//		System.out.println(hap2poolfre.containsKey("3_key"));
 //		System.out.println(hap2poolfre.get(key_0).contains(0.1));
 		
-		
-		ArrayList<ArrayList<String>> ref_seq_listlist=new ArrayList<ArrayList<String>>();
 		ArrayList<String> hap_string_list=new ArrayList<String>();
-		ArrayList<String> hap_string_list_2=new ArrayList<String>();
-		ArrayList<String> hap_string_list_3=new ArrayList<String>();
-		hap_string_list.add("1");
-		hap_string_list.add("2");
-		hap_string_list.add("3");
-		hap_string_list_3.add("1");
-		hap_string_list_3.add("2");
-		hap_string_list_3.add("3");
-		hap_string_list_2.add("4");
-		hap_string_list_2.add("5");
-		ref_seq_listlist.add(hap_string_list);
-		ref_seq_listlist.add(hap_string_list_2);
-		ref_seq_listlist.add(hap_string_list_3);
-		System.out.println(ref_seq_listlist);	
-		ref_seq_listlist.get(0).set(1,"0");
 		
-		System.out.println(ref_seq_listlist);
+		System.out.println(hap2poolfre.keySet());
+		for ( String key : hap2poolfre.keySet() ) {
+		    System.out.println( key );
+		    hap_string_list.add(key);
+		}
+		
+		System.out.print(hap_string_list);
+		
+		
+		
+		
+		
+		
+//
+//		
+//		
+//		ArrayList<ArrayList<String>> ref_seq_listlist=new ArrayList<ArrayList<String>>();
+//		ArrayList<String> hap_string_list=new ArrayList<String>();
+//		ArrayList<String> hap_string_list_2=new ArrayList<String>();
+//		ArrayList<String> hap_string_list_3=new ArrayList<String>();
+//		hap_string_list.add("1");
+//		hap_string_list.add("2");
+//		hap_string_list.add("3");
+//		hap_string_list_3.add("1");
+//		hap_string_list_3.add("2");
+//		hap_string_list_3.add("3");
+//		hap_string_list_2.add("4");
+//		hap_string_list_2.add("5");
+//		ref_seq_listlist.add(hap_string_list);
+//		ref_seq_listlist.add(hap_string_list_2);
+//		ref_seq_listlist.add(hap_string_list_3);
+//		System.out.println(ref_seq_listlist);	
+//		ref_seq_listlist.get(0).set(1,"0");
+//		
+//		System.out.println(ref_seq_listlist);
 		
 		
 	}
