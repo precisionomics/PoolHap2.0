@@ -209,7 +209,7 @@ public class Entrance {
                 GraphColoring pool_in = new GraphColoring(vef_files[p],
                     gs_var_pos,
                     gp.inter_dir + "gcf/" + Entrance.names_array[p] + ".gcf" ,
-                    gp.num_pos_window, gp.num_gap_max);
+                    gp.num_pos_window, gp.num_gap_window);
 
                 System.out.println("Graph colouring for pool " + p + ":" + Entrance.names_array[p]
                     + " is finished.");
