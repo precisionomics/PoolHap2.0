@@ -6,7 +6,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
-import PoolHap.Parameters.GenParameters;
+import PoolHap.Parameters;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -164,7 +164,7 @@ public class Entrance {
         // New general parameter set object from parameter file.
         // TODO: [Review]:: GenParameters(args[0]) changed to GenParameters(parameter_file)
 
-        GenParameters gp = new GenParameters(parameter_file);
+        Parameters gp = new Parameters(parameter_file);
 
         // Gold standard variant positions file path (intra pool).
         String gs_var_pos = gp.inter_dir + gp.project_name + "_vars.intra_freq.txt"; // TODO: change
@@ -178,8 +178,6 @@ public class Entrance {
         /*
          * Local haplotype configuration.
          */
-        // TODO: LEFTOVER ML 20190702
-        // HapConfig[] initial_local_haps = new HapConfig[num_pools]; // HapConfig array; 1 per pool
 
         // By design, HapConfig contains haps of all pools.
         if (gp.function.equals("format")) {
@@ -188,6 +186,7 @@ public class Entrance {
             // The function below generates vef files and inpool-var-freq file.
             String[] sam_files =
                 Entrance.get_filepaths(name_file, gp.input_dir + "/sam/", "sam", true);
+            // genrate VEF files (based on SAM files) and var-freq file (based on joint VCF file)
             BAMFormatterGATK.generate_vef_varfreq(gp.input_dir,
                 gp.inter_dir,
                 gp.project_name,
@@ -213,21 +212,14 @@ public class Entrance {
 
                 System.out.println("Graph colouring for pool " + p + ":" + Entrance.names_array[p]
                     + " is finished.");
-                // in_list.println(gp.inter_dir + prefix + "_p" + p + ".in");
-                // write GC pool output
-
-                // TODO: LEFTOVER
-                // initial_local_haps[p] = pool_in.hapOut(); // add pool HapConfig to array
             }
-
-            // in_list.close();
             System.out
                 .println("\nGraph-Coloring Finished: " + dtf.format(LocalDateTime.now()) + "\n");
         } else if (gp.function.equals("aem")) { // Note: aem includes DC and AEM
             // Apply divide and conquer across all pools.
             String dc_out_file = gp.inter_dir + gp.project_name + "_dc_plan.txt"; // dc output
                                                                                   // filepath string
-            String[] vef_files =
+            String[] vef_files = 
                 Entrance.get_filepaths(name_file, gp.inter_dir + "vef", "vef", false);
             String[] gcf_files = 
                 Entrance.get_filepaths(name_file, gp.inter_dir + "gcf", "gcf", false);
@@ -238,17 +230,7 @@ public class Entrance {
                 dc_out_file);
             
             System.out.println("DC Finished: " + dtf.format(LocalDateTime.now()) + "\n");
-            new File(gp.inter_dir + "/aem/").mkdir();
-            /*
-             * Global haplotype configuration.
-             */
-
-            // TODO: LEFTOVER ML 20190702
-            // // If there are enough gaps to run local reconstruction...
-            // if (dc_maker.region_solve) {
-
-            // Resolve level 1 regions with AEM; regional LASSO if AEM fails.
-            
+            new File(gp.inter_dir + "/aem/").mkdir();            
          
             HapConfig[] level_I_config = dc_maker.regional_AEM(
                 Entrance.names_array,
@@ -276,7 +258,7 @@ public class Entrance {
             // Link regions by applying graph coloring across the level 1 and level 2 regional
             // haplotype configurations.
             GraphColoring region_linker =
-                new GraphColoring(level_I_config, level_II_config, gs_var_pos, gp.fragments);
+                new GraphColoring(level_I_config, level_II_config, gs_var_pos, gp.virtual_cov_link_gc);
 
             // Write final global haplotype configurations (inter pool) to output.
             HapConfig final_global_haps; // final global haplotype configuration object
@@ -287,21 +269,7 @@ public class Entrance {
                 gp.out_dir + gp.project_name + "_gc.inter_freq_haps.txt");
 
             System.out.println("\nPost-AEM GC Finished: " + dtf.format(LocalDateTime.now()) + "\n");
-
-            // TODO: LEFTOVER ML 20190702
-            // // Else, not enough gaps to run regional construction; existing haplotype
-            // // configurations deemed "global" enough already.
-            // } else {
-            // final_global_haps = new HapConfig(
-            // gp.inter_dir + prefix + "_p",
-            // gs_var_pos,
-            // num_pools);
-
-            // // final_global_haps = new HapConfig(initial_local_haps);
-            // final_global_haps.write_global_file_string( // write to output
-            // gp.out_dir + prefix + "_gc.inter_freq_vars.txt",
-            // false);
-            // }
+            
         } else if (gp.function.equals("lasso")) {
             /*
              * Final intra pool haplotype configuration via LASSO selection. TODO: [Question]:: are
@@ -328,28 +296,18 @@ public class Entrance {
             for (int pool_index = 0; pool_index < num_pools; pool_index++) {
                 HapLASSO inpool_lasso = new HapLASSO(pool_index,
                     Entrance.names_array[pool_index],
-                    gp.lambda,
+                    gp.lasso_global_lambda,
                     final_global_haps,
-                    gp.final_cutoff,
-                    "500000000",
+                    gp.lasso_full_hap_freq_cutoff,
+                    gp.lasso_global_memory,
                     gp.inter_dir + "/lasso/" + Entrance.names_array[pool_index]);
 
                 inpool_lasso.estimate_frequencies_lasso(gp.inter_dir + "/vef/"
                     + Entrance.names_array[pool_index] + ".vef", null, gp.lasso_weights);
 
                 // Learn optimal LASSO lambda value.
-                double new_penalty = gp.lambda;
-                while (inpool_lasso.r2 == gp.min_r2) {
-                    new_penalty -= gp.lasso_penalty_step;
-                    System.out
-                        .println("Local full-length LASSO has failed. Adjust the lambda penalty to "
-                            + new_penalty + " and trying again.");
-
-                    inpool_lasso.lambda = new_penalty;
-                    inpool_lasso.estimate_frequencies_lasso(gp.inter_dir + "/vef/"
-                        + Entrance.names_array[pool_index] + ".vef", null, gp.lasso_weights);
-
-                }
+                //double new_penalty = gp.global_lambda;
+                //while (inpool_lasso.r2 == gp.min_r2) {something deleted}
                 String[] single_pool_IDs=new String[] {names_array[pool_index]};
                 //     add final intra pool
                 final_inpool_haps[pool_index] = inpool_lasso.hapOut(single_pool_IDs); 
@@ -360,7 +318,7 @@ public class Entrance {
 
             }
 
-            System.out.println("\nLASSO Finished: " + dtf.format(LocalDateTime.now()) + "\n");
+            System.out.println("\nGlobal LASSO Finished: " + dtf.format(LocalDateTime.now()) + "\n");
 
             // Writing final outputs to file.
             HapConfig final_reconstruction = new HapConfig(final_inpool_haps);

@@ -8,7 +8,7 @@ import java.util.HashSet;
 
 import PoolHap.HapConfig;
 import PoolHap.Parameters;
-import PoolHap.Parameters.GenParameters;
+
 
 public class CompareHaps {
 
@@ -177,7 +177,7 @@ public class CompareHaps {
     }
 
     public static void multi_pool_summary(
-        String property_file,
+        String project_name,
         double quasi_cutoff,
         String ori_inter_file,
         String ori_intra_file,
@@ -185,7 +185,6 @@ public class CompareHaps {
         String recon_intra_file,
         String output_files_prefix) throws IOException{
 
-        GenParameters gp = new GenParameters(property_file);
         CompareHaps.multipool_quasispecies = new HashSet<Integer>();
         HapConfig orig_haps = new HapConfig(ori_inter_file, ori_intra_file);
         int num_ori_pools = orig_haps.num_pools;
@@ -200,7 +199,7 @@ public class CompareHaps {
         }
         PrintWriter pw1 = new PrintWriter(
             new FileWriter(output_files_prefix + quasi_cutoff + "_extended_results.txt", true));
-        pw1.append("## parameters: " + property_file + "\n");
+        pw1.append("## parameters: " + "cutoff="+quasi_cutoff + "\n");
 //        pw1.append("## orig_hap_files: " + ori_inter_file + "\t" + ori_intra_file + "\n");
 //        pw1.append("## recon_hap_files: " + recon_inter_file + "\t" + recon_intra_file + "\n");
         pw1.append(
@@ -208,7 +207,7 @@ public class CompareHaps {
                 + "Ave_freq_diff_btw OH_closest_RH\t" + "Sum_in-pool_freq_valid_quasispecies\n");
         double[] multi_pool_results = new double[4];
         for (int p = 0; p < num_ori_pools; p++) {
-            pw1.append(gp.project_name + "\t" + orig_haps.pool_IDs[p] + "\t");
+            pw1.append(project_name + "\t" + orig_haps.pool_IDs[p] + "\t");
             for (int i = 0; i < 4; i++) {
                 pw1.append(multi_pool_record[p][i] + "\t");
                 multi_pool_results[i] += multi_pool_record[p][i];
@@ -219,7 +218,7 @@ public class CompareHaps {
 
         PrintWriter pw2 = new PrintWriter(
             new FileWriter(output_files_prefix + quasi_cutoff + "_aggregated_results.txt", true));
-        pw1.append("## parameters: " + property_file + "\n");
+        pw2.append("## parameters: " + "cutoff="+quasi_cutoff + "\n");
 //        pw1.append("## orig_hap_files: " + ori_inter_file + "\t" + ori_intra_file + "\n");
 //        pw1.append("## recon_hap_files: " + recon_inter_file + "\t" + recon_intra_file + "\n");
 //        pw1.append(
@@ -231,7 +230,6 @@ public class CompareHaps {
         pw2.append(orig_haps.num_global_hap + "\t" + recon_haps.num_global_hap + "\t"
             + Double.toString((double) multipool_quasispecies.size() / recon_haps.num_global_hap)
             + "\t");
-
         pw2.append("\n");
         pw2.close();
 
