@@ -19,8 +19,11 @@ import java.util.concurrent.ThreadLocalRandom;
 public class PoolSimulator {
 	
     // directories and project name
+    String main_dir;
     String input_dir;
+    String inter_dir;
     String gs_dir;
+    String vef_dir;
     String fastq_folder;
     String fasta_folder;
     String vef_folder;
@@ -62,10 +65,12 @@ public class PoolSimulator {
 	    InputStream is = new FileInputStream(parameter_file);
         Properties prop = new Properties();
         prop.load(is);
-        this.input_dir = prop.getProperty("Input_Dir")+"/";
-        this.fasta_folder=this.input_dir+"fasta/";
-        this.fastq_folder=this.input_dir+"fastq/";
-        this.vef_folder=this.input_dir+"vef/";
+        this.main_dir = prop.getProperty("Main_Dir")+"/";
+        this.input_dir = this.main_dir + "input/";
+        this.inter_dir = this.main_dir + "intermediate/";
+        this.fasta_folder=this.input_dir + "fasta/";
+        this.fastq_folder=this.input_dir + "fastq/";
+        this.vef_folder=this.inter_dir+"vef/";
         this.project_name=prop.getProperty("Proj_Name");
  //       this.inter_dir = prop.getProperty("Intermediate_Dir");
         this.gs_dir = prop.getProperty("Gold-Standard_Dir")+"/";
