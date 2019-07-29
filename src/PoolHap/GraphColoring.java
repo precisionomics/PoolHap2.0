@@ -685,9 +685,8 @@ public class GraphColoring {
 		        	    ref_reg_2D_arr.get(i).add(ref_reg_2D_arr.get(i).get(s));
 		        	    conf_reg_2D_arr.get(i).add(conf_reg_2D_arr.get(i).get(s));
         			}else {
-        				System.out.println("ERROR: Can not reconstruct haplotype for" + this.vef_file+ " using graph coloring"
-        						+ ".\n"
-        						+ "Please decrease the Num_Pos_Window or increase Num_Gap_Window!");
+        				System.out.println("ERROR: Can not reconstruct haplotype for" + this.vef_file+ "using graph "
+        						+ "coloring.\nPlease decrease the Num_Pos_Window or increase Num_Gap_Window!");
         	        	System.exit(0);
         			}
         			
