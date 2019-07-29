@@ -74,6 +74,9 @@ public class Parameters {
 
         public double min_r2;
         public double lasso_penalty_step;
+        public int num_pos_window; //
+        public int num_gap_max; //
+        
 
 
         /**
@@ -132,7 +135,8 @@ public class Parameters {
 
                 this.min_r2 = Double.parseDouble(prop.getProperty("Minimum_R2_Fit"));
                 this.lasso_penalty_step = Double.parseDouble(prop.getProperty("Penalty_Step_Size"));
-
+                this.num_pos_window = Integer.parseInt(prop.getProperty("Num_Pos_Window"));
+                this.num_gap_max = Integer.parseInt(prop.getProperty("Num_Gap_Max"));
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
