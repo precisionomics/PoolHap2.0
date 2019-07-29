@@ -100,7 +100,7 @@ public class HapConfig {
     /*
      *  Link to the solving method
      */
-    RegionEMSolver solver;
+    RegionEMSolver regional_EM_solver;
 
     // Constructors
 
@@ -162,29 +162,6 @@ public class HapConfig {
         // changed in the algorithm.
         this.locusInfo = locusInput;
 
-        // TODO: [LEFTOVER]
-        // System.out.print("\n"
-        //     + locusInput.length
-        //     + "\t"
-        //     + this.num_loci
-        //     + "\t"
-        //     + this.locusInfo.length);
-        //
-        // for (int v = 0; v < this.num_loci; v++) {
-        //     System.out.println(v);
-        //     System.out.println("HapConfig constructor input:\t" + locusInput[v].alleles_coding);
-        //     this.locusInfo[v].alleles_coding = new HashMap<String, Float>();
-        //     System.out.println("HapConfig constructor pre:\t"
-        //         + this.locusInfo[v].alleles_coding.size());
-        //
-        //     for (String k : locusInput[v].alleles_coding.keySet()) {
-        //         System.out.println("setting:\t" + locusInput[v].alleles_coding.get(k));
-        //         this.locusInfo[v].alleles_coding.put(k, locusInput[v].alleles_coding.get(k));
-        //     }
-        //     System.out.println("HapConfig constructor post:\t"
-        //         + this.locusInfo[v].alleles_coding.size());
-        //
-        // }
         // // Need to specifically copy the mappings over to the new locus storage object.
         // // Shallow copy alone doesn't work.
 
@@ -198,12 +175,6 @@ public class HapConfig {
         	System.out.println("ERROR: pool_IDs == null");
         	System.exit(0);
         }
-//        else{ // if no IDs assigned, use indices
-//            this.pool_IDs = new String[this.num_pools];
-//            for (int k = 0; k < this.num_pools; k++) {
-//                this.pool_IDs[k] = "p"+k;
-//            }
-//        }
 
         this.est_ind_pool = est_ind_pool;
         this.update_sigma_mu_logL();
@@ -344,18 +315,7 @@ public class HapConfig {
             this.encoding_haps();  // initialize this.global_haps
 
             // Then read the local-hap file.
-            if (in_pool_hap_input_file == null) {
-
-                // TODO: LEFTOVER ML 20190702
-                // this.num_pools = 20;
-                // this.pool_IDs = new String[this.num_pools];
-                // for (int p = 0; p < this.num_pools; p++) {
-                //    this.pool_IDs[p] = p + "";
-                // }
-
-                // this.in_pool_haps_freq = new double[this.num_global_hap][this.num_pools];
-
-            } else {
+            if (in_pool_hap_input_file != null) {            
                 br = new BufferedReader(new FileReader(in_pool_hap_input_file));
                 String[] header_hap_IDs = br.readLine().split("\t"); // the first row is the hap IDs
 
@@ -364,9 +324,7 @@ public class HapConfig {
                     if (this.num_global_hap != header_hap_IDs.length - 1) {
                         System.out.println(
                             "WRONG: this.num_global_hap is not the same between two files!");
-
                     }
-
                     line = br.readLine();
                     while (line != null){ // count how many pools
                         this.num_pools++;
@@ -384,14 +342,6 @@ public class HapConfig {
                         String[] tmp = line.split("\t");
                         this.pool_IDs[pool_index] = tmp[0]; // assign pool IDs
                         for (int h = 1; h < header_hap_IDs.length; h++) {
-
-                            // TODO: [LEFTOVER]
-                            // System.out.println(h
-                            //     + "\t"
-                            //     + tmp[h]
-                            //     + "\t"
-                            //     + this.hapID2index.get(tmp[h]));
-
                             // Based on the hap-ID, find out the hap-index.
                             int h_index = this.hapID2index.get(header_hap_IDs[h]);
                             this.in_pool_haps_freq[h_index][pool_index] =
@@ -561,8 +511,6 @@ public class HapConfig {
         this.hapID2index = new HashMap<String, Integer>();
         for (int h = 0; h < this.num_global_hap; h++) {
             this.hapID2index.put(this.hap_IDs[h], h);
-            // TODO: [LEFTOVER]
-            // System.out.println(this.hap_IDs[h] + "\t" + h);
         }
     }
 
@@ -593,30 +541,14 @@ public class HapConfig {
      *  Maps global_haps_string to global_haps (that is coded by integers).
      *
      *  It will be done by invoking the function encoding_alleles in the class LocusAnnotation.
-     *  The key algorithm of how to design the encoding is implemented in the
+     *  The key algorithm of how to design the encoding will be implemented later by translating 
+     *  Michael's MDS code in R to Java TODO [Quan]
      *
      */
     public void encoding_haps(){
         this.global_haps = new double[this.num_global_hap][this.num_loci];
-
-        // TODO: [LEFTOVER]
-        // System.out.println("\n" + this.num_global_hap  +"\t" + this.num_loci);
-        // System.out.println("\nEncoded:" + this.locusInfo[0].alleles_coding.size());
-
         for (int h = 0; h < this.num_global_hap; h++) {
             for (int l = 0; l < this.num_loci; l++) {
-
-                // TODO: [LEFTOVER]
-                // if (h == this.num_global_hap - 1) {
-                //     System.out.println(h
-                //         + "\t"
-                //         + l
-                //         + "\t"
-                //         + this.global_haps_string[h][l]
-                //         + "\t"
-                //         + this.locusInfo[l].alleles_coding.get(this.global_haps_string[h][l]))
-                // }
-
                 this.global_haps[h][l] = this.locusInfo[l]
                     .alleles_coding
                     .get(this.global_haps_string[h][l]);
@@ -624,8 +556,6 @@ public class HapConfig {
             }
         }
     }
-
-    // TODO: (old) Write (STDOUT and text file) functions
 
 
     /**
@@ -789,22 +719,14 @@ public class HapConfig {
     public void remHaps(boolean[] list_rem_haps, int num_rem_haps) {
         int tot_new_haps = this.num_global_hap - num_rem_haps;
 
-        // TODO: [LEFTOVER]
-        // System.out.println(tot_new_haps + "\t" + this.num_global_hap + "\t" + num_rem_haps);
-
         String[][] tmp_global_haps_string = new String[tot_new_haps][this.num_loci];
         String[] tmp_hap_IDs = new String[tot_new_haps];
         double tmp_tot_freq = 0;
         int tmp_count = 0;
         for (int h = 0; h < this.num_global_hap; h++) {
             if (list_rem_haps[h]) {
-
-                // TODO: [LEFTOVER]
-                // System.out.print(h);
-
                 continue;
             }
-
             tmp_global_haps_string[tmp_count] = this.global_haps_string[h].clone();
             tmp_hap_IDs[tmp_count] = this.hap_IDs[h];
             tmp_tot_freq += this.global_haps_freq[h];
@@ -814,14 +736,13 @@ public class HapConfig {
         this.global_haps_string = tmp_global_haps_string.clone();
         this.hap_IDs = tmp_hap_IDs.clone();
         double[] tmp_global_haps_freq = new double[tot_new_haps];
-        int new_hap = 0;
+        int new_hap_index = 0;
         for (int h = 0; h < this.num_global_hap; h++) {
             if (list_rem_haps[h]) {
                 continue;
             }
-
-            tmp_global_haps_freq[new_hap] = this.global_haps_freq[h] / tmp_tot_freq;
-            new_hap++;
+            tmp_global_haps_freq[new_hap_index] = this.global_haps_freq[h] / tmp_tot_freq;
+            new_hap_index++;
         }
 
         this.global_haps_freq = tmp_global_haps_freq.clone();
@@ -838,18 +759,10 @@ public class HapConfig {
      */
     public void update_sigma_mu_logL() {
         this.mu = new double[this.num_loci];
-
-        // TODO: [LEFTOVER]
-        // System.out.println("\nmu:");
-
         for (int l = 0; l < this.num_loci; l++) {
             for (int h = 0; h < this.num_global_hap; h++) {
                 this.mu[l] = this.mu[l] + this.global_haps[h][l] * this.global_haps_freq[h];
             }
-
-            // TODO: [LEFTOVER]
-            // System.out.print(this.mu[l] + "\t");
-
         }
         double[][] eta = new double[this.num_loci][this.num_loci];
         for (int l1 = 0; l1 < this.num_loci; l1++) {
@@ -858,26 +771,15 @@ public class HapConfig {
                      eta[l1][l2] += (this.global_haps[h][l1]
                         * this.global_haps[h][l2]
                         * this.global_haps_freq[h]);
-
                   }
              }
         }
-
-        // TODO: [LEFTOVER]
-        // System.out.println("\n\nsigma:");
-
         // TODO Update the sigma function to use LDx.
         this.sigma = new double[this.num_loci][this.num_loci];
         for (int q1 = 0; q1 < this.num_loci; q1++) {
              for (int q2 = 0; q2 < this.num_loci; q2++) {
                  this.sigma[q1][q2] = eta[q1][q2] - this.mu[q1] * this.mu[q2];
-
-                 // TODO: [LEFTOVER]
-                 // System.out.print(this.sigma[q1][q2] + "\t");
              }
-
-             // TODO: [LEFTOVER]
-             // System.out.println();
         }
 
         this.logL = Algebra.logL_aems(this.sigma, this.mu, this.inpool_site_freqs);
@@ -912,19 +814,7 @@ public class HapConfig {
                 num_rem_haps++;
             }
         }
-
-        // TODO: [LEFTOVER]
-        // for (int h = 0; h < this.num_global_hap; h++) {
-        //     System.out.println(this.hap_IDs[h]);
-        // }
-
         remHaps(list_rem_haps, num_rem_haps);
-
-        // TODO: [LEFTOVER]
-        // for (int h = 0; h < this.num_global_hap; h++) {
-        //     System.out.println(this.hap_IDs[h]);
-        // }
-
         return new HapConfig(
             this.global_haps_string,
             this.global_haps_freq,
