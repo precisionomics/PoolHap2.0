@@ -208,7 +208,8 @@ public class Entrance {
                 // Previously added to initial_local_haps but now commented out. ML 20190702
                 GraphColoring pool_in = new GraphColoring(vef_files[p],
                     gs_var_pos,
-                    gp.inter_dir + "gcf/" + Entrance.names_array[p] + ".gcf");
+                    gp.inter_dir + "gcf/" + Entrance.names_array[p] + ".gcf" ,
+                    gp.num_pos_window, gp.num_gap_max);
 
                 System.out.println("Graph colouring for pool " + p + ":" + Entrance.names_array[p]
                     + " is finished.");
