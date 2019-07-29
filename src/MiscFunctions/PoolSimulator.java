@@ -58,8 +58,8 @@ public class PoolSimulator {
     int all_pool_haps;  // total number of haps in all pools.
     double var_burden_avg;
     
-	public PoolSimulator(String parameter_file) throws IOException {
-	    InputStream is = new FileInputStream(parameter_file);
+	public PoolSimulator(String simulation_property_file) throws IOException {
+	    InputStream is = new FileInputStream(simulation_property_file);
         Properties prop = new Properties();
         prop.load(is);
         this.input_dir = prop.getProperty("Input_Dir")+"/";
@@ -227,7 +227,14 @@ public class PoolSimulator {
         // reader.close();
     // } while (!answer.equals("Y"));   // Basically, simulate haplotypes until the distribution makes me happy.
 	}
-            
+       
+	/**
+	 * Step 2' for SLiM.
+	 * @throws IOException
+	 */
+	public void process_slim_outcome() throws IOException {
+	    
+	}
     /**
      * Step 3A: Assign each haplotype individual to a patient, 
      * and write all of the gold standard files for PoolHapX.
