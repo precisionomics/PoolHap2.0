@@ -258,8 +258,7 @@ public class Entrance {
             // Link regions by applying graph coloring across the level 1 and level 2 regional
             // haplotype configurations.
             GraphColoring region_linker =
-                new GraphColoring(level_I_config, level_II_config, gs_var_pos, gp.virtual_cov_link_gc,
-                		gp.num_pos_window, gp.num_gap_window);
+                new GraphColoring(level_I_config, level_II_config, gs_var_pos, gp.virtual_cov_link_gc);
 
             // Write final global haplotype configurations (inter pool) to output.
             HapConfig final_global_haps; // final global haplotype configuration object
