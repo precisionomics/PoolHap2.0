@@ -32,6 +32,7 @@ public class GraphColoring {
     public int num_loci_window;
     public int max_num_gap;
     public String vef_file;
+    
 
     // TODO: [LEFTOVER]
     // new GraphColoring(gp.inter_dir + prefix + "_p" + p + ".vef",
@@ -135,7 +136,10 @@ public class GraphColoring {
      *  @throws IOException on input error.
      */
     public GraphColoring(HapConfig[] level_1,  HapConfig[] level_2,  String gs_var_pos,
-        int virtual_cov_link_gc) throws IOException {
+        int virtual_cov_link_gc, int num_pos_window, 
+		int num_gap_window) throws IOException {
+    	this.num_loci_window = num_pos_window;
+        this.max_num_gap = num_gap_window;
         // Initialize read indices and read information variables.
         this.readindex_arr_tmp = new Vector<Integer>();
         this.readinfo_arr_tmp = new Vector<String>();
