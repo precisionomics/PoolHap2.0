@@ -615,16 +615,16 @@ public class GraphColoring {
         }
         ArrayList<ArrayList<String>> ref_reg_2D_arr= new ArrayList<ArrayList<String>>();
         ArrayList<ArrayList<String>> conf_reg_2D_arr= new ArrayList<ArrayList<String>>();
-        
         int completeness_cutoff = this.max_num_gap;
         if (num_window >1 ) {
-        	for (int i=0; i <(num_window-1); i++ ) {
+        	for (int i=0; i <(num_window); i++ ) {
         		ArrayList<String> tmp_ref_arr = new ArrayList<String>();
         		ArrayList<String> tmp_conf_arr = new ArrayList<String>();
         		int index_max = (i+1)* this.num_loci_window;
         		if (((i+1)* this.num_loci_window) > this.num_loci) {
         			index_max = this.num_loci;
         		}
+        		
         		for (int j = 0; j <= real_max_color; j++) {
         			if (count(ref_arr[j].substring(this.num_loci_window*i ,index_max )  ) <= completeness_cutoff) {
         				tmp_ref_arr.add( ref_arr[j].substring(this.num_loci_window*i ,index_max )  );
@@ -634,6 +634,7 @@ public class GraphColoring {
         		ref_reg_2D_arr.add(tmp_ref_arr);
         		conf_reg_2D_arr.add(tmp_conf_arr);
         	}
+        	
         	int max_size =0;
         	for (int i=0; i <ref_reg_2D_arr.size(); i++ ) {
         		if (ref_reg_2D_arr.get(i).size()>  max_size) {
@@ -657,10 +658,14 @@ public class GraphColoring {
         			
         		}
         	}
+        	
+//        	for (int i =0; i< ref_reg_2D_arr.size();i++)
+//        		System.out.println(ref_reg_2D_arr.get(i));
+        	
         	for (int j=0; j< ref_reg_2D_arr.get(0).size(); j++) {
         		String tmp_ref = ref_reg_2D_arr.get(0).get(j); 
         		String tmp_conf =conf_reg_2D_arr.get(0).get(j); 
-        		for (int i=0; i <ref_reg_2D_arr.size(); i++ ) {
+        		for (int i=1; i <ref_reg_2D_arr.size(); i++ ) {
         			tmp_ref=tmp_ref + ref_reg_2D_arr.get(i).get(j);
         			tmp_conf =tmp_conf+ "?" + conf_reg_2D_arr.get(i).get(j); 
         		}
@@ -722,6 +727,7 @@ public class GraphColoring {
             String b = this.conf_ref_arr.get(entry);
             String c = "";
             String tmp_str= "";
+           
             for (int i = 0; i < b.length(); i++) {
             	tmp_str = entry.substring(i, i + 1);
             	if (tmp_str.equals("*")) {
