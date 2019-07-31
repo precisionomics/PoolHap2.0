@@ -153,9 +153,12 @@ public class CompareHaps_testing {
 
         PrintWriter pw = new PrintWriter(
             new FileWriter(dir_prefix + "_" + quasi_cutoff + "_single_pools.result.txt", true));
+//        pw.append("Pool_ID"+"\t"+"Ori_Hap_ID"+"\t"+"Closest_Recon_Hap_ID"+"\t"
+//                +"Min_diff_Pos"+"\t"+"Min_freq_diff"+"\t"+"Num_of_Recon_Meet_Cutoff");
+        
         for (int h_index = 0; h_index < num_inpool_ori; h_index++) {
             pw.append(pool_ID + "\t" + none_0_ori_hap_id.get(h_index) + "\t"
-                + recon_haps.hapID2index.get(min_diff_ID[h_index]) + "\t" + min_diff_pos[h_index]
+                + min_diff_ID[h_index] + "\t" + min_diff_pos[h_index]
                 + "\t" + min_diff_freq[h_index] + "\t" + max_diff_haps[h_index] + "\n");
             // also_min_diff[h_id] + "\t" + min_diff_freq_prop[h_id] + "\t" +
         }
@@ -201,9 +204,16 @@ public class CompareHaps_testing {
         pw1.append("## parameters: cut-off = " + quasi_cutoff + "\n");
 //        pw1.append("## orig_hap_files: " + ori_inter_file + "\t" + ori_intra_file + "\n");
 //        pw1.append("## recon_hap_files: " + recon_inter_file + "\t" + recon_intra_file + "\n");
+//        pw1.append(
+//            "# Project_name\tPool_ID\t" + "Prop_of_OH_recovered\t" + "Ave_dist_btw OH_closest_RH\t"
+//                + "Ave_freq_diff_btw OH_closest_RH\t" + "Sum_in-pool_freq_valid_quasispecies\n");
         pw1.append(
-            "# Project_name\tPool_ID\t" + "Prop_of_OH_recovered\t" + "Ave_dist_btw OH_closest_RH\t"
-                + "Ave_freq_diff_btw OH_closest_RH\t" + "Sum_in-pool_freq_valid_quasispecies\n");
+          		"#Project_Name\t"
+                  + "Pool_ID\t"
+                  + "OH_Recovery\t"
+                  + "Mean_Min_Seq_Diff\t"
+                  + "Mean_Min_Freq_Diff\t"
+                  + "Valid_QS_Freq_Sum\n");
         double[] multi_pool_results = new double[4];
         for (int p = 0; p < num_ori_pools; p++) {
             pw1.append(project_name + "\t" + orig_haps.pool_IDs[p] + "\t");
@@ -223,7 +233,14 @@ public class CompareHaps_testing {
 //        pw1.append(
 //            "# Project_name\tPool_ID\t" + "Prop_of_OH_recovered\t" + "Ave_dist_btw OH_closest_RH\t"
 //                + "Ave_freq_diff_btw OH_closest_RH\t" + "Sum_in-pool_freq_valid_quasispecies\n");
-        
+        pw2.append("#Project_Name\t"
+                + "Mean_OH_Recovery\t"
+                + "Mean_Mean_Min_Seq_Diff\t" // mean of means
+                + "Mean_Mean_Min_Freq_Diff\t"
+                + "Mean_Valid_QS_Freq_Sum\t"
+                + "Total_OH\t"
+                + "Total_RH\t"
+                + "Total_Valid_QS_Proportion\n");
         pw2.append(project_name+"\t");
         for (int i = 0; i < 4; i++) {
             pw2.append(multi_pool_results[i] / orig_haps.num_pools + "\t");
@@ -239,7 +256,7 @@ public class CompareHaps_testing {
     
     public static void main(String[] args) throws IOException, InterruptedException {
     	String project_name="0_0";//args[0];
-    	double quasi_cutoff=0.02;//Double.parseDouble(args[1]); // "0.01"
+    	double quasi_cutoff=0.05;//Double.parseDouble(args[1]); // "0.01"
     	String gs_dir="D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\gold_standard\\";//args[2];//
     	String output_dir="D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\output\\";//args[3];// 
         String ori_inter_file=gs_dir+project_name+"_haps.inter_freq_vars.txt";

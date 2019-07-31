@@ -10,7 +10,6 @@ import PoolHap.LocusAnnotation;
 public class HapConfig_inter_file {
 	    public int num_global_hap; // number of global haplotypes in this region
 	    public int num_loci; // number of loci in this region
-	    public int num_pools; // number of pools under study
 
 	    // Map the pool IDs to their indices in this.hap_IDs.
 	    public HashMap<String, Integer> hapID2index;
@@ -40,10 +39,12 @@ public class HapConfig_inter_file {
          this.num_global_hap = header_ids.length - 1;
          this.hap_IDs = new String[this.num_global_hap];
          this.global_haps_freq = new double[this.num_global_hap];
+         this.hapID2index = new HashMap<String, Integer>();
          for (int h = 0; h < num_global_hap; h++) {
              this.hap_IDs[h] = header_ids[h + 1];
+             this.hapID2index.put(this.hap_IDs[h], h);
              this.global_haps_freq[h] = Double.parseDouble(header_freqs[h + 1]);
-         }
+         }    
 
          String line = br.readLine();
          while (line != null) {
@@ -53,6 +54,7 @@ public class HapConfig_inter_file {
 
          br.close();
          this.global_haps_string = new String[this.num_global_hap][this.num_loci];
+         this.global_haps = new double[this.num_global_hap][this.num_loci];
          this.locusInfo = new LocusAnnotation[this.num_loci];
          br = new BufferedReader(new FileReader(global_hap_input_file));
          line = br.readLine();
@@ -66,6 +68,7 @@ public class HapConfig_inter_file {
              this.locusInfo[loci_index] = new LocusAnnotation(tmp[0]);
              for (int h_index = 0; h_index < this.num_global_hap; h_index++) {
                  this.global_haps_string[h_index][loci_index]=tmp[h_index+1];
+                 this.global_haps[h_index][loci_index]=Double.parseDouble(tmp[h_index+1]);
              }
 
              // TODO: [LEFTOVER]
@@ -74,6 +77,28 @@ public class HapConfig_inter_file {
              loci_index++;
              line = br.readLine();
          }
+//         for (int h = 0; h < this.num_global_hap; h++) {
+//             for (int l = 0; l < this.num_loci; l++) {
+//
+//                 // TODO: [LEFTOVER]
+//                 // if (h == this.num_global_hap - 1) {
+//                 //     System.out.println(h
+//                 //         + "\t"
+//                 //         + l
+//                 //         + "\t"
+//                 //         + this.global_haps_string[h][l]
+//                 //         + "\t"
+//                 //         + this.locusInfo[l].alleles_coding.get(this.global_haps_string[h][l]))
+//                 // }
+//
+//                 this.global_haps[h][l] = this.locusInfo[l]
+//                     .alleles_coding
+//                     .get(this.global_haps_string[h][l]);
+//
+//             }
+//         }
+         
+
 
          br.close();
 	}
