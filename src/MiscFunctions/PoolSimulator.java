@@ -57,7 +57,7 @@ Outer_Dist = 400
 public class PoolSimulator {
 	
     // directories and project name
-    String main_dir;
+//    String main_dir;
     String input_dir;
     String inter_dir;
     String gs_dir;
@@ -104,14 +104,10 @@ public class PoolSimulator {
 	    InputStream is = new FileInputStream(parameter_file);
         Properties prop = new Properties();
         prop.load(is);
-        this.main_dir = prop.getProperty("Main_Dir")+"/";
-//        this.input_dir = prop.getProperty("Input_Dir")+"/";
-//        this.inter_dir = prop.getProperty("Intermediate_Dir")+"/";
-        new File(main_dir+"input/").mkdir();
-        new File(main_dir+"intermediate/").mkdir();
-        new File(main_dir+"gold_standard/").mkdir();
-        this.input_dir = this.main_dir + "input/";
-        this.inter_dir = this.main_dir + "intermediate/";
+
+        this.input_dir = prop.getProperty("Input_Dir")+"/";
+        this.inter_dir = prop.getProperty("Intermediate_Dir")+"/";
+        this.gs_dir = prop.getProperty("Gold-Standard_Dir")+"/";
         new File(input_dir+"fasta/").mkdir();
         new File(input_dir+"fastq/").mkdir();
         new File(inter_dir+"vef/").mkdir();
@@ -119,10 +115,6 @@ public class PoolSimulator {
         this.fastq_folder=this.input_dir + "fastq/";
         this.vef_folder=this.inter_dir+"vef/";
         this.project_name=prop.getProperty("Proj_Name");
- //       this.inter_dir = prop.getProperty("Intermediate_Dir");
- //       this.gs_dir = prop.getProperty("Gold-Standard_Dir")+"/";
-        this.gs_dir = this.main_dir + "gold_standard/";
-        
         this.msCMDLine = prop.getProperty("ms"); 
         this.slimCMDLine = prop.getProperty("slim"); 
         this.dwgsimCMDLine = prop.getProperty("DWGSIM"); 
