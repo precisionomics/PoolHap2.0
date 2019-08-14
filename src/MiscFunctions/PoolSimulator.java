@@ -21,7 +21,9 @@ import java.util.concurrent.ThreadLocalRandom;
 FullSimulator2 Parameters
 ##########
 # General: Commands and file locations
-Main_Dir = /export/home/jhe/project/Viral_reconstruction/PoolHapX_test/25_pools/PHX_perfect_10
+Input_Dir = /export/home/jhe/project/Viral_reconstruction/PoolHapX_test/25_pools/PHX_perfect_10
+Intermediate Dir =
+Gold-Standard_Dir =
 Proj_Name = 0_1
 slim = 
 ms = /export/home/jhe/download/msdir/ms
