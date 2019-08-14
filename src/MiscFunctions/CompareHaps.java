@@ -154,7 +154,7 @@ public class CompareHaps {
         PrintWriter pw = new PrintWriter(
             new FileWriter(dir_prefix + "_" + quasi_cutoff + "_single_pools.result.txt", true));
         pw.append("Pool_ID"+"\t"+"Ori_Hap_ID"+"\t"+"Closest_Recon_Hap_ID"+"\t"
-                +"Min_diff_Pos"+"\t"+"Min_freq_diff"+"\t"+"Num_of_Recon_Meet_Cutoff");
+                +"Min_diff_Pos"+"\t"+"Min_freq_diff"+"\t"+"Num_of_Recon_Meet_Cutoff"+"\n");
         for (int h_index = 0; h_index < num_inpool_ori; h_index++) {
             pw.append(pool_ID + "\t" + none_0_ori_hap_id.get(h_index) + "\t"
                 + min_diff_ID[h_index] + "\t" + min_diff_pos[h_index]

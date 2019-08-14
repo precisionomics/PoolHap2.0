@@ -16,6 +16,7 @@ import java.util.Properties;
 public class generate_inter_intra_file {
     String output_dir;
     String fasta_folder;
+    String final_output_dir;
     String gs_dir;
 	String project_name;
 	int num_pools;
@@ -40,6 +41,7 @@ public class generate_inter_intra_file {
 	     prop.load(is);
 	     this.output_dir = prop.getProperty("Output_Dir");
 	     this.fasta_folder=this.output_dir+"fasta/";
+	     this.final_output_dir=this.output_dir+"output/";
 	     this.gs_dir = prop.getProperty("Gold-Standard_Dir");
 	     this.project_name=prop.getProperty("Proj_Name");
 	     this.num_pools= Integer.parseInt(prop.getProperty("Num_Pools"));
@@ -49,7 +51,7 @@ public class generate_inter_intra_file {
 	
 	public void true_var_position() throws IOException, InterruptedException{
 		BufferedReader br = new BufferedReader(new FileReader(
-				gs_dir+project_name+".inter_freq_vars.txt"));
+				gs_dir+project_name+"_haps.inter_freq_vars.txt"));
 		String currline = br.readLine();
 		currline = br.readLine();
 		currline = br.readLine();// read the third line
@@ -242,7 +244,7 @@ public class generate_inter_intra_file {
 		}
 		
 		BufferedWriter bw_intra_file=new BufferedWriter(new FileWriter(
-				output_dir + project_name + ".intra_freq.txt"));
+				final_output_dir + project_name + ".intra_freq.txt"));
 		bw_intra_file.write("Hap_ID");
 		for(int h=0; h<final_rc_hap_string_list.size(); h++) {
 			bw_intra_file.write("\t"+"h"+ h);
@@ -262,7 +264,7 @@ public class generate_inter_intra_file {
 	
 	public void generate_inter_file() throws IOException, InterruptedException {
 		BufferedWriter bw_inter_file=new BufferedWriter(new FileWriter(
-				output_dir + project_name + ".inter_freq_vars.txt"));
+				final_output_dir + project_name + ".inter_freq_vars.txt"));
 		bw_inter_file.write("Hap_ID");
 		for(int h=0; h<final_rc_hap_string_list.size(); h++) {
 			bw_inter_file.write("\t"+"h"+ h);
@@ -295,7 +297,7 @@ public class generate_inter_intra_file {
 	}
 
 	public static void main(String[] args) throws IOException, InterruptedException{
-		String parameter = "D:\\PhD-Studying\\Informatics\\Project\\HIV project\\Viral_reconstruction\\Other_tools_results\\CliqueSNV\\fasta\\FS3.properties";
+		String parameter = args[0];//"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\Viral_reconstruction\\Other_tools_results\\CliqueSNV\\fasta\\FS3.properties";
 		generate_inter_intra_file gf = new generate_inter_intra_file(parameter);
 		gf.true_var_position();
 		gf.generate_hap2poolfre_hashmap();

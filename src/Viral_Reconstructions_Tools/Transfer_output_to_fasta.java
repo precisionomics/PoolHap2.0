@@ -45,7 +45,6 @@ public class Transfer_output_to_fasta {
 		this.num_pools= Integer.parseInt(prop.getProperty("Num_Pools"));
 		this.fasta_folder=this.output_dir+"fasta/";
 		 is.close();
-		     
 		}
 		
 //	public static void output_to_fasta(String ref_seq_file_path, 
@@ -100,9 +99,9 @@ public class Transfer_output_to_fasta {
 	}
 	
 	public static void main(String[] args) throws IOException, InterruptedException {
-		String parameter = "D:\\PhD-Studying\\Informatics\\Project\\HIV project\\Viral_reconstruction\\Other_tools_results\\CliqueSNV\\fasta\\FS3.properties";
-		Transfer_output_to_fasta tf = new Transfer_output_to_fasta(parameter);
-		tf.output_to_fasta();
+		String parameter = args[0];//"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\Viral_reconstruction\\Other_tools_results\\CliqueSNV\\fasta\\FS3.properties";
+		Transfer_output_to_fasta gf = new Transfer_output_to_fasta(parameter);
+		gf.output_to_fasta();
 	}
 	
 	
