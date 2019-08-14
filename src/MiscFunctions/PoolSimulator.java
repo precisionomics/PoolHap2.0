@@ -15,12 +15,53 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 
+/*
+ * The properties_file looks like this:
+ * 
+FullSimulator2 Parameters
+##########
+# General: Commands and file locations
+Main_Dir = /export/home/jhe/project/Viral_reconstruction/PoolHapX_test/25_pools/PHX_perfect_10
+Proj_Name = 0_1
+slim = 
+ms = /export/home/jhe/download/msdir/ms
+DWGSIM = /export/home/jhe/download/DWGSIM-master/dwgsim
+##########
+# ms: Generates populations of genotypes under a variety of neutral models to investige their statistical properties.  
+Haps_Per_Pool = 20
+Num_Pools = 25
+Est_Ind_Per_Pool = 1000000
+Mutaton_Rate_Per_Base = 0.00001
+Segregating_Sites = 10
+Ref_Seq_Len = 9719
+##########
+# dwgsim: Simulating a variety of next- and third-generation sequencing reads from input genetic sequences.
+Reference_Seq = /export/home/jhe/project/Viral_reconstruction/PoolHapX_test/50_pools/PHX_perfect_10/input/HIV_HXB2.fa
+Is_Perfect = true
+## non_perfect:0.001, perfect:0
+Error_Rate_Per_Base = 0.0 
+Coverage = 100
+Read_Len = 150
+Outer_Dist = 400
+##########            
+ * 
+ * To be notice:
+ * This code will generate input/ intermediate/ gold_standard/ directories under main/
+ * And fasta/ fastq/ under input/ and vef/ under intermediate (For perfect data)
+ * For non_perfect_data, it will also generate vcf/ sam/ bam/ under input/
+ * The "Ref_Seq_Len" now is the full_path to Reference_sequence
+ * For perfect data, it will put _vars.intra_freq.txt under intermediate/
+ */
+
 // For generating VEFs directly.
 public class PoolSimulator {
 	
     // directories and project name
+    String main_dir;
     String input_dir;
+    String inter_dir;
     String gs_dir;
+    String vef_dir;
     String fastq_folder;
     String fasta_folder;
     String vef_folder;
@@ -39,6 +80,7 @@ public class PoolSimulator {
     int num_var_pos ;
     int ref_seq_len ;
     String ref_seq_file_path; // full file path.     
+    boolean is_perfect;
     double error_rate ;
     int coverage ;
     int read_len ;
@@ -62,13 +104,24 @@ public class PoolSimulator {
 	    InputStream is = new FileInputStream(parameter_file);
         Properties prop = new Properties();
         prop.load(is);
-        this.input_dir = prop.getProperty("Input_Dir")+"/";
-        this.fasta_folder=this.input_dir+"fasta/";
-        this.fastq_folder=this.input_dir+"fastq/";
-        this.vef_folder=this.input_dir+"vef/";
+        this.main_dir = prop.getProperty("Main_Dir")+"/";
+//        this.input_dir = prop.getProperty("Input_Dir")+"/";
+//        this.inter_dir = prop.getProperty("Intermediate_Dir")+"/";
+        new File(main_dir+"input/").mkdir();
+        new File(main_dir+"intermediate/").mkdir();
+        new File(main_dir+"gold_standard/").mkdir();
+        this.input_dir = this.main_dir + "input/";
+        this.inter_dir = this.main_dir + "intermediate/";
+        new File(input_dir+"fasta/").mkdir();
+        new File(input_dir+"fastq/").mkdir();
+        new File(inter_dir+"vef/").mkdir();
+        this.fasta_folder=this.input_dir + "fasta/";
+        this.fastq_folder=this.input_dir + "fastq/";
+        this.vef_folder=this.inter_dir+"vef/";
         this.project_name=prop.getProperty("Proj_Name");
  //       this.inter_dir = prop.getProperty("Intermediate_Dir");
-        this.gs_dir = prop.getProperty("Gold-Standard_Dir")+"/";
+ //       this.gs_dir = prop.getProperty("Gold-Standard_Dir")+"/";
+        this.gs_dir = this.main_dir + "gold_standard/";
         
         this.msCMDLine = prop.getProperty("ms"); 
         this.slimCMDLine = prop.getProperty("slim"); 
@@ -81,7 +134,14 @@ public class PoolSimulator {
         this.num_var_pos = Integer.parseInt(prop.getProperty("Segregating_Sites"));
         this.ref_seq_len = Integer.parseInt(prop.getProperty("Ref_Seq_Len"));
         this.ref_seq_file_path = prop.getProperty("Reference_Seq"); 
+        this.is_perfect = Boolean.parseBoolean(prop.getProperty("Is_Perfect"));
+        if (is_perfect == false) {
+            new File(input_dir+"sam/").mkdir();
+            new File(input_dir+"bam/").mkdir();
+            new File(input_dir+"vcf/").mkdir();
+        }
         this.error_rate = Double.parseDouble(prop.getProperty("Error_Rate_Per_Base"));
+        
         this.coverage = Integer.parseInt(prop.getProperty("Coverage"));
         this.read_len = Integer.parseInt(prop.getProperty("Read_Len"));
         this.outer_dist = Integer.parseInt(prop.getProperty("Outer_Dist"));
@@ -262,7 +322,7 @@ public class PoolSimulator {
                 hap2infreqs[h][p] = (double) hap2incts[h][p] / haps_per_pool;
         }
         BufferedWriter bw = new BufferedWriter(new FileWriter(gs_dir + project_name + 
-            "_haps.inter_freq_vars.txt"));
+            "_haps.inter_freq_txt"));
         bw.write("Hap_ID");
         for(int h = 0; h < actual_num_haps; h++)
             bw.write("\t" + "h"+h);
@@ -294,7 +354,11 @@ public class PoolSimulator {
         for(int p = 0; p < num_pools; p++)
             for(int v = 0; v < actual_num_vars; v++)
                 var2infreqs[v][p] = (double) var2incts[v][p] / haps_per_pool;
-        bw = new BufferedWriter(new FileWriter(gs_dir + project_name + "_vars.intra_freq.txt"));
+        if(is_perfect == true) {
+        	bw = new BufferedWriter(new FileWriter(inter_dir + project_name + "_vars.intra_freq.txt"));
+        }else {
+        	bw = new BufferedWriter(new FileWriter(gs_dir + project_name + "_vars.intra_freq.txt"));
+        }
         bw.write("Pool_ID");
         for (int p = 0; p < num_pools; p++)
             bw.write("\t" + project_name + "_p" + p); 
@@ -331,7 +395,7 @@ public class PoolSimulator {
 //        }
 //        br.close();
 
-        BufferedReader br = new BufferedReader(new FileReader(input_dir + ref_seq_file_path));
+        BufferedReader br = new BufferedReader(new FileReader(ref_seq_file_path));
         String[] refSequence = new String[ref_seq_len];
         String currLine = br.readLine();
         int i = 0;
