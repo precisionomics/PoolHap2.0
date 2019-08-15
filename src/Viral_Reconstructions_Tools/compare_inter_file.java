@@ -114,11 +114,11 @@ public class compare_inter_file {
 	
 	
 	public static void main(String[] args) throws IOException, InterruptedException{
-    	String project_name="0_0";//args[0];
-    	double quasi_cutoff=0.01;//Double.parseDouble(args[1]); // "0.01"
-    	String gs_dir="D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\gold_standard\\";//args[2];//
-    	String output_dir="D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\output\\";//args[3];// 
-        String orig_inter_file=gs_dir+project_name+"_haps.inter_freq_vars.txt";
+    	String project_name=args[0];//"0_0";//
+    	double quasi_cutoff= Double.parseDouble(args[1]); // "0.01"//
+    	String gs_dir= args[2];//"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\gold_standard\\";//
+    	String output_dir= args[3];//"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\output\\";// 
+        String orig_inter_file=gs_dir+project_name+"_haps.inter_freq.txt";
         String recon_inter_file=output_dir+project_name+".inter_freq_vars.txt";
         String output_files_prefix=output_dir+project_name;
 		int num_of_pools = 20;//Integer.parseInt(args[1]);

@@ -316,7 +316,7 @@ public class PoolSimulator {
                 hap2infreqs[h][p] = (double) hap2incts[h][p] / haps_per_pool;
         }
         BufferedWriter bw = new BufferedWriter(new FileWriter(gs_dir + project_name + 
-            "_haps.inter_freq_txt"));
+            "_haps.inter_freq_vars.txt"));
         bw.write("Hap_ID");
         for(int h = 0; h < actual_num_haps; h++)
             bw.write("\t" + "h"+h);
