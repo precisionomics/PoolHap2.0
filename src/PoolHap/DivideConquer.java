@@ -1,4 +1,4 @@
-package PoolHap;
+package PoolHap; 
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -78,7 +78,7 @@ public class DivideConquer {
             /*
              *  Load files.
              */
-            this.dp = new Parameters(parameter_file);
+            this.dp = new Parameters(parameter_file); 
             System.out.println("Finished loading the PoolHapX parameter file from " + parameter_file);
             //load_gc_outcome(parse_gc_input(gc_input_list)); 
             // above was removed and replaced by the line below by Quan Long 2019-07-07
