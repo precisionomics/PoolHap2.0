@@ -328,6 +328,8 @@ public class Entrance {
             final_reconstruction.write2files(gp.out_dir + gp.project_name + ".inter_freq_haps.txt",
                 gp.out_dir + gp.project_name + ".intra_freq_haps.txt",
                 "string");
+        }else if (gp.function.equals("split")) {
+        	
         }
     }
 }
