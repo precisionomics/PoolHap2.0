@@ -311,7 +311,7 @@ public class GraphColoring {
 
         // index_arr_tmp, list, and index_arr are copies of this.readindex_arr_tmp so far.
         // Shuffle read index ArrayList.
-        Collections.shuffle(list);
+        Collections.shuffle(list,new Random(19880122));
 
         // Now, index_arr_tmp, index_arr are copies of this.readindex_arr_tmp. List is now a
         // randomized version of this.readindex_arr_tmp.
@@ -649,7 +649,7 @@ public class GraphColoring {
         		for (int j=ref_reg_2D_arr.get(i).size();j< max_size;j++) {
         			int max_index = ref_reg_2D_arr.get(i).size();
         			if (max_index>0 ) {
-		        	    Random random = new Random();
+		        	    Random random = new Random(j);
 		        	    int s = random.nextInt(max_index)%(max_index+1);
 		        	    ref_reg_2D_arr.get(i).add(ref_reg_2D_arr.get(i).get(s));
 		        	    conf_reg_2D_arr.get(i).add(conf_reg_2D_arr.get(i).get(s));
