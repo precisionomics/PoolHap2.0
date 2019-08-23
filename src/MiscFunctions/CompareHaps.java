@@ -1,5 +1,8 @@
 package MiscFunctions;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -39,6 +42,45 @@ public class CompareHaps {
      * The number of segregating sites and their locations have to be the same between two
      * HapConfigs
      */
+    public static void compare_loci(String ori_inter_file, 
+    		String recon_inter_file, String new_recon_inter_file) throws 
+    IOException, InterruptedException{
+    	 BufferedReader br_ori_inter = new BufferedReader(new FileReader(
+    			 ori_inter_file));
+    	 BufferedReader br_recon_inter = new BufferedReader(new FileReader(
+    			 recon_inter_file));
+    	 BufferedWriter bw_new_recon_inter = new BufferedWriter(new FileWriter(
+    			 new_recon_inter_file));
+    	 ArrayList<String> ori_variant_position_list = new ArrayList<>();
+    	 String curr_ori_inter = br_ori_inter.readLine(); // read header line
+    	 curr_ori_inter = br_ori_inter.readLine(); // read freq line
+    	 curr_ori_inter = br_ori_inter.readLine(); // read third line
+    	 while(curr_ori_inter != null) {
+    		 String[] var_position_line = curr_ori_inter.split("\t");
+    	 	 String[] var_position = var_position_line[0].split(";");
+    	 	 ori_variant_position_list.add(var_position[1]);
+    	 	 curr_ori_inter = br_ori_inter.readLine();
+    	 }
+    	 
+    	 String curr_recon_inter = br_recon_inter.readLine();
+    	 bw_new_recon_inter.write(curr_recon_inter);
+    	 curr_recon_inter = br_recon_inter.readLine();
+    	 bw_new_recon_inter.write(curr_recon_inter);
+    	 curr_recon_inter = br_recon_inter.readLine(); //read the third line
+    	 while(curr_recon_inter != null) {
+    		 String[] var_position_line = curr_recon_inter.split("\t");
+    	 	 String[] var_position = var_position_line[0].split(";");
+    	 	 if(ori_variant_position_list.contains(var_position[1])) {
+    	 		 
+    	 	 }else if(!ori_variant_position_list.contains(var_position[1])) {
+    	 		 
+    	 	 }
+    	 	curr_recon_inter = br_recon_inter.readLine();
+    	 }
+    	 
+    	 
+    }
+    
     public static double[] single_pool_evaluator(
         HapConfig orig_haps,
         HapConfig recon_haps,
@@ -260,8 +302,8 @@ public class CompareHaps {
     	String output_dir= args[3]; //out_put dir
         String ori_inter_file=gs_dir+project_name+"_haps.inter_freq_vars.txt";
         String ori_intra_file=gs_dir+project_name+"_haps.intra_freq.txt";
-        String recon_inter_file=output_dir+project_name+".inter_freq_vars.txt";
-        String recon_intra_file=output_dir+project_name+".intra_freq.txt";
+        String recon_inter_file=output_dir+project_name+".inter_freq_haps.txt";
+        String recon_intra_file=output_dir+project_name+".intra_freq_haps.txt";
     	String output_files_prefix=output_dir+project_name;
     	multi_pool_summary(
     	        project_name,
