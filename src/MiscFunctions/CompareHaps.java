@@ -7,10 +7,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 
 import PoolHap.HapConfig;
 import PoolHap.Parameters.GenParameters;
+import spire.optional.intervalGeometricPartialOrder;
 
 public class CompareHaps {
 
@@ -43,15 +45,14 @@ public class CompareHaps {
      * HapConfigs
      */
     public static void compare_loci(String ori_inter_file, 
-    		String recon_inter_file, String new_recon_inter_file) throws 
+    		String recon_inter_file) throws
     IOException, InterruptedException{
     	 BufferedReader br_ori_inter = new BufferedReader(new FileReader(
     			 ori_inter_file));
     	 BufferedReader br_recon_inter = new BufferedReader(new FileReader(
     			 recon_inter_file));
-    	 BufferedWriter bw_new_recon_inter = new BufferedWriter(new FileWriter(
-    			 new_recon_inter_file));
     	 ArrayList<String> ori_variant_position_list = new ArrayList<>();
+    	 HashMap<String, String> var2hap = new HashMap<String, String>();
     	 String curr_ori_inter = br_ori_inter.readLine(); // read header line
     	 curr_ori_inter = br_ori_inter.readLine(); // read freq line
     	 curr_ori_inter = br_ori_inter.readLine(); // read third line
@@ -61,24 +62,40 @@ public class CompareHaps {
     	 	 ori_variant_position_list.add(var_position[1]);
     	 	 curr_ori_inter = br_ori_inter.readLine();
     	 }
-    	 
+    	 br_ori_inter.close();
     	 String curr_recon_inter = br_recon_inter.readLine();
-    	 bw_new_recon_inter.write(curr_recon_inter);
+    	 String[] var_position_line = curr_recon_inter.split("\t");
+    	 //bw_new_recon_inter.write(curr_recon_inter);
+    	 var2hap.put("header", curr_recon_inter);
     	 curr_recon_inter = br_recon_inter.readLine();
-    	 bw_new_recon_inter.write(curr_recon_inter);
+    	 int num_hap = var_position_line.length -1;
+    	 //bw_new_recon_inter.write(curr_recon_inter);
+    	 var2hap.put("freq", curr_recon_inter);
     	 curr_recon_inter = br_recon_inter.readLine(); //read the third line
     	 while(curr_recon_inter != null) {
-    		 String[] var_position_line = curr_recon_inter.split("\t");
+    		 var_position_line = curr_recon_inter.split("\t");	 
     	 	 String[] var_position = var_position_line[0].split(";");
-    	 	 if(ori_variant_position_list.contains(var_position[1])) {
-    	 		 
-    	 	 }else if(!ori_variant_position_list.contains(var_position[1])) {
-    	 		 
-    	 	 }
-    	 	curr_recon_inter = br_recon_inter.readLine();
+    	 	 var2hap.put(var_position[1], curr_recon_inter);
+    	 	 curr_recon_inter = br_recon_inter.readLine();
     	 }
-    	 
-    	 
+    	 br_recon_inter.close();
+         PrintWriter pw = new PrintWriter(new FileWriter(recon_inter_file, false)); 
+    	 pw.append(var2hap.get("header")+"\n");
+    	 pw.append(var2hap.get("freq")+"\n");
+    	 for(int p=0;p<ori_variant_position_list.size();p++) {
+    		 if(var2hap.containsKey(ori_variant_position_list.get(p))) {
+    			 pw.append(var2hap.get(ori_variant_position_list.get(p)));
+    			 pw.append("\n");
+    		 }else{
+        		 pw.append("0;"+ori_variant_position_list.get(p)+";"+
+        		    	 ori_variant_position_list.get(p)+";0:1");
+        		 for(int h =0; h < num_hap; h++ ) {
+        			 pw.append("\t"+"0");
+        		 }
+        		 pw.append("\n");
+    		 }
+    	 }
+    	 pw.close();
     }
     
     public static double[] single_pool_evaluator(
@@ -296,15 +313,17 @@ public class CompareHaps {
     }
     
     public static void main(String[] args) throws IOException, InterruptedException {
-    	String project_name= args[0];  //for example 0_1
-    	double quasi_cutoff= Double.parseDouble(args[1]); // cutoff
-    	String gs_dir= args[2]; //gold_standard dir
-    	String output_dir= args[3]; //out_put dir
+    	String project_name= "0";//args[0];  //for example 0_1
+    	double quasi_cutoff= 0.1;//Double.parseDouble(args[1]); // cutoff
+    	String gs_dir= "D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\PHX_Perfect_Data40_2\\gold_standard\\"; //args[2]; //gold_standard dir
+    	String output_dir= "D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\PHX_Perfect_Data40_2\\output\\" ;//args[3]; //out_put dir
         String ori_inter_file=gs_dir+project_name+"_haps.inter_freq_vars.txt";
         String ori_intra_file=gs_dir+project_name+"_haps.intra_freq.txt";
         String recon_inter_file=output_dir+project_name+".inter_freq_haps.txt";
         String recon_intra_file=output_dir+project_name+".intra_freq_haps.txt";
-    	String output_files_prefix=output_dir+project_name;
+        String output_files_prefix=output_dir+project_name;
+        compare_loci(ori_inter_file,recon_inter_file);
+        recon_inter_file=output_dir+project_name+".inter_freq_haps.txt";
     	multi_pool_summary(
     	        project_name,
     	        quasi_cutoff,

@@ -22,7 +22,7 @@ public class test {
 		hap2poolfre.put("key_2", new double[4]);
 		hap2poolfre.get("key_0")[0] = 0.1;
 		hap2poolfre.get("key_0")[3] = 0.2;
-		
+		System.out.println(hap2poolfre.get("key_0"));
 		for (int i=0; i< 4; i++) {
 			System.out.println(hap2poolfre.get("key_0")[i]);
 		}
