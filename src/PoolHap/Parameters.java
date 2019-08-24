@@ -23,7 +23,7 @@ public class Parameters {
     public String out_dir; // output directory
     public int num_pos_window;
     public int num_gap_window; 
-    
+    public int num_pos_job;
     //  Divide and conquer parameter set.
     public double gap_inpool_cutoff; // a ratio
     public double gap_all_pool_cutoff; // a ratio
@@ -69,27 +69,27 @@ public class Parameters {
     
     public Parameters(String propFilePath) throws IOException {
             
-        HashSet<String> supported_functions = new HashSet<String>();
-        for (int k = 0; k < supported_functions_array.length; k++) {
-             supported_functions.add(supported_functions_array[k]);
-        }
+//        HashSet<String> supported_functions = new HashSet<String>();
+//        for (int k = 0; k < supported_functions_array.length; k++) {
+//             supported_functions.add(supported_functions_array[k]);
+//        }
 
         Properties prop = new Properties(); // properties object from properties file
         InputStream is = new FileInputStream(propFilePath);
         prop.load(is);
         
-        this.function = prop.getProperty("Function");
-        if (!supported_functions.contains(this.function)) {
-            System.out.println("Function "+this.function+" is not supported. A typo?");
-            System.exit(0);
-        }
+//        this.function = prop.getProperty("Function");
+//        if (!supported_functions.contains(this.function)) {
+//            System.out.println("Function "+this.function+" is not supported. A typo?");
+//            System.exit(0);
+//        }
         this.project_name= prop.getProperty("Proj_Name");
         this.input_dir= prop.getProperty("Input_Dir")+"/";
         this.inter_dir = prop.getProperty("Intermediate_Dir")+"/";
         this.out_dir = prop.getProperty("Output_Dir")+"/";
         this.num_pos_window = Integer.parseInt(prop.getProperty("Num_Pos_Window"));
         this.num_gap_window = Integer.parseInt(prop.getProperty("Num_Gap_Window"));
-        
+        this.num_pos_job= Integer.parseInt(prop.getProperty("Num_Pos_Job")); 
         // Divide and conquer 
         
         this.gap_inpool_cutoff = Double.parseDouble(
