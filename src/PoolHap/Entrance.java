@@ -153,7 +153,18 @@ public class Entrance {
         /*
          * Input arguments.
          */
-        String parameter_file = args[0]; // parameter file path
+    	String[] supported_functions_array = {"format", "gc", "aem", "lasso", "split"};
+    	HashSet<String> supported_functions = new HashSet<String>();
+        for (int k = 0; k < supported_functions_array.length; k++) {
+             supported_functions.add(supported_functions_array[k]);
+        }
+    	String function  = args[0]; // parameter file path
+    	if (!supported_functions.contains(function)) {
+            System.out.println("Function "+ function+" is not supported. A typo?");
+            System.exit(0);
+        }
+        String parameter_file = args[1]; // parameter file path
+        
         // int num_pools = Integer.parseInt(args[2]); // number of pools present
         // removed by Quan Long 2019-07-03. This will be identified by counting how many files in a
         // folder
@@ -180,7 +191,7 @@ public class Entrance {
          */
 
         // By design, HapConfig contains haps of all pools.
-        if (gp.function.equals("format")) {
+        if (function.equals("format")) {
             // SAM files in input_dir/sam initiates pool-IDs and orders, and write to the
             // "name_file".
             // The function below generates vef files and inpool-var-freq file.
@@ -192,7 +203,7 @@ public class Entrance {
                 gp.project_name,
                 sam_files,
                 Entrance.name2index);
-        } else if (gp.function.equals("gc")) {
+        } else if (function.equals("gc")) {
             // PrintWriter in_list = new PrintWriter( // writer object for graph colored pools
             // new FileWriter(new File(gp.inter_dir + prefix + "_p.in.list")));
             // the folder "vef/" should exist under gp.inter_dir.
@@ -215,7 +226,7 @@ public class Entrance {
             }
             System.out
                 .println("\nGraph-Coloring Finished: " + dtf.format(LocalDateTime.now()) + "\n");
-        } else if (gp.function.equals("aem")) { // Note: aem includes DC and AEM
+        } else if (function.equals("aem")) { // Note: aem includes DC and AEM
             // Apply divide and conquer across all pools.
             String dc_out_file = gp.inter_dir + gp.project_name + "_dc_plan.txt"; // dc output
                                                                                   // filepath string
@@ -270,7 +281,7 @@ public class Entrance {
 
             System.out.println("\nPost-AEM GC Finished: " + dtf.format(LocalDateTime.now()) + "\n");
             
-        } else if (gp.function.equals("lasso")) {
+        } else if (function.equals("lasso")) {
             /*
              * Final intra pool haplotype configuration via LASSO selection. TODO: [Question]:: are
              * these global intra pool haplotypes?
@@ -328,8 +339,14 @@ public class Entrance {
             final_reconstruction.write2files(gp.out_dir + gp.project_name + ".inter_freq_haps.txt",
                 gp.out_dir + gp.project_name + ".intra_freq_haps.txt",
                 "string");
-        }else if (gp.function.equals("split")) {
-        	
+        } else if (function.equals("split")) { //split the vef file into several files (N variants one file)
+            String[] vef_files =
+                Entrance.get_filepaths(name_file, gp.inter_dir + "vef", "vef", false);     
+            	new File(gp.inter_dir + "/split_vef/").mkdir();
+                FileSplit split_file = new FileSplit (vef_files,gs_var_pos,  gp.num_pos_job );        
+            System.out
+                .println("\nFile Split Finished.\n");
         }
+        
     }
 }
