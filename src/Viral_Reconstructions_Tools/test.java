@@ -12,7 +12,7 @@ public class test {
 
 	public static void main(String[] args) {
 		HashMap<String, double[]> hap2poolfre = new HashMap<String, double[]>();
-		
+		HashMap<String, Double> hap2fre = new HashMap<String, Double>();
 //		String key_0 = "0_key";
 //		String key_1 = "1_key";
 //		String key_2 = "1_key";
@@ -40,9 +40,17 @@ public class test {
 		    hap_string_list.add(key);
 		}
 		
-		System.out.print(hap_string_list);
+		System.out.println(hap_string_list);
+		
+		for (int i=0; i<= (12-7) ; i++) {
+			System.out.println(i);
+		}
 		
 		
+		hap2fre.put("key1", 0.2);
+		System.out.println(hap2fre.get("key1"));
+		hap2fre.put("key1", (hap2fre.get("key1")+0.6));
+		System.out.println(hap2fre.get("key1"));
 		
 		
 		
