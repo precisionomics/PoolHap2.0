@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import Viral_Reconstructions_Tools.compare_inter_file;
+
 
 public class InterRegionsSplit {
 	
@@ -109,6 +111,17 @@ public class InterRegionsSplit {
 			 bw_inter.write("\n");
 		 }
 		 bw_inter.close();
+	 }
+	 
+	 public static void compareHaps_aem(
+		        String project_name,
+		        String gs_dir,
+		        String aem_dir,
+		        int level,
+		        int region_count) throws IOException, InterruptedException {
+		 
+		 
+		 
 	 }
 	
 

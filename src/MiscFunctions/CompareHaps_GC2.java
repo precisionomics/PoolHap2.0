@@ -181,6 +181,7 @@ public class CompareHaps_GC2 {
 		multi_pool_record = global_hap_evaluator(orig_inter_file, 
 				recon_inter_file, quasi_cutoff, output_files_prefix,
 				project_name);
+		
 		PrintWriter pw2 = new PrintWriter(
 	            new FileWriter(output_files_prefix + "_" + quasi_cutoff + "_2GC_average_results.txt", false));
 	        pw2.append("## parameters: cut-off = " + quasi_cutoff + "\n");
@@ -192,7 +193,7 @@ public class CompareHaps_GC2 {
 	                + "Total_RH/Total_OH\t"
 	                + "Total_OH\t"
 	                + "Total_RH\n");
-	            pw2.append(project_name + "\t" + "\t");
+	            pw2.append(project_name + "\t");
 	            for (int i = 0; i < 7; i++) {
 	                pw2.append(multi_pool_record[i] + "\t");
 	            }

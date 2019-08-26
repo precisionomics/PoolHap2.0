@@ -1,15 +1,71 @@
 package Viral_Reconstructions_Tools;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import Viral_Reconstructions_Tools.HapConfig_inter_file;
 
 public class compare_inter_file {
-	   
 	
+	public static void compare_loci(String ori_inter_file, 
+    		String recon_inter_file) throws
+    IOException, InterruptedException{
+    	 BufferedReader br_ori_inter = new BufferedReader(new FileReader(
+    			 ori_inter_file));
+    	 BufferedReader br_recon_inter = new BufferedReader(new FileReader(
+    			 recon_inter_file));
+    	 ArrayList<String> ori_variant_position_list = new ArrayList<>();
+    	 HashMap<String, String> var2hap = new HashMap<String, String>();
+    	 String curr_ori_inter = br_ori_inter.readLine(); // read header line
+    	 curr_ori_inter = br_ori_inter.readLine(); // read freq line
+    	 curr_ori_inter = br_ori_inter.readLine(); // read third line
+    	 while(curr_ori_inter != null) {
+    		 String[] var_position_line = curr_ori_inter.split("\t");
+    	 	 String[] var_position = var_position_line[0].split(";");
+    	 	 ori_variant_position_list.add(var_position[1]);
+    	 	 curr_ori_inter = br_ori_inter.readLine();
+    	 }
+    	 br_ori_inter.close();
+    	 String curr_recon_inter = br_recon_inter.readLine();
+    	 String[] var_position_line = curr_recon_inter.split("\t");
+    	 //bw_new_recon_inter.write(curr_recon_inter);
+    	 var2hap.put("header", curr_recon_inter);
+    	 curr_recon_inter = br_recon_inter.readLine();
+    	 int num_hap = var_position_line.length -1;
+    	 //bw_new_recon_inter.write(curr_recon_inter);
+    	 var2hap.put("freq", curr_recon_inter);
+    	 curr_recon_inter = br_recon_inter.readLine(); //read the third line
+    	 while(curr_recon_inter != null) {
+    		 var_position_line = curr_recon_inter.split("\t");	 
+    	 	 String[] var_position = var_position_line[0].split(";");
+    	 	 var2hap.put(var_position[1], curr_recon_inter);
+    	 	 curr_recon_inter = br_recon_inter.readLine();
+    	 }
+    	 br_recon_inter.close();
+         PrintWriter pw = new PrintWriter(new FileWriter(recon_inter_file, false)); 
+    	 pw.append(var2hap.get("header")+"\n");
+    	 pw.append(var2hap.get("freq")+"\n");
+    	 for(int p=0;p<ori_variant_position_list.size();p++) {
+    		 if(var2hap.containsKey(ori_variant_position_list.get(p))) {
+    			 pw.append(var2hap.get(ori_variant_position_list.get(p)));
+    			 pw.append("\n");
+    		 }else{
+        		 pw.append("0;"+ori_variant_position_list.get(p)+";"+
+        		    	 ori_variant_position_list.get(p)+";0:1");
+        		 for(int h =0; h < num_hap; h++ ) {
+        			 pw.append("\t"+"0");
+        		 }
+        		 pw.append("\n");
+    		 }
+    	 }
+    	 pw.close();
+    }
+	   
 	public static double[] global_hap_evaluator(String orig_inter_file, 
 			String recon_inter_file, double quasi_cutoff, String dir_prefix,
 			String project_name) throws IOException, InterruptedException {
@@ -100,29 +156,63 @@ public class compare_inter_file {
             // also_min_diff[h_id] + "\t" + min_diff_freq_prop[h_id] + "\t" +
         }
         pw.close();
+
         return new double[] {
             (double) num_accurate / orig_haps.num_global_hap,
             diff_ct /orig_haps.num_global_hap,
             diff_abs / orig_haps.num_global_hap,
             freq_tot_wt,
+            (double)recon_haps.num_global_hap/orig_haps.num_global_hap,
             orig_haps.num_global_hap,
             recon_haps.num_global_hap
         };
         
 	}
 	
-	
-	
 	public static void main(String[] args) throws IOException, InterruptedException{
-    	String project_name=args[0];//"0_0";//
+    	String project_name;//"0_0";//
     	double quasi_cutoff= Double.parseDouble(args[1]); // "0.01"//
-    	String gs_dir= args[2];//"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\gold_standard\\";//
-    	String output_dir= args[3];//"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\output\\";// 
-        String orig_inter_file=gs_dir+project_name+"_haps.inter_freq.txt";
-        String recon_inter_file=output_dir+project_name+".inter_freq_vars.txt";
-        String output_files_prefix=output_dir+project_name;
-		int num_of_pools = 20;//Integer.parseInt(args[1]);
-		double[] multi_pool_record = new double[6];
+    	String main_dir = args[2];
+    	String function = args[3];
+    	String orig_inter_file;
+    	String recon_inter_file;
+    	String gs_dir = main_dir + "\\gold_standard\\";
+    	String output_dir = main_dir + "\\output\\";
+    	String aem_dir = main_dir + "\\intermediate\\aem\\";
+    	 if(function.equals("aem")) {
+  	        int level = Integer.parseInt(args[4]);
+  	        int region_count = Integer.parseInt(args[5]);
+  	        project_name=args[0]+"_level_"+level+"_region_"
+          			+region_count;
+          }else {
+         	 project_name = args[0];
+          }
+//    	String gs_dir= args[2];//"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\gold_standard\\";//
+//    	String output_dir= args[3];//"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\output\\";// 
+        orig_inter_file=gs_dir+project_name+"_haps.inter_freq_vars.txt";
+         
+        if(function.equals("aem")) {
+        	recon_inter_file=aem_dir+project_name +".inter_freq_haps.txt";
+        }else if(function.equals("gc2")) {
+        	recon_inter_file=output_dir+project_name+"_gc.inter_freq_haps.txt";
+        }else {
+        	recon_inter_file=output_dir+project_name+".inter_freq_haps.txt";
+        }
+//        String recon_inter_file=output_dir+project_name+".inter_freq_vars.txt";
+        compare_loci(orig_inter_file,recon_inter_file);
+        String output_files_prefix;
+        if(function.equals("aem")) {
+        	recon_inter_file=aem_dir+project_name +".inter_freq_haps.txt";
+        	output_files_prefix=output_dir+project_name;
+        }else if(function.equals("gc2")) {
+        	recon_inter_file=output_dir+project_name+"_gc.inter_freq_haps.txt";
+        	output_files_prefix=output_dir+project_name+"_gc2";
+        }else {
+        	recon_inter_file=output_dir+project_name+".inter_freq_haps.txt";
+        	output_files_prefix=output_dir+project_name;
+        }
+//        recon_inter_file=output_dir+project_name+".inter_freq_vars.txt";
+		double[] multi_pool_record = new double[7];
 		multi_pool_record = global_hap_evaluator(orig_inter_file, 
 				recon_inter_file, quasi_cutoff, output_files_prefix,
 				project_name);
@@ -135,10 +225,11 @@ public class compare_inter_file {
 	                + "Mean_Mean_Min_Seq_Diff\t" // mean of means
 	                + "Mean_Mean_Min_Freq_Diff\t"
 	                + "Mean_Valid_QS_Freq_Sum\t"
+	                + "Total_RH/Total_OH\t"
 	                + "Total_OH\t"
 	                + "Total_RH\n");
-	            pw2.append(project_name + "\t" + num_of_pools + "\t");
-	            for (int i = 0; i < 6; i++) {
+	            pw2.append(project_name + "\t");
+	            for (int i = 0; i < 7; i++) {
 	                pw2.append(multi_pool_record[i] + "\t");
 	            }
 	            pw2.append("\n");

@@ -313,10 +313,10 @@ public class CompareHaps {
     }
     
     public static void main(String[] args) throws IOException, InterruptedException {
-    	String project_name= "0";//args[0];  //for example 0_1
-    	double quasi_cutoff= 0.1;//Double.parseDouble(args[1]); // cutoff
-    	String gs_dir= "D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\PHX_Perfect_Data40_2\\gold_standard\\"; //args[2]; //gold_standard dir
-    	String output_dir= "D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\PHX_Perfect_Data40_2\\output\\" ;//args[3]; //out_put dir
+    	String project_name= args[0];  //"0";//for example 0_1
+    	double quasi_cutoff= Double.parseDouble(args[1]); // 0.1;//cutoff
+    	String gs_dir= args[2]; //"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\PHX_Perfect_Data40_2\\gold_standard\\"; //gold_standard dir
+    	String output_dir= args[3]; //"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\PHX_Perfect_Data40_2\\output\\" ;//out_put dir
         String ori_inter_file=gs_dir+project_name+"_haps.inter_freq_vars.txt";
         String ori_intra_file=gs_dir+project_name+"_haps.intra_freq.txt";
         String recon_inter_file=output_dir+project_name+".inter_freq_haps.txt";
