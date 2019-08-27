@@ -15,7 +15,11 @@ public class InterRegionsSplit {
 	 * generate_split_interfile():
 	 * Read ori_inter_file, and only read those information within this region;
 	 * Combine identical haplotypes and their corresponding frequency within 
-	 * this region; Write a new regional_inter_file under gold_standard
+	 * this region; Write a new regional_inter_file under gold_standard.
+	 * 
+	 * TODO: For now, this can only work for perfect data, when the variant positions
+	 * in the "_vars.intra_freq" are the same as in the ori_inter_file
+	 * 
 	 */
 	 public static void generate_split_interfile(
 		        String project_name,
@@ -31,6 +35,7 @@ public class InterRegionsSplit {
 		 ArrayList<String> loci_string_list=new ArrayList<String>();
 		 ArrayList<Double> hap_freq_list=new ArrayList<Double>();
 		 HashMap<String, Double> hap2fre = new HashMap<String, Double>();
+		 
 		 String gs_inter_file = gs_dir + project_name + "_haps.inter_freq_vars.txt";
 		 String region_inter_file = gs_dir + project_name + "_level_" + level + 
 				 "_region_" + region_count + "_haps.inter_freq_vars.txt";
@@ -120,7 +125,8 @@ public class InterRegionsSplit {
 		String project_name= args[0];//"0";
     	String gs_dir= args[1];//"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\PHX_Perfect_Data40_2\\gold_standard\\"; //args[2]; //gold_standard dir
     	String inter_dir= args[2];//"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\PHX_Perfect_Data40_2\\intermediate\\" ;//args[3]; //out_put dir
-        String dc_plan_file=inter_dir+project_name+"_dc_plan.txt";
+        
+    	String dc_plan_file=inter_dir+project_name+"_dc_plan.txt";
         BufferedReader br_dc = new BufferedReader(new FileReader(dc_plan_file));
         String curr_line = br_dc.readLine();//read first line "Level I"
         curr_line = br_dc.readLine(); // read the regions for level I

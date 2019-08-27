@@ -267,6 +267,8 @@ public class CompareInterFile {
         String output_files_prefix;
         if(function.equals("aem")) {
         	recon_inter_file=aem_dir+project_name +".inter_freq_haps.txt";
+            compare_loci(orig_inter_file,recon_inter_file);
+        	recon_inter_file=aem_dir+project_name +".inter_freq_haps.txt";
         	output_files_prefix=output_dir+project_name;
         }else if(function.equals("gc2")) {
         	recon_inter_file=output_dir+project_name+"_gc.inter_freq_haps.txt";
