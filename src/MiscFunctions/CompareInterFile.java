@@ -12,6 +12,7 @@ import java.util.HashSet;
 import Viral_Reconstructions_Tools.HapConfig_inter_file;
 
 public class CompareInterFile {
+	
 	/* 
 	 * For the non_perfect_data, one or more variant positions may not be called.
 	 * But in order to compare the ori_inter_file with recon_inter_file, the
@@ -245,7 +246,7 @@ public class CompareInterFile {
     	String project_name = args[0];//"0_0";//
     	double quasi_cutoff= Double.parseDouble(args[1]); // "0.01"//
     	String main_dir = args[2];
-    	String function = args[3];
+    	String function = args[3]; // for 2nd GC: gc2, for aem: aem
     	String orig_inter_file;
     	String recon_inter_file;
     	String gs_dir = main_dir + "/gold_standard/";
