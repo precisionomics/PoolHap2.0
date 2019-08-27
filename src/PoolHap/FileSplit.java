@@ -56,14 +56,17 @@ public class FileSplit {
 	
 	public void VefFileSplit (String[] vef_arr , ArrayList<HashSet<String>> job_snp_dict)
 			throws  IOException {
+		for (int i=0; i<job_snp_dict.size();i++ ) {
+			int lastIndex = vef_arr[0].lastIndexOf("/");
+			new File(vef_arr[0].substring(0, lastIndex) + "/" +"../split_vef/"+Integer.toString(i) ).mkdir();
+		}
 		
 		for (int i=0; i<job_snp_dict.size();i++ ) {
 			for (int j=0;j< vef_arr.length; j++) {
 				int lastIndex = vef_arr[j].lastIndexOf("/");
 				String path= vef_arr[j].substring(0, lastIndex) + "/" +"../split_vef"+ "/" + 
-						vef_arr[j].substring(lastIndex);
-				System.out.println(path);
-				FileWriter mydata = new FileWriter(path+ "_"+ Integer.toString(i),false);
+						Integer.toString(i) + "/" +vef_arr[j].substring(lastIndex);
+				FileWriter mydata = new FileWriter(path ,false);
 	            PrintWriter pw = new PrintWriter(mydata);
 	            BufferedReader br = new BufferedReader(new FileReader(vef_arr [j]));
 	            String line = "";
