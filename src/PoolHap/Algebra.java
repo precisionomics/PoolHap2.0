@@ -1,6 +1,7 @@
 package PoolHap;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.ArrayRealVector;
@@ -146,9 +147,9 @@ public class Algebra {
         return sum(p) / p.length;
     }
 
-    public static void rmlow_and_normalize(double[] p, double cutoff) {
+    public static void rmlow_and_normalize(double[] p, double zero_cutoff) {
         for (int k = 0; k < p.length; k++) {
-            if (p[k] < cutoff) {
+            if (p[k] < zero_cutoff) {
                 p[k] = 0;
             }
         }
@@ -444,4 +445,71 @@ public class Algebra {
 
         return logL;
     }
+    
+    /**
+     * Sort the array double[] frequency, and adjust their original indexes accordingly; 
+     * and then, select the top ones and return a boolean array labeling the indexes that 
+     * will be removed as TRUE.
+     *  
+     * Before sorting, random permute the arrays so that order will be disrupted: this is to 
+     * introduce some randomness so that, if one take the top ones after sorting,  one will 
+     * randomly get different ones when there are many entries with the same values.  
+     * 
+     * This function will be used to filter low-frequnt haplotypes in AEM and regional LASSO
+     * 
+     * @param frequency
+     * @param num_remained_tops
+     */
+    public static boolean[] permute_sort_and_remove(double[] frequency, int num_remained_tops) {
+        int array_len=frequency.length;
+        int[] indexes=new int[array_len];
+        for(int k=0;k<array_len;k++) {
+            indexes[k]=k;
+        }
+        // permute n*n times first so that the equal entries are disrupted.
+        for(int round=0; round<array_len; round++) {
+            for(int i=0; i<array_len; i++) {
+                int j = (int) (Math.random()*(array_len-1));
+                double tmp=frequency[i];
+                frequency[i]=frequency[j];
+                frequency[j]=tmp;
+                int tmp_index=indexes[i];
+                indexes[i]=indexes[j];
+                indexes[j]=tmp_index;
+            }
+        }
+        // sort the array and its indexes accordingly:
+        for(int i=0; i<array_len-1; i++) {
+            for(int j=array_len-1; j>i; j--) {
+                if(frequency[j-1]<frequency[j]) { // swap them and the indexes
+                    double tmp=frequency[j-1];
+                    frequency[j-1]=frequency[j];
+                    frequency[j]=tmp;
+                    int tmp_index=indexes[j-1];
+                    indexes[j-1]=indexes[j];
+                    indexes[j]=tmp_index;
+                }
+            }
+        }
+//        for(int i=0; i<array_len; i++) {
+//            System.out.println(frequency[i]+":\t"+indexes[i]);
+//        }
+        boolean[] removed_indexes = new boolean[array_len];
+        for(int remained=0;remained<num_remained_tops;remained++) {
+            removed_indexes[indexes[remained]]=false;
+        }for(int removed=num_remained_tops; removed<array_len;removed++) {
+            removed_indexes[indexes[removed]]=true;
+        }
+//        for(int i=0; i<array_len; i++) {
+//            if(removed_indexes[i])
+//                System.out.print(i+" ");
+//        }
+        return removed_indexes;
+    }
+    
+//    public static void main(String[] args) {
+//        double[] array= {0.9,0.1,0.3,0.3,0.1,0.1,0.7,0.8,0.4,0.9,0.6,0.5,0.9,0.1};
+//        int remained_tops=9;
+//        permute_and_sort(array, remained_tops);
+//    }
 }

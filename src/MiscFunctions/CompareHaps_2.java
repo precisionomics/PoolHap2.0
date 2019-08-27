@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 
 import PoolHap.HapConfig;
-import PoolHap.Parameters.GenParameters;
 
 public class CompareHaps_2 {
 

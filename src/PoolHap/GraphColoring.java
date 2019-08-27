@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Vector;
+import java.util.Random;
 
 public class GraphColoring {
     // TODO: [ReconEP]:: refactor variable names to be more sensible (e.g. camelCase for Java).
@@ -28,6 +29,10 @@ public class GraphColoring {
     public int num_pools;
     public LocusAnnotation[] locusInfo; // # of loci, note that a locus can be a SNP or a region
     public double[][] inpool_site_freqs; // # of loci x # of pools; Added by Quan Dec. 2018.
+    public int num_loci_window;
+    public int max_num_gap;
+    public String vef_file;
+    
 
     // TODO: [LEFTOVER]
     // new GraphColoring(gp.inter_dir + prefix + "_p" + p + ".vef",
@@ -43,7 +48,8 @@ public class GraphColoring {
      *  @param out_file output file path string.
      *  @throws IOException on input error.
      */
-    public GraphColoring(String vef, String gs_var_pos, String out_file) throws IOException {
+    public GraphColoring(String vef, String gs_var_pos, String out_file, int num_pos_window, 
+    		int num_gap_window) throws IOException {
         /*
          *  Initialize read indices, read information, genotype dictionary, and reader variables.
          */
@@ -51,6 +57,10 @@ public class GraphColoring {
         // objects?
         this.readindex_arr_tmp = new Vector<Integer>();
         this.readinfo_arr_tmp = new Vector<String>();
+        this.num_loci_window = num_pos_window;
+        this.max_num_gap = num_gap_window;
+        this.vef_file = vef;
+        
         int count = 0;
 
         // HashMap<pos=allele;..., count>
@@ -107,8 +117,6 @@ public class GraphColoring {
             }
         }
         bufferedreader.close();
-
-
         /*
          *  Solve and produce haplotype configurations.
          */
@@ -124,93 +132,62 @@ public class GraphColoring {
      *  @param level_1 all level 1 haplotype configurations
      *  @param level_2 all level 2 haplotype configurations
      *  @param gs_var_pos (required) gold standard variant positions file path string
-     *  @param dosage TODO: [Question]:: what is this?
+     *  @param virtual_cov_link_gc // See property file for the explanation of this parameter
      *  @throws IOException on input error.
      */
-    public GraphColoring(
-        HapConfig[] level_1,
-        HapConfig[] level_2,
-        String gs_var_pos,
-        int dosage) throws IOException {
-
-        /*
-         *  Initialize read indices and read information variables.
-         */
+    public GraphColoring(HapConfig[] level_1,  HapConfig[] level_2,  String gs_var_pos,
+        int virtual_cov_link_gc) throws IOException {
+    	this.num_loci_window = Integer.MAX_VALUE;
+        this.max_num_gap = 0;
+        // Initialize read indices and read information variables.
         this.readindex_arr_tmp = new Vector<Integer>();
         this.readinfo_arr_tmp = new Vector<String>();
         int count = 0;
-        /*
-         *  Parse level 1 regions.
-         */
+        // Covert regional haplotypes to VEF format.
         // For each region in all level 1 regions...
         for (int r = 0; r < level_1.length; r++) {
             // For each haplotype in all global haplotypes in region...
             for (int h = 0; h < level_1[r].num_global_hap; h++) {
                 String curr_vc = ""; // TODO: [Question]:: what is vc?
-
                 // For each locus in all loci in region
                 for (int l = 0; l < level_1[r].num_loci; l++) {
                     curr_vc += (level_1[r].locusInfo[l].start_loc // format read info
                         + "="
                         + level_1[r].global_haps_string[h][l]
                         + ";");
-
                 }
-
                 // TODO: [Question]:: what is ct? Count?
-                int hap_ct = (int) (level_1[r].global_haps_freq[h] * dosage); // haplotype count(?)
+                int hap_ct = (int) (level_1[r].global_haps_freq[h] * virtual_cov_link_gc); // haplotype count(?)
                 for (int c = 0; c < hap_ct; c++) { // add reads and corresponding indices to vectors
                     // The index of readinfo_arr_tmp that corresponds to this genotype.
-                    this.readindex_arr_tmp.add(count);
+                    this.readindex_arr_tmp.add(count);  // the number of line in the file
                     count++;
                     this.readinfo_arr_tmp.add(curr_vc);
                 }
-
-                // TODO: [LEFTOVER]
-                // System.out.println(curr_vc);
-
             }
         }
-
-
-        /*
-         * Parse level 2 regions.
-         */
         // For each region in all level 2 regions...
         for (int r = 0; r < level_2.length; r++) {
-
             // For each haplotype in all global haplotypes in region...
             for (int h = 0; h < level_2[r].num_global_hap; h++) {
                 String curr_vc = "";
-
                 // For each locus in all loci in region...
                 for (int l = 0; l < level_2[r].num_loci; l++) {
                     curr_vc += (level_2[r].locusInfo[l].start_loc // format read info
                     + "="
                     + level_2[r].global_haps_string[h][l]
                     + ";");
-
                 }
-
-                int hap_ct = (int) (level_2[r].global_haps_freq[h] * dosage); // haplotype count(?)
+                int hap_ct = (int) (level_2[r].global_haps_freq[h] * virtual_cov_link_gc); // haplotype count(?)
                 for (int c = 0; c < hap_ct; c++) { // add reads and corresponding indices to vectors
                     // The index of readinfo_arr_tmp that corresponds to this genotype.
                     this.readindex_arr_tmp.add(count);
                     count++;
                     this.readinfo_arr_tmp.add(curr_vc);
                 }
-
-                // TODO: [LEFTOVER]
-                // System.out.println(curr_vc);
-
             }
         }
-
-        // TODO: [LEFTOVER]
-        // System.out.println("Finished reading in all of the source files.");
-
-        System.out.println("There are "
-            + count
+        System.out.println("There are " + count
             + " individual fragments (reads or regional haplotypes) in the dataset.");
 
         this.gc_solver(gs_var_pos);
@@ -334,7 +311,7 @@ public class GraphColoring {
 
         // index_arr_tmp, list, and index_arr are copies of this.readindex_arr_tmp so far.
         // Shuffle read index ArrayList.
-        Collections.shuffle(list);
+        Collections.shuffle(list,new Random(19880122));
 
         // Now, index_arr_tmp, index_arr are copies of this.readindex_arr_tmp. List is now a
         // randomized version of this.readindex_arr_tmp.
@@ -634,29 +611,104 @@ public class GraphColoring {
 
         this.output_ref_arr = new HashMap<String,Integer>();
         this.conf_ref_arr = new HashMap<String,String>();
-        double completeness_cutoff = 0;
-        for (int i = 0; i <= real_max_color; i++) {
-            if (count(ref_arr[i]) <= completeness_cutoff) {	// may implement this in the future
-
-                // TODO: [LEFTOVER]
-                // System.out.println(ref_arr[i]);
-
-                if (this.output_ref_arr.containsKey(ref_arr[i])) {
-                    this.output_ref_arr.put(ref_arr[i], this.output_ref_arr.get(ref_arr[i])+1);
-                    conf_ref_arr.put(ref_arr[i], conf_arr[i]);
+        
+        int num_window =  this.num_loci/ this.num_loci_window +1;
+        if ((this.num_loci % this.num_loci_window )==0) {
+        	num_window--;
+        }
+        ArrayList<ArrayList<String>> ref_reg_2D_arr= new ArrayList<ArrayList<String>>();
+        ArrayList<ArrayList<String>> conf_reg_2D_arr= new ArrayList<ArrayList<String>>();
+        int completeness_cutoff = this.max_num_gap;
+        if (num_window >1 ) {
+        	for (int i=0; i <(num_window); i++ ) {
+        		ArrayList<String> tmp_ref_arr = new ArrayList<String>();
+        		ArrayList<String> tmp_conf_arr = new ArrayList<String>();
+        		int index_max = (i+1)* this.num_loci_window;
+        		if (((i+1)* this.num_loci_window) > this.num_loci) {
+        			index_max = this.num_loci;
+        		}
+        		
+        		for (int j = 0; j <= real_max_color; j++) {
+        			if (count(ref_arr[j].substring(this.num_loci_window*i ,index_max )  ) <= completeness_cutoff) {
+        				tmp_ref_arr.add( ref_arr[j].substring(this.num_loci_window*i ,index_max )  );
+        				tmp_conf_arr.add( conf_arr[j].substring(this.num_loci_window*i,index_max-1 )  );
+        			}
+        		}
+        		ref_reg_2D_arr.add(tmp_ref_arr);
+        		conf_reg_2D_arr.add(tmp_conf_arr);
+        	}
+        	
+        	int max_size =0;
+        	for (int i=0; i <ref_reg_2D_arr.size(); i++ ) {
+        		if (ref_reg_2D_arr.get(i).size()>  max_size) {
+        			max_size = ref_reg_2D_arr.get(i).size();
+        		}
+        	}
+        	
+        	for (int i=0; i <ref_reg_2D_arr.size(); i++ ) {
+        		for (int j=ref_reg_2D_arr.get(i).size();j< max_size;j++) {
+        			int max_index = ref_reg_2D_arr.get(i).size();
+        			if (max_index>0 ) {
+		        	    Random random = new Random(j);
+		        	    int s = random.nextInt(max_index)%(max_index+1);
+		        	    ref_reg_2D_arr.get(i).add(ref_reg_2D_arr.get(i).get(s));
+		        	    conf_reg_2D_arr.get(i).add(conf_reg_2D_arr.get(i).get(s));
+        			}else {
+        				System.out.println("ERROR: Can not reconstruct haplotype for" + this.vef_file+ "using graph "
+        						+ "coloring.\nPlease decrease the Num_Pos_Window or increase Num_Gap_Window!");
+        	        	System.exit(0);
+        			}
+        			
+        		}
+        	}
+        	
+//        	for (int i =0; i< ref_reg_2D_arr.size();i++)
+//        		System.out.println(ref_reg_2D_arr.get(i));
+        	
+        	for (int j=0; j< ref_reg_2D_arr.get(0).size(); j++) {
+        		String tmp_ref = ref_reg_2D_arr.get(0).get(j); 
+        		String tmp_conf =conf_reg_2D_arr.get(0).get(j); 
+        		for (int i=1; i <ref_reg_2D_arr.size(); i++ ) {
+        			tmp_ref=tmp_ref + ref_reg_2D_arr.get(i).get(j);
+        			tmp_conf =tmp_conf+ "?" + conf_reg_2D_arr.get(i).get(j); 
+        		}
+        		if (this.output_ref_arr.containsKey(tmp_ref)) {
+                    this.output_ref_arr.put(tmp_ref, this.output_ref_arr.get(tmp_ref)+1);
+                    conf_ref_arr.put(tmp_ref, tmp_conf);
 
                 //
                 } else {
-                    this.output_ref_arr.put(ref_arr[i], 1);
-                    this.conf_ref_arr.put(ref_arr[i], conf_arr[i]);
+                    this.output_ref_arr.put(tmp_ref, 1);
+                    this.conf_ref_arr.put(tmp_ref, tmp_conf);
                 }
-
-            } else {
-
-                // TODO: [LEFTOVER]
-                // System.out.println(ref_arr[i] + "\t" + count(ref_arr[i]));
-
-            }
+        	}
+        	
+        	
+        }else {
+        
+	        for (int i = 0; i <= real_max_color; i++) {
+	            if (count(ref_arr[i]) <= completeness_cutoff) {	// may implement this in the future
+	
+	                // TODO: [LEFTOVER]
+	                // System.out.println(ref_arr[i]);
+	
+	                if (this.output_ref_arr.containsKey(ref_arr[i])) {
+	                    this.output_ref_arr.put(ref_arr[i], this.output_ref_arr.get(ref_arr[i])+1);
+	                    conf_ref_arr.put(ref_arr[i], conf_arr[i]);
+	
+	                //
+	                } else {
+	                    this.output_ref_arr.put(ref_arr[i], 1);
+	                    this.conf_ref_arr.put(ref_arr[i], conf_arr[i]);
+	                }
+	
+	            } else {
+	
+	                // TODO: [LEFTOVER]
+	                // System.out.println(ref_arr[i] + "\t" + count(ref_arr[i]));
+	
+	            }
+	        }
         }
 
         // TODO: [LEFTOVER]
@@ -677,11 +729,20 @@ public class GraphColoring {
         for (String entry : this.output_ref_arr.keySet()) {
             String b = this.conf_ref_arr.get(entry);
             String c = "";
+            String tmp_str= "";
+           
             for (int i = 0; i < b.length(); i++) {
-                c = c + entry.substring(i, i + 1) + b.substring(i, i + 1); // TODO: (minor) c+=?
+            	tmp_str = entry.substring(i, i + 1);
+            	if (tmp_str.equals("*")) {
+            		tmp_str="0";
+            	}
+                c = c + tmp_str + b.substring(i, i + 1); // TODO: (minor) c+=?
             }
-
-            c = c + entry.substring(entry.length() - 1, entry.length()); // TODO: (minor) c+=?
+            tmp_str =  entry.substring(entry.length() - 1, entry.length()) ;
+        	if (tmp_str.equals("*")) {
+        		tmp_str="0";
+        	}
+            c = c+ tmp_str ; // TODO: (minor) c+=?
             pw.write(c + "\t" + this.output_ref_arr.get(entry).toString() + "\n");
 
             // TODO: [LEFTOVER]
