@@ -1,4 +1,4 @@
-package Viral_Reconstructions_Tools;
+package MiscFunctions;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -8,10 +8,8 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import Viral_Reconstructions_Tools.HapConfig_inter_file;
 
-public class compare_inter_file {
-	
+public class CompareInterFile {
 	/* 
 	 * For the non_perfect_data, one or more variant positions may not be called.
 	 * But in order to compare the ori_inter_file with recon_inter_file, the
@@ -83,13 +81,12 @@ public class compare_inter_file {
     	 pw.close();
     }
 	
-	
 	public static double[] global_hap_evaluator(String orig_inter_file, 
 			String recon_inter_file, double quasi_cutoff, String dir_prefix,
 			String project_name) throws IOException, InterruptedException {
 		
-		HapConfig_inter_file orig_haps = new HapConfig_inter_file(orig_inter_file);
-		HapConfig_inter_file recon_haps = new HapConfig_inter_file(recon_inter_file);
+		HapConfigInterFile orig_haps = new HapConfigInterFile(orig_inter_file);
+		HapConfigInterFile recon_haps = new HapConfigInterFile(recon_inter_file);
 		int max_pos_diff = (int)Math.floor(orig_haps.num_loci*quasi_cutoff);
 		double diff_ct = 0.0;
 		double diff_abs = 0;
@@ -252,5 +249,4 @@ public class compare_inter_file {
 	            pw2.append("\n");
 	        pw2.close();
 	}
-
 }
