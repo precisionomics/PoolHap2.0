@@ -29,12 +29,8 @@ slim =
 ms = /export/home/jhe/download/msdir/ms
 DWGSIM = /export/home/jhe/download/DWGSIM-master/dwgsim
 ##########
-# ms: Generates populations of genotypes under a variety of neutral models to investige their statistical properties.  
-Haps_Per_Pool = 20
+# SLiM: Pass the SLiM output
 Num_Pools = 25
-Est_Ind_Per_Pool = 1000000
-Mutaton_Rate_Per_Base = 0.00001
-Segregating_Sites = 10
 Ref_Seq_Len = 9719
 ##########
 # dwgsim: Simulating a variety of next- and third-generation sequencing reads from input genetic sequences.
@@ -46,20 +42,11 @@ Coverage = 100
 Read_Len = 150
 Outer_Dist = 400
 ##########            
- * 
- * To be notice:
- * This code will generate input/ intermediate/ gold_standard/ directories under main/
- * And fasta/ fastq/ under input/ and vef/ under intermediate (For perfect data)
- * For non_perfect_data, it will also generate vcf/ sam/ bam/ under input/
- * The "Ref_Seq_Len" now is the full_path to Reference_sequence
- * For perfect data, it will put _vars.intra_freq.txt under intermediate/
  */
 
 // For generating VEFs directly.
 public class PoolSimulator_SLiM {
 	
-    // directories and project name
-//    String main_dir;
     String input_dir;
     String inter_dir;
     String gs_dir;
@@ -117,15 +104,8 @@ public class PoolSimulator_SLiM {
         this.fastq_folder=this.input_dir + "fastq/";
         this.vef_folder=this.inter_dir+"vef/";
         this.project_name=prop.getProperty("Proj_Name");
-//        this.msCMDLine = prop.getProperty("ms"); 
-//        this.slimCMDLine = prop.getProperty("slim"); 
         this.dwgsimCMDLine = prop.getProperty("DWGSIM"); 
-        
- //       this.haps_per_pool = Integer.parseInt(prop.getProperty("Haps_Per_Pool"));
         this.num_pools = Integer.parseInt(prop.getProperty("Num_Pools"));
-//        this.est_ind_pool = Integer.parseInt(prop.getProperty("Est_Ind_Per_Pool"));
-//       this.mutation_rate = Double.parseDouble(prop.getProperty("Mutaton_Rate_Per_Base"));
-        //this.num_var_pos = Integer.parseInt(prop.getProperty("Segregating_Sites"));
         this.ref_seq_len = Integer.parseInt(prop.getProperty("Ref_Seq_Len"));
         this.ref_seq_file_path = prop.getProperty("Reference_Seq"); 
         this.is_perfect = Boolean.parseBoolean(prop.getProperty("Is_Perfect"));
@@ -141,45 +121,21 @@ public class PoolSimulator_SLiM {
         this.outer_dist = Integer.parseInt(prop.getProperty("Outer_Dist"));
 //        this.sim_var_pos = new int[num_var_pos];
         is.close();
-        
-        // Initialize variables that need to be available:
-        
-        // pool id -> [hap_ids]
+ 
 	}
-	/**
-	 * // Step 1: Simulate all-pool haplotypes using ms.  
-	 * @param prefix
-	 */
-//	public void simulate_backwards_ms() throws IOException, InterruptedException{	 
-//        System.out.print("Step 1: Simulate all-pool haplotypes using ms.\nCommand: ");
-//        this.all_pool_haps = haps_per_pool  * num_pools;
-//        double theta = 2 * est_ind_pool * mutation_rate; // Population-wide mutation rate per base for haploids
-//        double rho = theta / 2; // Population-wide recombination rate for haploids
-//        ProcessBuilder CMDLine = new ProcessBuilder(msCMDLine, 
-//            Integer.toString(all_pool_haps), "1", "-L", 
-//            "-seeds", Integer.toString(ThreadLocalRandom.current().nextInt(10620,1062017280)), 
-//            "-t", Double.toString(theta), 
-//            "-s", Integer.toString(num_var_pos), 
-//            "-r", Double.toString(rho), Integer.toString(ref_seq_len));
-//        System.out.println(String.join(" ", CMDLine.command()));
-//        CMDLine.redirectErrorStream(true);
-//        File logFile = new File(gs_dir + project_name + ".ms.txt");
-//        CMDLine.redirectOutput(logFile);
-//        Process CMDProcess = CMDLine.start();  
-//        CMDProcess.waitFor();
-//	}
 	
 	/**
-	 * // Step 2A: Figure out 
+	 * // Step 1A: Processing slim outcome
+	 * Figure out:
 	 * i) the number of types of haplotypes and 
 	 * ii) the non-degenerate variant positions.
 	 * 
 	 * @throws IOException
 	 */
 	public void processing_slim_outcome() throws IOException{
-	  System.out.println("Step 2A: Figure out i) the number of types of haplotypes and ii) "
+	  System.out.println("Step 1A: Figure out i) the number of types of haplotypes and ii) "
 		    + "the non-degenerate variant positions.\n");
-	    BufferedReader br = new BufferedReader(new FileReader(gs_dir + project_name + "_slim.out")); 
+	    BufferedReader br = new BufferedReader(new FileReader(gs_dir + project_name + "_slim.txt")); 
 	    String currLine = br.readLine(); // header
 	    String[] tmpVarPos = currLine.split(" ");
 	    while(!tmpVarPos[0].equals("#OUT:")) {
@@ -195,9 +151,7 @@ public class PoolSimulator_SLiM {
 	    }
 	    this.num_var_pos = Integer.parseInt(tmpVarPos[1]);
 	    this.sim_var_pos = new int[num_var_pos];
-//	    for (int i = 2; i <= 8; i++) {
-//	        currLine = br.readLine(); // other extraneous lines
-//	    }
+
 	    currLine = br.readLine();	    
 	    tmpVarPos = currLine.split(" "); // positions
 	    for (int p = 1; p <= num_var_pos; p++) {
@@ -245,12 +199,12 @@ public class PoolSimulator_SLiM {
 	}
      
 	/**
-	 * Step 2B: Report properties of the simulated haplotypes to the user 
+	 * Step 2A: Report properties of the simulated haplotypes to the user 
 	 * to check if they're acceptable.
 	 * @param prefix
 	 */
 	public void ms_reports() throws IOException {
-        System.out.println("Step 2B: Report properties of the simulated haplotypes to the user "
+        System.out.println("Step 2A: Report properties of the simulated haplotypes to the user "
             + "to check if they're acceptable.");
         int[] pwDifference = new int[actual_num_haps * (actual_num_haps - 1) / 2];
         int compare = 0; 

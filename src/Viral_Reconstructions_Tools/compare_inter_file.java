@@ -12,6 +12,19 @@ import Viral_Reconstructions_Tools.HapConfig_inter_file;
 
 public class compare_inter_file {
 	
+	/* 
+	 * For the non_perfect_data, one or more variant positions may not be called.
+	 * But in order to compare the ori_inter_file with recon_inter_file, the
+	 * number and position of variants must be the same.
+	 * compare_loci() will compare the variants in the ori_inter_file and 
+	 * recon_inter_file, if recon_inter_file missed any of the variant positions,
+	 * a new version recon_inter_file that contains all variant positions will overwrite 
+	 * the old one.
+	 * 
+	 * TODO: For now, I only take into account the situations when one or more 
+	 * variant positions are missed called. I haven't include the situations 
+	 * when false_positive variants are called.      
+	 */
 	public static void compare_loci(String ori_inter_file, 
     		String recon_inter_file) throws
     IOException, InterruptedException{
@@ -21,6 +34,7 @@ public class compare_inter_file {
     			 recon_inter_file));
     	 ArrayList<String> ori_variant_position_list = new ArrayList<>();
     	 HashMap<String, String> var2hap = new HashMap<String, String>();
+    	 //Read original_inter_file, and generate ori_variant_position_list
     	 String curr_ori_inter = br_ori_inter.readLine(); // read header line
     	 curr_ori_inter = br_ori_inter.readLine(); // read freq line
     	 curr_ori_inter = br_ori_inter.readLine(); // read third line
@@ -31,10 +45,10 @@ public class compare_inter_file {
     	 	 curr_ori_inter = br_ori_inter.readLine();
     	 }
     	 br_ori_inter.close();
+    	 //Read reconstruct_inter_file
     	 String curr_recon_inter = br_recon_inter.readLine();
     	 String[] var_position_line = curr_recon_inter.split("\t");
-    	 //bw_new_recon_inter.write(curr_recon_inter);
-    	 var2hap.put("header", curr_recon_inter);
+    	 var2hap.put("header", curr_recon_inter); // Hap_ID
     	 curr_recon_inter = br_recon_inter.readLine();
     	 int num_hap = var_position_line.length -1;
     	 //bw_new_recon_inter.write(curr_recon_inter);
@@ -47,6 +61,9 @@ public class compare_inter_file {
     	 	 curr_recon_inter = br_recon_inter.readLine();
     	 }
     	 br_recon_inter.close();
+    	 //Over-write recon_inter_file, for those variant_positions 
+    	 //in the ori_inter_file that are not called in the recon_inter_file, 
+    	 //write 0 for all haplotypes
          PrintWriter pw = new PrintWriter(new FileWriter(recon_inter_file, false)); 
     	 pw.append(var2hap.get("header")+"\n");
     	 pw.append(var2hap.get("freq")+"\n");
@@ -65,7 +82,8 @@ public class compare_inter_file {
     	 }
     	 pw.close();
     }
-	   
+	
+	
 	public static double[] global_hap_evaluator(String orig_inter_file, 
 			String recon_inter_file, double quasi_cutoff, String dir_prefix,
 			String project_name) throws IOException, InterruptedException {
@@ -86,7 +104,6 @@ public class compare_inter_file {
 	       for (int ho = 0; ho < orig_haps.num_global_hap; ho++) {
 	    	   ori_hap_id.add(orig_haps.hap_IDs[ho]);
 	       }
-//		int num_inpool_ori = orig_haps.num_global_hap;
 		
 		int[] min_diff_hap = new int[orig_haps.num_global_hap];
 	    // Index of the closest reconstructed haplotype.
@@ -145,17 +162,16 @@ public class compare_inter_file {
         for (int hr : quasi_indices)
             freq_tot_wt += recon_haps.global_haps_freq[hr];
 
-        PrintWriter pw = new PrintWriter(
-            new FileWriter(dir_prefix + "_" + quasi_cutoff + "_global_haplotypes.result.txt", true));
-        pw.append("Project_Name"+"\t"+"Ori_Hap_ID"+"\t"+"Closest_Recon_Hap_ID"+"\t"
+        PrintWriter pw1 = new PrintWriter(
+            new FileWriter(dir_prefix + "_" + quasi_cutoff + "_global_haplotypes.result.txt", false));
+        pw1.append("Project_Name"+"\t"+"Ori_Hap_ID"+"\t"+"Closest_Recon_Hap_ID"+"\t"
             +"Min_diff_Pos"+"\t"+"Min_freq_diff"+"\t"+"Num_of_Recon_Meet_Cutoff\n");
         for (int h_index = 0; h_index < orig_haps.num_global_hap; h_index++) {
-            pw.append(project_name + "\t" + orig_haps.hap_IDs[h_index] + "\t"
+            pw1.append(project_name + "\t" + orig_haps.hap_IDs[h_index] + "\t"
                 + min_diff_ID[h_index] + "\t" + min_diff_pos[h_index]
                 + "\t" + min_diff_freq[h_index] + "\t" + max_diff_haps[h_index] + "\n");
-            // also_min_diff[h_id] + "\t" + min_diff_freq_prop[h_id] + "\t" +
         }
-        pw.close();
+        pw1.close();
 
         return new double[] {
             (double) num_accurate / orig_haps.num_global_hap,
@@ -179,18 +195,19 @@ public class compare_inter_file {
     	String gs_dir = main_dir + "\\gold_standard\\";
     	String output_dir = main_dir + "\\output\\";
     	String aem_dir = main_dir + "\\intermediate\\aem\\";
-    	 if(function.equals("aem")) {
-  	        int level = Integer.parseInt(args[4]);
-  	        int region_count = Integer.parseInt(args[5]);
-  	        project_name=args[0]+"_level_"+level+"_region_"
-          			+region_count;
-          }else {
-         	 project_name = args[0];
-          }
-//    	String gs_dir= args[2];//"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\gold_standard\\";//
-//    	String output_dir= args[3];//"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\output\\";// 
+    	// when compare aem output, the project_name looks like: 
+    	// XXX_level_1_region_0
+    	if(function.equals("aem")) {
+    		int level = Integer.parseInt(args[4]);
+    		int region_count = Integer.parseInt(args[5]);
+    		project_name=args[0]+"_level_"+level+"_region_"
+         			+ region_count;
+  	    }else {
+  	    	project_name = args[0];
+        }
         orig_inter_file=gs_dir+project_name+"_haps.inter_freq_vars.txt";
-         
+        // recon_inter_file for aem output are in the aem_dir
+        // recon_inter_file for gc2 output is end with "_gc.inter_freq_haps.txt"
         if(function.equals("aem")) {
         	recon_inter_file=aem_dir+project_name +".inter_freq_haps.txt";
         }else if(function.equals("gc2")) {
@@ -198,8 +215,8 @@ public class compare_inter_file {
         }else {
         	recon_inter_file=output_dir+project_name+".inter_freq_haps.txt";
         }
-//        String recon_inter_file=output_dir+project_name+".inter_freq_vars.txt";
         compare_loci(orig_inter_file,recon_inter_file);
+        // compare_loci() will over_write the recon_inter_file
         String output_files_prefix;
         if(function.equals("aem")) {
         	recon_inter_file=aem_dir+project_name +".inter_freq_haps.txt";
@@ -211,14 +228,14 @@ public class compare_inter_file {
         	recon_inter_file=output_dir+project_name+".inter_freq_haps.txt";
         	output_files_prefix=output_dir+project_name;
         }
-//        recon_inter_file=output_dir+project_name+".inter_freq_vars.txt";
+        
 		double[] multi_pool_record = new double[7];
 		multi_pool_record = global_hap_evaluator(orig_inter_file, 
 				recon_inter_file, quasi_cutoff, output_files_prefix,
 				project_name);
-		
 		PrintWriter pw2 = new PrintWriter(
-	            new FileWriter(output_files_prefix + "_" + quasi_cutoff + "_global_haps_average_results.txt", true));
+	            new FileWriter(output_files_prefix + "_" + quasi_cutoff + 
+	            		"_global_haps_average_results.txt", false));
 	        pw2.append("## parameters: cut-off = " + quasi_cutoff + "\n");
 	        pw2.append("#Project_Name\t"
 	                + "Mean_OH_Recovery\t"

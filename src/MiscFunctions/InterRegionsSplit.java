@@ -8,11 +8,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import Viral_Reconstructions_Tools.compare_inter_file;
-
 
 public class InterRegionsSplit {
 	
+	/*
+	 * generate_split_interfile():
+	 * Read ori_inter_file, and only read those information within this region;
+	 * Combine identical haplotypes and their corresponding frequency within 
+	 * this region; Write a new regional_inter_file under gold_standard
+	 */
 	 public static void generate_split_interfile(
 		        String project_name,
 		        String gs_dir,
@@ -38,7 +42,7 @@ public class InterRegionsSplit {
 		 String[] hap_id_array = curr_line.split("\t");
 		 for(int id=1; id < hap_id_array.length; id++) { 
 			 ArrayList<String> new_hap_list=new ArrayList<String>();
-			 hap_seq_listlist.add(new_hap_list); // hap_seq_listlist contains many empty list
+			 hap_seq_listlist.add(new_hap_list);
 		 }
 		 curr_line = br_inter.readLine(); // read the freq line
 		 String[] freq_array = curr_line.split("\t");
@@ -56,7 +60,6 @@ public class InterRegionsSplit {
 				 hap_seq_listlist.get(index-1).add(loci_array[index]);
 			 } 
 		 }
-		 System.out.println(hap_seq_listlist);
 		 br_inter.close();
 		 // change hap_seq_listlist to hap_string_list
 		 for (int h=0; h<hap_seq_listlist.size();h++) {
@@ -67,6 +70,7 @@ public class InterRegionsSplit {
 			 hap_string_list.add(hap_str);
 		 }
 		 // generate hap2fre hashmap
+		 // Combine identical haplotypes and their corresponding frequency
 		 for (int h=0; h<hap_string_list.size();h++) {
 			 if(!hap2fre.containsKey(hap_string_list.get(h))) {
 				hap2fre.put(hap_string_list.get(h), hap_freq_list.get(h));
@@ -79,8 +83,8 @@ public class InterRegionsSplit {
 		for ( String key : hap2fre.keySet() ) {
 		    final_hap_string_list.add(key);
 		}
-		
 		// final_hap_string_list transfer to final_hap_seq_listlist
+		// final_hap_seq_listlist contains each haplotypes and their loci(0/1)
 		for (int h=0; h < final_hap_string_list.size(); h++) {
 			ArrayList<String> tmp_hap_string_list=new ArrayList<String>();
 			for(int i=0; i < final_hap_string_list.get(h).split("").length; i++) {
@@ -88,7 +92,6 @@ public class InterRegionsSplit {
 			}
 			final_hap_seq_listlist.add(tmp_hap_string_list);
 		}
-				
 		 // write output inter file for each regions
 		 BufferedWriter bw_inter=new BufferedWriter(new FileWriter(
 				 region_inter_file));
@@ -113,23 +116,10 @@ public class InterRegionsSplit {
 		 bw_inter.close();
 	 }
 	 
-	 public static void compareHaps_aem(
-		        String project_name,
-		        String gs_dir,
-		        String aem_dir,
-		        int level,
-		        int region_count) throws IOException, InterruptedException {
-		 
-		 
-		 
-	 }
-	
-
 	public static void main(String[] args) throws IOException, InterruptedException{
-		String project_name= "0";//"0_0";//
-    	String gs_dir= "D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\PHX_Perfect_Data40_2\\gold_standard\\"; //args[2]; //gold_standard dir
-    	String inter_dir= "D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\PHX_Perfect_Data40_2\\intermediate\\" ;//args[3]; //out_put dir
-//    	String aem_dir= inter_dir + "aem\\";
+		String project_name= args[0];//"0";
+    	String gs_dir= args[1];//"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\PHX_Perfect_Data40_2\\gold_standard\\"; //args[2]; //gold_standard dir
+    	String inter_dir= args[2];//"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\PoolHapX_testing\\PHX_Perfect_Data40_2\\intermediate\\" ;//args[3]; //out_put dir
         String dc_plan_file=inter_dir+project_name+"_dc_plan.txt";
         BufferedReader br_dc = new BufferedReader(new FileReader(dc_plan_file));
         String curr_line = br_dc.readLine();//read first line "Level I"
