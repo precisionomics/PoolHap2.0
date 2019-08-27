@@ -1,18 +1,15 @@
 package MiscFunctions;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 
 import PoolHap.HapConfig;
+import PoolHap.Parameters.GenParameters;
 
-
-public class CompareHaps {
+public class CompareHaps_2 {
 
     /**
      * @author quanlong 2019-07
@@ -42,126 +39,6 @@ public class CompareHaps {
      * The number of segregating sites and their locations have to be the same between two
      * HapConfigs
      */
-    
-    public static void compare_loci(String ori_inter_file, 
-    		String recon_inter_file) throws IOException, InterruptedException{
-    	 BufferedReader br_ori_inter = new BufferedReader(new FileReader(
-    			 ori_inter_file));
-    	 BufferedReader br_recon_inter = new BufferedReader(new FileReader(
-    			 recon_inter_file));
-    	 
-    	 ArrayList<String> ori_variant_position_list = new ArrayList<>();
-    	 ArrayList<String> recon_variant_position_list = new ArrayList<>();
-    	 ArrayList<ArrayList<String>> hap_seq_listlist=new ArrayList<ArrayList<String>>();
-		 ArrayList<String> hap_string_list=new ArrayList<String>();
-		 ArrayList<String> final_hap_string_list=new ArrayList<String>();
-		 ArrayList<ArrayList<String>> final_hap_seq_listlist=new ArrayList<ArrayList<String>>();
-		 ArrayList<Double> hap_freq_list=new ArrayList<Double>();
-		 HashMap<String, Double> hap2fre = new HashMap<String, Double>();
-		 
-    	 //Read original_inter_file, and generate ori_variant_position_list
-    	 String curr_ori_inter = br_ori_inter.readLine(); // read hap_ID line
-    	 curr_ori_inter = br_ori_inter.readLine(); // read freq line
-    	 curr_ori_inter = br_ori_inter.readLine(); // read third line
-    	 while(curr_ori_inter != null) {
-    		 String[] var_position_line = curr_ori_inter.split("\t");
-    	 	 String[] var_position = var_position_line[0].split(";");
-    	 	 ori_variant_position_list.add(var_position[1]);
-    	 	 curr_ori_inter = br_ori_inter.readLine();
-    	 }
-    	 br_ori_inter.close();
-    	 //Read reconstruct_inter_file
-    	 String curr_recon_inter = br_recon_inter.readLine(); //read hap_ID line
-    	 String[] hap_id_array = curr_recon_inter.split("\t");
-		 for(int id=1; id < hap_id_array.length; id++) { 
-			 ArrayList<String> new_hap_list=new ArrayList<String>();
-			 hap_seq_listlist.add(new_hap_list);
-		 }
-    	 curr_recon_inter = br_recon_inter.readLine(); //read freq line
-    	 String[] freq_array = curr_recon_inter.split("\t");
-		 for (int h =1; h < freq_array.length; h++ ) {
-			 hap_freq_list.add(Double.parseDouble(freq_array[h]));
-		 }
-    	 curr_recon_inter = br_recon_inter.readLine(); //read the variant line
-    	 while(curr_recon_inter != null) {
-			 String[] var_position_line = curr_recon_inter.split("\t");
-    	 	 String[] var_position = var_position_line[0].split(";");
-    	 	 // get rid of false_positive variant positions
-    	 	 if(ori_variant_position_list.contains(var_position[1])) {
-    	 		   recon_variant_position_list.add(var_position[1]);
-    	 		   for (int index = 1; index < var_position_line.length; index ++) {
-    	 			   hap_seq_listlist.get(index-1).add(var_position_line[index]);
-    	 		   }
-    	 	 }
-    	 	 curr_recon_inter = br_recon_inter.readLine();
-    	 }
-    	 br_recon_inter.close();
-		 // change hap_seq_listlist to hap_string_list
-		 for (int h=0; h<hap_seq_listlist.size();h++) {
-			 String hap_str = "" ;
-			 for (int index =0; index < hap_seq_listlist.get(h).size();index ++) {
-				 hap_str = hap_str + hap_seq_listlist.get(h).get(index);
-			 }
-			 hap_string_list.add(hap_str);
-		 }
-		 // generate hap2fre hashmap
-		 // Combine identical haplotypes and their corresponding frequency
-		 for (int h=0; h<hap_string_list.size();h++) {
-			 if(!hap2fre.containsKey(hap_string_list.get(h))) {
-				hap2fre.put(hap_string_list.get(h), hap_freq_list.get(h));
-			}else if (hap2fre.containsKey(hap_string_list.get(h))){
-				hap2fre.put(hap_string_list.get(h), 
-						(hap2fre.get(hap_string_list.get(h))+hap_freq_list.get(h)));
-			}
-		 }
-		 // generate final_hap_string_list using hap2fre
-		for ( String key : hap2fre.keySet() ) {
-		    final_hap_string_list.add(key);
-		}
-		// final_hap_string_list transfer to final_hap_seq_listlist
-		// final_hap_seq_listlist contains each haplotypes and their loci(0/1)
-		for (int h=0; h < final_hap_string_list.size(); h++) {
-			ArrayList<String> tmp_hap_string_list=new ArrayList<String>();
-			for(int i=0; i < final_hap_string_list.get(h).split("").length; i++) {
-				tmp_hap_string_list.add(final_hap_string_list.get(h).split("")[i]);
-			}
-			final_hap_seq_listlist.add(tmp_hap_string_list);
-		}
-    	 //Over-write recon_inter_file, for those variant_positions 
-    	 //in the ori_inter_file that are not called in the recon_inter_file, 
-    	 //write 0 for all haplotypes; 
-         PrintWriter pw_inter = new PrintWriter(new FileWriter(recon_inter_file, false)); 
-         pw_inter.append("Hap_ID");
-		 for (int h=0; h<final_hap_string_list.size();h++) {
-			 pw_inter.append("\t"+"h"+h);
-		 }
-		 pw_inter.append("\n");
-		 pw_inter.append("Freq");
-		 for (int h=0; h<final_hap_string_list.size();h++) {
-			 double curr_hap_freq = hap2fre.get(final_hap_string_list.get(h));
-			 pw_inter.append("\t"+ curr_hap_freq);
-		 }
-		 pw_inter.append("\n");
-		 int loci_position =0;
-		 for (int l=0;l<ori_variant_position_list.size();l++) {
-			 pw_inter.write("0;"+ori_variant_position_list.get(l)+";"
-					 +ori_variant_position_list.get(l)+";0:1");
-			 if(recon_variant_position_list.contains(ori_variant_position_list.get(l))) {
-				 for(int h=0; h<final_hap_seq_listlist.size();h++) {
-					 pw_inter.append("\t"+ final_hap_seq_listlist.get(h).get(loci_position));
-				 }
-				 loci_position++;
-				 pw_inter.write("\n");
-			 }else {
-				 for(int h=0; h<final_hap_seq_listlist.size();h++) {
-					 pw_inter.append("\t"+ "0");
-				 }
-				 pw_inter.write("\n");
-			 }
-		 }
-		 pw_inter.close();
-    }
-    
     public static double[] single_pool_evaluator(
         HapConfig orig_haps,
         HapConfig recon_haps,
@@ -276,11 +153,9 @@ public class CompareHaps {
 
         PrintWriter pw = new PrintWriter(
             new FileWriter(dir_prefix + "_" + quasi_cutoff + "_single_pools.result.txt", true));
-        pw.append("Pool_ID"+"\t"+"Ori_Hap_ID"+"\t"+"Closest_Recon_Hap_ID"+"\t"
-                +"Min_diff_Pos"+"\t"+"Min_freq_diff"+"\t"+"Num_of_Recon_Meet_Cutoff"+"\n");
         for (int h_index = 0; h_index < num_inpool_ori; h_index++) {
             pw.append(pool_ID + "\t" + none_0_ori_hap_id.get(h_index) + "\t"
-                + min_diff_ID[h_index] + "\t" + min_diff_pos[h_index]
+                + recon_haps.hapID2index.get(min_diff_ID[h_index]) + "\t" + min_diff_pos[h_index]
                 + "\t" + min_diff_freq[h_index] + "\t" + max_diff_haps[h_index] + "\n");
             // also_min_diff[h_id] + "\t" + min_diff_freq_prop[h_id] + "\t" +
         }
@@ -327,14 +202,8 @@ public class CompareHaps {
 //        pw1.append("## orig_hap_files: " + ori_inter_file + "\t" + ori_intra_file + "\n");
 //        pw1.append("## recon_hap_files: " + recon_inter_file + "\t" + recon_intra_file + "\n");
         pw1.append(
-//            "# Project_name\tPool_ID\t" + "Prop_of_OH_recovered\t" + "Ave_dist_btw OH_closest_RH\t"
-//                + "Ave_freq_diff_btw OH_closest_RH\t" + "Sum_in-pool_freq_valid_quasispecies\n");
-        		"#Project_Name\t"
-                + "Pool_ID\t"
-                + "OH_Recovery\t"
-                + "Mean_Min_Seq_Diff\t"
-                + "Mean_Min_Freq_Diff\t"
-                + "Valid_QS_Freq_Sum\n");
+            "# Project_name\tPool_ID\t" + "Prop_of_OH_recovered\t" + "Ave_dist_btw OH_closest_RH\t"
+                + "Ave_freq_diff_btw OH_closest_RH\t" + "Sum_in-pool_freq_valid_quasispecies\n");
         double[] multi_pool_results = new double[4];
         for (int p = 0; p < num_ori_pools; p++) {
             pw1.append(project_name + "\t" + orig_haps.pool_IDs[p] + "\t");
@@ -348,22 +217,12 @@ public class CompareHaps {
 
         PrintWriter pw2 = new PrintWriter(
             new FileWriter(output_files_prefix + "_" + quasi_cutoff + "_aggregated_results.txt", true));
-        pw2.append("## parameters: cut-off = " + quasi_cutoff + "\n");
+        pw1.append("## parameters: cut-off = " + quasi_cutoff + "\n");
 //        pw1.append("## orig_hap_files: " + ori_inter_file + "\t" + ori_intra_file + "\n");
 //        pw1.append("## recon_hap_files: " + recon_inter_file + "\t" + recon_intra_file + "\n");
 //        pw1.append(
 //            "# Project_name\tPool_ID\t" + "Prop_of_OH_recovered\t" + "Ave_dist_btw OH_closest_RH\t"
 //                + "Ave_freq_diff_btw OH_closest_RH\t" + "Sum_in-pool_freq_valid_quasispecies\n");
-        
-        pw2.append("#Project_Name\t"
-                + "Mean_OH_Recovery\t"
-                + "Mean_Mean_Min_Seq_Diff\t" // mean of means
-                + "Mean_Mean_Min_Freq_Diff\t"
-                + "Mean_Valid_QS_Freq_Sum\t"
-                + "Total_OH\t"
-                + "Total_RH\t"
-                + "Total_Valid_QS_Proportion\n");
-        pw2.append(project_name+"\t");
         for (int i = 0; i < 4; i++) {
             pw2.append(multi_pool_results[i] / orig_haps.num_pools + "\t");
         }
@@ -377,17 +236,15 @@ public class CompareHaps {
     }
     
     public static void main(String[] args) throws IOException, InterruptedException {
-    	String project_name= args[0];  
-    	double quasi_cutoff= Double.parseDouble(args[1]);
-    	String gs_dir= args[2]+"/"; 
-    	String output_dir= args[3]+"/"; 
+    	String project_name= args[0];  //for example 0_1
+    	double quasi_cutoff= Double.parseDouble(args[1]); // cutoff
+    	String gs_dir= args[2]+"/"; //gold_standard dir
+    	String output_dir= args[3]+"/"; //out_put dir
         String ori_inter_file=gs_dir+project_name+"_haps.inter_freq_vars.txt";
         String ori_intra_file=gs_dir+project_name+"_haps.intra_freq.txt";
         String recon_inter_file=output_dir+project_name+".inter_freq_haps.txt";
         String recon_intra_file=output_dir+project_name+".intra_freq_haps.txt";
-        String output_files_prefix=output_dir+project_name;
-        compare_loci(ori_inter_file,recon_inter_file);
-        recon_inter_file=output_dir+project_name+".inter_freq_haps.txt";
+    	String output_files_prefix=output_dir+project_name;
     	multi_pool_summary(
     	        project_name,
     	        quasi_cutoff,
