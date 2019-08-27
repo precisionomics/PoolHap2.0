@@ -22,8 +22,7 @@ public class CompareInterFile {
 	 * that contains all variant positions will overwrite the old one.        
 	 */
 	public static void compare_loci(String ori_inter_file, 
-    		String recon_inter_file) throws
-    IOException, InterruptedException{
+    		String recon_inter_file) throws IOException, InterruptedException{
     	 BufferedReader br_ori_inter = new BufferedReader(new FileReader(
     			 ori_inter_file));
     	 BufferedReader br_recon_inter = new BufferedReader(new FileReader(
