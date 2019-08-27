@@ -248,9 +248,9 @@ public class CompareInterFile {
     	String function = args[3];
     	String orig_inter_file;
     	String recon_inter_file;
-    	String gs_dir = main_dir + "\\gold_standard\\";
-    	String output_dir = main_dir + "\\output\\";
-    	String aem_dir = main_dir + "\\intermediate\\aem\\";
+    	String gs_dir = main_dir + "/gold_standard/";
+    	String output_dir = main_dir + "/output/";
+    	String aem_dir = main_dir + "/intermediate/aem/";
     	// when compare aem output, the project_name looks like: 
     	// XXX_level_1_region_0
     	if(function.equals("aem")) {
