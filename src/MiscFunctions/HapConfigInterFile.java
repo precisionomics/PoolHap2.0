@@ -50,7 +50,6 @@ public class HapConfigInterFile {
           this.num_loci++;
           line = br.readLine();
       }
-
       br.close();
       this.global_haps_string = new String[this.num_global_hap][this.num_loci];
       this.global_haps = new double[this.num_global_hap][this.num_loci];
@@ -62,7 +61,6 @@ public class HapConfigInterFile {
       int loci_index = 0;
       while (line != null) {
           String[] tmp = line.split("\t");
-
           // The first column is the locus-info.
           this.locusInfo[loci_index] = new LocusAnnotation(tmp[0]);
           for (int h_index = 0; h_index < this.num_global_hap; h_index++) {
