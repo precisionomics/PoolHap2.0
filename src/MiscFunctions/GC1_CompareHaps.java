@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 
 public class GC1_CompareHaps {
+	
+	
+	
 	public static void generate_inter_file(String gcf_file,String vars_intra_file,
 			String all_inter_file, String complete_inter_file) 
 			throws IOException, InterruptedException  {
