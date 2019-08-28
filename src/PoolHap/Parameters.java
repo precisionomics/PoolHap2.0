@@ -23,7 +23,8 @@ public class Parameters {
     public String out_dir; // output directory
     public int num_pos_window;
     public int num_gap_window; 
-    public int num_pos_job;
+    public int num_pos_per_job;  // the max number of SNPs per PoolHapX job. 
+                                // If higher than this, the input file will be split into multiple files. 
     //  Divide and conquer parameter set.
     public double gap_inpool_cutoff; // a ratio
     public double gap_all_pool_cutoff; // a ratio
@@ -89,7 +90,8 @@ public class Parameters {
         this.out_dir = prop.getProperty("Output_Dir")+"/";
         this.num_pos_window = Integer.parseInt(prop.getProperty("Num_Pos_Window"));
         this.num_gap_window = Integer.parseInt(prop.getProperty("Num_Gap_Window"));
-        this.num_pos_job= Integer.parseInt(prop.getProperty("Num_Pos_Job")); 
+        this.num_pos_per_job= Integer.parseInt(prop.getProperty("Num_Pos_Per_Job")); 
+
         // Divide and conquer 
         
         this.gap_inpool_cutoff = Double.parseDouble(

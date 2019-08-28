@@ -153,18 +153,18 @@ public class Entrance {
         /*
          * Input arguments.
          */
-    	String[] supported_functions_array = {"format", "gc", "aem", "lasso", "split"};
-    	HashSet<String> supported_functions = new HashSet<String>();
+        String[] supported_functions_array = {"format", "gc", "aem", "lasso", "split"};
+        HashSet<String> supported_functions = new HashSet<String>();
         for (int k = 0; k < supported_functions_array.length; k++) {
              supported_functions.add(supported_functions_array[k]);
         }
-    	String function  = args[0]; // parameter file path
-    	if (!supported_functions.contains(function)) {
+        String function  = args[0]; // parameter file path
+        if (!supported_functions.contains(function)) {
             System.out.println("Function "+ function+" is not supported. A typo?");
             System.exit(0);
         }
         String parameter_file = args[1]; // parameter file path
-        
+
         // int num_pools = Integer.parseInt(args[2]); // number of pools present
         // removed by Quan Long 2019-07-03. This will be identified by counting how many files in a
         // folder
@@ -183,8 +183,8 @@ public class Entrance {
         String name_file = gp.inter_dir + gp.project_name + "_sample_names.txt";
         // Print start time.
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
-        System.out
-            .println("PoolHapX " + gp.function + " Initiated: " + dtf.format(LocalDateTime.now()));
+        System.out.println(
+            "PoolHapX " + function + " Initiated: " + dtf.format(LocalDateTime.now()));
 
         /*
          * Local haplotype configuration.
@@ -208,7 +208,7 @@ public class Entrance {
             // new FileWriter(new File(gp.inter_dir + prefix + "_p.in.list")));
             // the folder "vef/" should exist under gp.inter_dir.
             String[] vef_files =
-                Entrance.get_filepaths(name_file, gp.inter_dir + "vef", "vef", false);
+                Entrance.get_filepaths(name_file, gp.inter_dir + "vef", "vef", true);
             // make a new dir "in/" to store GC-outcome files.
             new File(gp.inter_dir + "/gcf/").mkdir();
             // Apply graph coloring for each pool. Note, initial "global" haplotypes are roughly
@@ -339,14 +339,11 @@ public class Entrance {
             final_reconstruction.write2files(gp.out_dir + gp.project_name + ".inter_freq_haps.txt",
                 gp.out_dir + gp.project_name + ".intra_freq_haps.txt",
                 "string");
-        } else if (function.equals("split")) { //split the vef file into several files (N variants one file)
-            String[] vef_files =
-                Entrance.get_filepaths(name_file, gp.inter_dir + "vef", "vef", false);     
-            	new File(gp.inter_dir + "/split_vef/").mkdir();
-                FileSplit split_file = new FileSplit (vef_files,gs_var_pos,  gp.num_pos_job );        
-            System.out
-                .println("\nFile Split Finished.\n");
-        }
-        
+        }   else if (function.equals("split")) { //split the vef file into several files (N variants one file)
+            String[] vef_files=Entrance.get_filepaths(name_file, gp.inter_dir + "vef", "vef", false);     
+            new File(gp.inter_dir + "/split_vef/").mkdir();
+            FileSplit split_file = new FileSplit (vef_files, gs_var_pos,  gp.num_pos_per_job);        
+            System.out.println("\nFile Split Finished.\n");
+        }               
     }
 }
