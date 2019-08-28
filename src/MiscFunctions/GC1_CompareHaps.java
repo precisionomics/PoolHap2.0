@@ -12,20 +12,28 @@ import java.util.HashSet;
 
 public class GC1_CompareHaps {
 	
-	
-	
+	/*
+	 * generate_inter_file()
+	 * This function will generate one/two files under the output_dir.
+	 * The "all" means to include all possible haplotypes and ignoring the "?".
+	 * A file_name end up with "_all.inter_freq_haps.txt" will be generated.
+	 * The "complete" means to include those haplotypes without "?" only.
+	 * If the complete haplotypes do exits, a file end up with 
+	 * "_complete.inter_freq_haps.txt" will be generated. Otherwise, it will
+	 * print message " no complete_inter_file is generate".
+	 */
 	public static void generate_inter_file(String gcf_file,String vars_intra_file,
 			String all_inter_file, String complete_inter_file) 
 			throws IOException, InterruptedException  {
 		
 		ArrayList<String> loci_string_list=new ArrayList<String>();
 		//hap_full_string_list ignoring "?", and take into account all possible haploypes
-		ArrayList<String> hap_full_string_list=new ArrayList<String>();	
-		ArrayList<ArrayList<String>> full_hap_seq_listlist=new ArrayList<ArrayList<String>>();
+		ArrayList<String> hap_all_string_list=new ArrayList<String>();	
+		ArrayList<ArrayList<String>> all_hap_seq_listlist=new ArrayList<ArrayList<String>>();
 		//patial_hap_seq_listlist only takes those complete haplotypes into account(those without ?)
 		ArrayList<ArrayList<String>> complete_hap_seq_listlist=new ArrayList<ArrayList<String>>();
 		int complete_hap=0;
-		ArrayList<String> final_hap_full_string_list=new ArrayList<String>();
+		ArrayList<String> final_hap_all_string_list=new ArrayList<String>();
 		
 		BufferedReader br_gcf = new BufferedReader(new FileReader(gcf_file));
 		BufferedReader br_var = new BufferedReader(new FileReader(vars_intra_file));
@@ -52,7 +60,7 @@ public class GC1_CompareHaps {
 					new_full_hap=new_full_hap+every_position[i];
 				}
 			}
-			hap_full_string_list.add(new_full_hap); 
+			hap_all_string_list.add(new_full_hap); 
 			if(!tmp_hap_list.contains("?")) {
 				complete_hap++;
 				int var_pos=0;
@@ -92,34 +100,34 @@ public class GC1_CompareHaps {
 
 		br_gcf.close();
 		// get rid of the identical haplotype in the hap_full_string_list
-		for(int h=0;h<hap_full_string_list.size();h++) {
-			if(!final_hap_full_string_list.contains(hap_full_string_list.get(h))) {
-				final_hap_full_string_list.add(hap_full_string_list.get(h));
+		for(int h=0;h<hap_all_string_list.size();h++) {
+			if(!final_hap_all_string_list.contains(hap_all_string_list.get(h))) {
+				final_hap_all_string_list.add(hap_all_string_list.get(h));
 			}
 		}
 		// Convert final_hap_full_string_list to full_hap_seq_listlist 
-		for (int h=0; h < final_hap_full_string_list.size(); h++) {
+		for (int h=0; h < final_hap_all_string_list.size(); h++) {
 			ArrayList<String> tmp_hap_string_list=new ArrayList<String>();
-			for(int i=0; i < final_hap_full_string_list.get(h).split("").length; i++) {
-				tmp_hap_string_list.add(final_hap_full_string_list.get(h).split("")[i]);
+			for(int i=0; i < final_hap_all_string_list.get(h).split("").length; i++) {
+				tmp_hap_string_list.add(final_hap_all_string_list.get(h).split("")[i]);
 			}
-			full_hap_seq_listlist.add(tmp_hap_string_list);
+			all_hap_seq_listlist.add(tmp_hap_string_list);
 		}
 		//Write full_inter_file
 		bw_full_inter.write("Hap_ID");
-		for(int h=0;h<final_hap_full_string_list.size();h++) {
+		for(int h=0;h<final_hap_all_string_list.size();h++) {
 			bw_full_inter.write("\t"+"h"+h);
 		}
 		bw_full_inter.write("\n");
 		bw_full_inter.write("Freq");
-		for(int h=0;h<final_hap_full_string_list.size();h++) {
+		for(int h=0;h<final_hap_all_string_list.size();h++) {
 			bw_full_inter.write("\t"+0.0);
 		}
 		bw_full_inter.write("\n");
 		for(int l=0;l<loci_string_list.size();l++) {
 			bw_full_inter.write(loci_string_list.get(l));
-			for(int h=0;h<full_hap_seq_listlist.size();h++) {
-				bw_full_inter.write("\t"+full_hap_seq_listlist.get(h).get(l));
+			for(int h=0;h<all_hap_seq_listlist.size();h++) {
+				bw_full_inter.write("\t"+all_hap_seq_listlist.get(h).get(l));
 			}
 			bw_full_inter.write("\n");
 		}
@@ -240,6 +248,12 @@ public class GC1_CompareHaps {
 		 pw_inter.close();
     }
 	
+	/*
+	 * comparehapInter() and global_hap_evaluator():
+	 * It's used to compare recon_inter file with ori_inter file.
+	 * For the first graph_coloring results, it will only compare the haplotypes,
+	 * won't compare the frequency. 
+	 */
 	public static void comparehapInter(String orig_inter_file, 
 			String recon_inter_file, double quasi_cutoff, String output_files_prefix,
 			String project_name) throws IOException, InterruptedException {
