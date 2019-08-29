@@ -371,6 +371,7 @@ public class CompareHaps {
         PrintWriter pw2 = new PrintWriter(
             new FileWriter(output_files_prefix + "_" + quasi_cutoff + "_aggregated_results.txt", true));
         pw2.append("## parameters: cut-off = " + quasi_cutoff + "\n");
+
 //        pw1.append("## orig_hap_files: " + ori_inter_file + "\t" + ori_intra_file + "\n");
 //        pw1.append("## recon_hap_files: " + recon_inter_file + "\t" + recon_intra_file + "\n");
 //        pw1.append(
@@ -392,7 +393,6 @@ public class CompareHaps {
         pw2.append(orig_haps.num_global_hap + "\t" + recon_haps.num_global_hap + "\t"
             + Double.toString((double) multipool_quasispecies.size() / recon_haps.num_global_hap)
             + "\t");
-
         pw2.append("\n");
         pw2.close();
 
