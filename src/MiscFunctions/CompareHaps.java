@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import org.apache.spark.sql.catalyst.expressions.Cube;
+
 import PoolHap.HapConfig;
 
 
@@ -44,15 +46,20 @@ public class CompareHaps {
      */
     
     public static void compare_loci(String ori_inter_file, 
-    		String recon_inter_file) throws IOException, InterruptedException{
+    		String recon_inter_file, String recon_intra_file) throws IOException, InterruptedException{
+    	 
     	 BufferedReader br_ori_inter = new BufferedReader(new FileReader(
     			 ori_inter_file));
     	 BufferedReader br_recon_inter = new BufferedReader(new FileReader(
     			 recon_inter_file));
+    	 BufferedReader br_recon_intra = new BufferedReader(new FileReader(
+    			 recon_intra_file));
     	 
     	 ArrayList<String> ori_variant_position_list = new ArrayList<>();
     	 ArrayList<String> recon_variant_position_list = new ArrayList<>();
     	 ArrayList<ArrayList<String>> hap_seq_listlist=new ArrayList<ArrayList<String>>();
+    	 ArrayList<ArrayList<Double>> hap_inpoolfreq_listlist=new ArrayList<ArrayList<Double>>();
+    	 ArrayList<String> pool_ID_list = new ArrayList<>();
 		 ArrayList<String> hap_string_list=new ArrayList<String>();
 		 ArrayList<String> final_hap_string_list=new ArrayList<String>();
 		 ArrayList<ArrayList<String>> final_hap_seq_listlist=new ArrayList<ArrayList<String>>();
@@ -70,6 +77,7 @@ public class CompareHaps {
     	 	 curr_ori_inter = br_ori_inter.readLine();
     	 }
     	 br_ori_inter.close();
+    	 
     	 //Read reconstruct_inter_file
     	 String curr_recon_inter = br_recon_inter.readLine(); //read hap_ID line
     	 String[] hap_id_array = curr_recon_inter.split("\t");
@@ -96,6 +104,20 @@ public class CompareHaps {
     	 	 curr_recon_inter = br_recon_inter.readLine();
     	 }
     	 br_recon_inter.close();
+    	//Read reconstruct_intra_file
+    	 String curr_recon_intra = br_recon_inter.readLine(); //read hap_ID line
+    	 curr_recon_intra = br_recon_inter.readLine();
+    	 while(curr_recon_intra!=null) {
+    		 String[] inpoolfreq_arr = curr_recon_intra.split("\t");
+    		 pool_ID_list.add(inpoolfreq_arr[0]);
+    		 ArrayList<Double> tmp_inpoolfreq_list=new ArrayList<Double>();
+    		 for(int f=1;f<inpoolfreq_arr.length;f++) {
+    			 tmp_inpoolfreq_list.add(Double.parseDouble(inpoolfreq_arr[f]));
+    		 }
+    		 hap_inpoolfreq_listlist.add(tmp_inpoolfreq_list);
+    		 curr_recon_intra = br_recon_inter.readLine();
+    	 }
+
 		 // change hap_seq_listlist to hap_string_list
 		 for (int h=0; h<hap_seq_listlist.size();h++) {
 			 String hap_str = "" ;
@@ -105,7 +127,7 @@ public class CompareHaps {
 			 hap_string_list.add(hap_str);
 		 }
 		 // generate hap2fre hashmap
-		 // Combine identical haplotypes and their corresponding frequency
+		 // Combine identical haplotypes and their corresponding frequency 
 		 for (int h=0; h<hap_string_list.size();h++) {
 			 if(!hap2fre.containsKey(hap_string_list.get(h))) {
 				hap2fre.put(hap_string_list.get(h), hap_freq_list.get(h));
@@ -386,8 +408,9 @@ public class CompareHaps {
         String recon_inter_file=output_dir+project_name+".inter_freq_haps.txt";
         String recon_intra_file=output_dir+project_name+".intra_freq_haps.txt";
         String output_files_prefix=output_dir+project_name;
-        compare_loci(ori_inter_file,recon_inter_file);
+        compare_loci(ori_inter_file,recon_inter_file,recon_intra_file);
         recon_inter_file=output_dir+project_name+".inter_freq_haps.txt";
+        recon_intra_file=output_dir+project_name+".intra_freq_haps.txt";
     	multi_pool_summary(
     	        project_name,
     	        quasi_cutoff,
