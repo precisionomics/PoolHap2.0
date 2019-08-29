@@ -5,14 +5,13 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import org.apache.spark.sql.catalyst.expressions.Cube;
-
 import PoolHap.HapConfig;
-
+import shapeless.newtype;
 
 public class CompareHaps {
 
@@ -63,7 +62,7 @@ public class CompareHaps {
 		 ArrayList<String> hap_string_list=new ArrayList<String>();
 		 ArrayList<String> final_hap_string_list=new ArrayList<String>();
 		 ArrayList<ArrayList<String>> final_hap_seq_listlist=new ArrayList<ArrayList<String>>();
-		 ArrayList<Double> hap_freq_list=new ArrayList<Double>();
+//		 ArrayList<Double> hap_freq_list=new ArrayList<Double>();
 		 HashMap<String, Double> hap2fre = new HashMap<String, Double>();
 		 
     	 //Read original_inter_file, and generate ori_variant_position_list
@@ -87,15 +86,19 @@ public class CompareHaps {
 		 }
     	 curr_recon_inter = br_recon_inter.readLine(); //read freq line
     	 String[] freq_array = curr_recon_inter.split("\t");
+    	 double[] hap_freq_array = new double[freq_array.length-1];
 		 for (int h =1; h < freq_array.length; h++ ) {
-			 hap_freq_list.add(Double.parseDouble(freq_array[h]));
+			 //hap_freq_list.add(Double.parseDouble(freq_array[h]));
+			 hap_freq_array[h-1]=Double.parseDouble(freq_array[h]);
 		 }
     	 curr_recon_inter = br_recon_inter.readLine(); //read the variant line
+    	 int recon_num_loci = 0;
     	 while(curr_recon_inter != null) {
 			 String[] var_position_line = curr_recon_inter.split("\t");
     	 	 String[] var_position = var_position_line[0].split(";");
     	 	 // get rid of false_positive variant positions
     	 	 if(ori_variant_position_list.contains(var_position[1])) {
+    	 		   recon_num_loci++;
     	 		   recon_variant_position_list.add(var_position[1]);
     	 		   for (int index = 1; index < var_position_line.length; index ++) {
     	 			   hap_seq_listlist.get(index-1).add(var_position_line[index]);
@@ -117,7 +120,6 @@ public class CompareHaps {
     		 hap_inpoolfreq_listlist.add(tmp_inpoolfreq_list);
     		 curr_recon_intra = br_recon_inter.readLine();
     	 }
-
 		 // change hap_seq_listlist to hap_string_list
 		 for (int h=0; h<hap_seq_listlist.size();h++) {
 			 String hap_str = "" ;
@@ -126,6 +128,57 @@ public class CompareHaps {
 			 }
 			 hap_string_list.add(hap_str);
 		 }
+		/*
+	     * Re_name the hap_ID according to haplotypes in the hap_string_list;
+	     * The hap_ID is named according to the haplotypes, after getting rid 
+	     * of false_positive variant positions, the hap_ID should also be changed
+	     * Use haplotype strings to set a binary ID.
+	     */
+		 String[] new_hap_IDs = new String[hap_string_list.size()];
+		 String[][] global_haps_string = new String[hap_string_list.size()][recon_num_loci];
+		    for(int h=0;h<hap_string_list.size();h++) {
+		    String id = "";
+		            for (int locus = 0; locus < recon_num_loci; locus++) {
+		                id += global_haps_string[h][locus];
+		            }
+		            new_hap_IDs[h] = id;
+		    }
+		 /*
+		  * The HapID is naturally coded by 0 and 1 strings. 
+		  * For very long haplotypes, we hope to convert them in to an integer 
+		  * of base 16. To indicate it is a haplotype, we add an "h" before the integer 
+		  */
+		// check if the current hap-IDs are indeed 0/1 coded
+		for(int h=0;h<hap_string_list.size();h++) {
+			for(int locus=0;locus<recon_num_loci;locus++) {
+				if(new_hap_IDs[h].charAt(locus)!='1' && new_hap_IDs[h].charAt(locus)!='0') {
+					System.out.println("Exception: hap-ID "+new_hap_IDs[h]+" is not 1/0 coded."
+			+ "Returned without converting to base 16");
+				}
+			}
+		}    
+		// after check, convert the IDs to hexadecimal: 
+		ArrayList<String> new_hapIDs_list = new ArrayList<>();
+		for(int h=0;h<hap_string_list.size();h++) {
+			BigInteger the_integer=new BigInteger(new_hap_IDs[h],2);
+//		    new_hap_IDs[h]="h"+the_integer.toString(16);
+		    new_hapIDs_list.add("h"+the_integer.toString(16));
+		}
+		/*
+		 * Check for identical haplotypes (Hap_ID), combine the haplotypes and
+		 * corresponding frequency
+		 */
+		for(int h1=0;h1<new_hapIDs_list.size();h1++) {
+			for(int h2=1;h2<new_hapIDs_list.size();h2++) {
+				if(new_hapIDs_list.get(h2).equals(new_hapIDs_list.get(h1))) {
+					new_hapIDs_list.remove(h2);
+					hap_freq_array[h1]=hap_freq_array[h1]+hap_freq_array[h2];
+				}
+			}
+		}
+
+		
+		
 		 // generate hap2fre hashmap
 		 // Combine identical haplotypes and their corresponding frequency 
 		 for (int h=0; h<hap_string_list.size();h++) {
@@ -134,6 +187,7 @@ public class CompareHaps {
 			}else if (hap2fre.containsKey(hap_string_list.get(h))){
 				hap2fre.put(hap_string_list.get(h), 
 						(hap2fre.get(hap_string_list.get(h))+hap_freq_list.get(h)));
+				
 			}
 		 }
 		 // generate final_hap_string_list using hap2fre
