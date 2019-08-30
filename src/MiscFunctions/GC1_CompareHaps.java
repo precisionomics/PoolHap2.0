@@ -7,6 +7,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
 
@@ -145,6 +146,7 @@ public class GC1_CompareHaps {
 	 */
 	public static void compare_loci(String ori_inter_file, 
     		String recon_inter_file) throws IOException, InterruptedException{
+    	 
     	 BufferedReader br_ori_inter = new BufferedReader(new FileReader(
     			 ori_inter_file));
     	 BufferedReader br_recon_inter = new BufferedReader(new FileReader(
@@ -154,8 +156,6 @@ public class GC1_CompareHaps {
     	 ArrayList<String> recon_variant_position_list = new ArrayList<>();
     	 ArrayList<ArrayList<String>> hap_seq_listlist=new ArrayList<ArrayList<String>>();
 		 ArrayList<String> hap_string_list=new ArrayList<String>();
-		 ArrayList<String> final_hap_string_list=new ArrayList<String>();
-		 ArrayList<ArrayList<String>> final_hap_seq_listlist=new ArrayList<ArrayList<String>>();
 		 
     	 //Read original_inter_file, and generate ori_variant_position_list
     	 String curr_ori_inter = br_ori_inter.readLine(); // read hap_ID line
@@ -168,6 +168,7 @@ public class GC1_CompareHaps {
     	 	 curr_ori_inter = br_ori_inter.readLine();
     	 }
     	 br_ori_inter.close();
+    	 
     	 //Read reconstruct_inter_file
     	 String curr_recon_inter = br_recon_inter.readLine(); //read hap_ID line
     	 String[] hap_id_array = curr_recon_inter.split("\t");
@@ -175,22 +176,31 @@ public class GC1_CompareHaps {
 			 ArrayList<String> new_hap_list=new ArrayList<String>();
 			 hap_seq_listlist.add(new_hap_list);
 		 }
-		 curr_recon_inter = br_recon_inter.readLine(); //read the Freq line
+    	 curr_recon_inter = br_recon_inter.readLine(); //read freq line
+    	 String[] freq_array = curr_recon_inter.split("\t");
+    	 double[] hap_freq_array = new double[freq_array.length-1];
+		 for (int h =1; h < freq_array.length; h++ ) {
+			 //hap_freq_list.add(Double.parseDouble(freq_array[h]));
+			 hap_freq_array[h-1]=Double.parseDouble(freq_array[h]);
+		 }
     	 curr_recon_inter = br_recon_inter.readLine(); //read the variant line
+    	 int recon_num_loci = 0;
     	 while(curr_recon_inter != null) {
 			 String[] var_position_line = curr_recon_inter.split("\t");
     	 	 String[] var_position = var_position_line[0].split(";");
     	 	 // get rid of false_positive variant positions
     	 	 if(ori_variant_position_list.contains(var_position[1])) {
+    	 		   recon_num_loci++;
     	 		   recon_variant_position_list.add(var_position[1]);
     	 		   for (int index = 1; index < var_position_line.length; index ++) {
-    	 			   hap_seq_listlist.get(index-1).add(var_position_line[index]);
+    	 			  hap_seq_listlist.get(index-1).add(var_position_line[index]);
+    	 		   
     	 		   }
     	 	 }
     	 	 curr_recon_inter = br_recon_inter.readLine();
     	 }
     	 br_recon_inter.close();
-		 // change hap_seq_listlist to hap_string_list
+    	 // change hap_seq_listlist to hap_string_list
 		 for (int h=0; h<hap_seq_listlist.size();h++) {
 			 String hap_str = "" ;
 			 for (int index =0; index < hap_seq_listlist.get(h).size();index ++) {
@@ -198,34 +208,61 @@ public class GC1_CompareHaps {
 			 }
 			 hap_string_list.add(hap_str);
 		 }
-		 // generate hap2fre hashmap
-		 // Combine identical haplotypes and their corresponding frequency
-		 for (int h=0; h<hap_string_list.size();h++) {
-			 if(!final_hap_string_list.contains(hap_string_list.get(h))) {
-				 final_hap_string_list.add(hap_string_list.get(h));
-			 }
-		 }
-		// final_hap_string_list transfer to final_hap_seq_listlist
-		// final_hap_seq_listlist contains each haplotypes and their loci(0/1)
-		for (int h=0; h < final_hap_string_list.size(); h++) {
-			ArrayList<String> tmp_hap_string_list=new ArrayList<String>();
-			for(int i=0; i < final_hap_string_list.get(h).split("").length; i++) {
-				tmp_hap_string_list.add(final_hap_string_list.get(h).split("")[i]);
+		/*
+		 * Check for identical haplotypes (Hap_ID), combine the haplotypes and
+		 * corresponding frequency
+		 */
+		ArrayList<Integer> identical_hap= new ArrayList<>();
+		ArrayList<String> final_hapString_list = new ArrayList<>();
+		ArrayList<Double> final_freq_list = new ArrayList<>();
+		for(int h1=0;h1<hap_string_list.size()-1;h1++) {
+			for(int h2=h1+1;h2<hap_string_list.size();h2++) {
+				if(hap_string_list.get(h2).equals(hap_string_list.get(h1))) {
+					identical_hap.add(h2);
+					hap_freq_array[h1]=hap_freq_array[h1]+hap_freq_array[h2];
+				}
 			}
-			final_hap_seq_listlist.add(tmp_hap_string_list);
 		}
+		for(int h=0;h<hap_string_list.size();h++) {
+			 if(!identical_hap.contains(h)) {
+				 final_hapString_list.add(hap_string_list.get(h));
+				 final_freq_list.add(hap_freq_array[h]);
+				 
+			 }
+		}
+		/*
+	     * Re_name the hap_ID according to haplotypes in the hap_string_list;
+	     * The HapID is naturally coded by 0 and 1 strings. 
+		 * For very long haplotypes, we hope to convert them in to an integer 
+		 * of base 16. To indicate it is a haplotype, we add an "h" before the integer 
+		 */
+		for(int h=0;h<final_hapString_list.size();h++) {
+			for(int locus=0;locus<recon_num_loci;locus++) {
+				if(final_hapString_list.get(h).charAt(locus)!='1' && final_hapString_list.get(h).charAt(locus)!='0') {
+					System.out.println("Exception: hap-ID "+final_hapString_list.get(h)+" is not 1/0 coded."
+			+ "Returned without converting to base 16");
+				}
+			}
+		}    
+		// after check, convert the IDs to hexadecimal: 
+		String[] new_hap_IDs = new String[final_hapString_list.size()];
+		for(int h=0;h<final_hapString_list.size();h++) {
+			BigInteger the_integer=new BigInteger(final_hapString_list.get(h),2);
+		    new_hap_IDs[h]="h"+the_integer.toString(16);
+		}
+		
     	 //Over-write recon_inter_file, for those variant_positions 
     	 //in the ori_inter_file that are not called in the recon_inter_file, 
     	 //write 0 for all haplotypes; 
          PrintWriter pw_inter = new PrintWriter(new FileWriter(recon_inter_file, false)); 
          pw_inter.append("Hap_ID");
-		 for (int h=0; h<final_hap_string_list.size();h++) {
-			 pw_inter.append("\t"+"h"+h);
+		 for (int h=0; h<new_hap_IDs.length;h++) {
+			 pw_inter.append("\t"+new_hap_IDs[h]);
 		 }
 		 pw_inter.append("\n");
 		 pw_inter.append("Freq");
-		 for(int h=0;h<final_hap_string_list.size();h++) {
-			 pw_inter.append("\t"+0.0);
+		 for (int h=0; h<final_freq_list.size();h++) {
+			 pw_inter.append("\t"+ final_freq_list.get(h));
 		 }
 		 pw_inter.append("\n");
 		 int loci_position =0;
@@ -233,13 +270,13 @@ public class GC1_CompareHaps {
 			 pw_inter.write("0;"+ori_variant_position_list.get(l)+";"
 					 +ori_variant_position_list.get(l)+";0:1");
 			 if(recon_variant_position_list.contains(ori_variant_position_list.get(l))) {
-				 for(int h=0; h<final_hap_seq_listlist.size();h++) {
-					 pw_inter.append("\t"+ final_hap_seq_listlist.get(h).get(loci_position));
+				 for(int h=0; h<final_hapString_list.size();h++) {
+					 pw_inter.append("\t"+ final_hapString_list.get(h).charAt(loci_position));
 				 }
-				 pw_inter.write("\n");
 				 loci_position++;
+				 pw_inter.write("\n");
 			 }else {
-				 for(int h=0; h<final_hap_seq_listlist.size();h++) {
+				 for(int h=0; h<final_hapString_list.size();h++) {
 					 pw_inter.append("\t"+ "0");
 				 }
 				 pw_inter.write("\n");
@@ -365,14 +402,14 @@ public class GC1_CompareHaps {
 
 	public static void main(String[] args)
 			throws IOException, InterruptedException {
-		String project_name= args[0];//"0";
-		String main_dir=args[1]; 
-		int num_pools = Integer.parseInt(args[2]);
-		double quasi_cutoff= Double.parseDouble(args[3]); // "0.01"//
-		String gs_dir = main_dir + "/gold_standard/";
-    	String output_dir = main_dir + "/output/";
-    	String inter_dir = main_dir + "/intermediate/";
-    	String gcf_dir= main_dir + "/intermediate/gcf/";
+		
+		String project_name= args[0];
+    	double quasi_cutoff= Double.parseDouble(args[1]); 
+    	int num_pools = Integer.parseInt(args[2]);
+    	String gs_dir= args[3]+"/"; 
+    	String output_dir= args[4]+"/"; 
+    	String inter_dir = args[5] + "/";
+    	String gcf_dir= inter_dir + "gcf/";
     	String vars_intra_file = inter_dir+project_name+"_vars.intra_freq.txt";
     	String all_inter_file;
     	String complete_inter_file;
