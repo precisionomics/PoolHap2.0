@@ -12,6 +12,7 @@ import java.util.HashSet;
 
 import PoolHap.HapConfig;
 import shapeless.newtype;
+import spire.optional.intervalGeometricPartialOrder;
 
 public class CompareHaps {
 
@@ -56,14 +57,10 @@ public class CompareHaps {
     	 
     	 ArrayList<String> ori_variant_position_list = new ArrayList<>();
     	 ArrayList<String> recon_variant_position_list = new ArrayList<>();
-    	 ArrayList<ArrayList<String>> hap_seq_listlist=new ArrayList<ArrayList<String>>();
     	 ArrayList<ArrayList<Double>> hap_inpoolfreq_listlist=new ArrayList<ArrayList<Double>>();
+    	 ArrayList<ArrayList<String>> hap_seq_listlist=new ArrayList<ArrayList<String>>();
     	 ArrayList<String> pool_ID_list = new ArrayList<>();
 		 ArrayList<String> hap_string_list=new ArrayList<String>();
-		 ArrayList<String> final_hap_string_list=new ArrayList<String>();
-		 ArrayList<ArrayList<String>> final_hap_seq_listlist=new ArrayList<ArrayList<String>>();
-//		 ArrayList<Double> hap_freq_list=new ArrayList<Double>();
-		 HashMap<String, Double> hap2fre = new HashMap<String, Double>();
 		 
     	 //Read original_inter_file, and generate ori_variant_position_list
     	 String curr_ori_inter = br_ori_inter.readLine(); // read hap_ID line
@@ -80,6 +77,7 @@ public class CompareHaps {
     	 //Read reconstruct_inter_file
     	 String curr_recon_inter = br_recon_inter.readLine(); //read hap_ID line
     	 String[] hap_id_array = curr_recon_inter.split("\t");
+    	 System.out.println( hap_id_array.length-1);
 		 for(int id=1; id < hap_id_array.length; id++) { 
 			 ArrayList<String> new_hap_list=new ArrayList<String>();
 			 hap_seq_listlist.add(new_hap_list);
@@ -91,6 +89,7 @@ public class CompareHaps {
 			 //hap_freq_list.add(Double.parseDouble(freq_array[h]));
 			 hap_freq_array[h-1]=Double.parseDouble(freq_array[h]);
 		 }
+		 System.out.println( hap_freq_array.length);
     	 curr_recon_inter = br_recon_inter.readLine(); //read the variant line
     	 int recon_num_loci = 0;
     	 while(curr_recon_inter != null) {
@@ -101,26 +100,28 @@ public class CompareHaps {
     	 		   recon_num_loci++;
     	 		   recon_variant_position_list.add(var_position[1]);
     	 		   for (int index = 1; index < var_position_line.length; index ++) {
-    	 			   hap_seq_listlist.get(index-1).add(var_position_line[index]);
+    	 			  hap_seq_listlist.get(index-1).add(var_position_line[index]);
+    	 		   
     	 		   }
     	 	 }
     	 	 curr_recon_inter = br_recon_inter.readLine();
     	 }
     	 br_recon_inter.close();
     	//Read reconstruct_intra_file
-    	 String curr_recon_intra = br_recon_inter.readLine(); //read hap_ID line
-    	 curr_recon_intra = br_recon_inter.readLine();
+    	 String curr_recon_intra = br_recon_intra.readLine(); //read hap_ID line
+    	 curr_recon_intra = br_recon_intra.readLine();
     	 while(curr_recon_intra!=null) {
     		 String[] inpoolfreq_arr = curr_recon_intra.split("\t");
     		 pool_ID_list.add(inpoolfreq_arr[0]);
     		 ArrayList<Double> tmp_inpoolfreq_list=new ArrayList<Double>();
     		 for(int f=1;f<inpoolfreq_arr.length;f++) {
-    			 tmp_inpoolfreq_list.add(Double.parseDouble(inpoolfreq_arr[f]));
+    			 tmp_inpoolfreq_list.add(Double.parseDouble(inpoolfreq_arr[f])); 
     		 }
-    		 hap_inpoolfreq_listlist.add(tmp_inpoolfreq_list);
-    		 curr_recon_intra = br_recon_inter.readLine();
+    		 hap_inpoolfreq_listlist.add(tmp_inpoolfreq_list); // num_pool*num_hap
+    		 curr_recon_intra = br_recon_intra.readLine();
     	 }
-		 // change hap_seq_listlist to hap_string_list
+    	 br_recon_intra.close();
+    	 // change hap_seq_listlist to hap_string_list
 		 for (int h=0; h<hap_seq_listlist.size();h++) {
 			 String hap_str = "" ;
 			 for (int index =0; index < hap_seq_listlist.get(h).size();index ++) {
@@ -129,93 +130,75 @@ public class CompareHaps {
 			 hap_string_list.add(hap_str);
 		 }
 		/*
-	     * Re_name the hap_ID according to haplotypes in the hap_string_list;
-	     * The hap_ID is named according to the haplotypes, after getting rid 
-	     * of false_positive variant positions, the hap_ID should also be changed
-	     * Use haplotype strings to set a binary ID.
-	     */
-		 String[] new_hap_IDs = new String[hap_string_list.size()];
-		 String[][] global_haps_string = new String[hap_string_list.size()][recon_num_loci];
-		    for(int h=0;h<hap_string_list.size();h++) {
-		    String id = "";
-		            for (int locus = 0; locus < recon_num_loci; locus++) {
-		                id += global_haps_string[h][locus];
-		            }
-		            new_hap_IDs[h] = id;
-		    }
-		 /*
-		  * The HapID is naturally coded by 0 and 1 strings. 
-		  * For very long haplotypes, we hope to convert them in to an integer 
-		  * of base 16. To indicate it is a haplotype, we add an "h" before the integer 
-		  */
-		// check if the current hap-IDs are indeed 0/1 coded
+		 * Check for identical haplotypes (Hap_ID), combine the haplotypes and
+		 * corresponding frequency
+		 */
+		ArrayList<Integer> identical_hap= new ArrayList<>();
+		ArrayList<String> final_hapString_list = new ArrayList<>();
+		ArrayList<Double> final_freq_list = new ArrayList<>();
+		ArrayList<ArrayList<Double>> final_hap_inpoolfreq_listlist=new ArrayList<ArrayList<Double>>();
+		for(int h1=0;h1<hap_string_list.size()-1;h1++) {
+			for(int h2=h1+1;h2<hap_string_list.size();h2++) {
+				if(hap_string_list.get(h2).equals(hap_string_list.get(h1))) {
+					identical_hap.add(h2);
+					hap_freq_array[h1]=hap_freq_array[h1]+hap_freq_array[h2];
+					for(int p=0;p<hap_inpoolfreq_listlist.size();p++) {
+						hap_inpoolfreq_listlist.get(p).set(h1, 
+								hap_inpoolfreq_listlist.get(p).get(h1)+hap_inpoolfreq_listlist.get(p).get(h2));
+					}
+				}
+			}
+		}
 		for(int h=0;h<hap_string_list.size();h++) {
+			 if(!identical_hap.contains(h)) {
+				 final_hapString_list.add(hap_string_list.get(h));
+				 final_freq_list.add(hap_freq_array[h]);
+				 
+			 }
+		}
+		for(int p=0;p<hap_inpoolfreq_listlist.size();p++) {
+			ArrayList<Double> tmp_inpoolfreq_list=new ArrayList<Double>();
+			for(int h=0;h<hap_string_list.size();h++) {
+				if(!identical_hap.contains(h)) {
+					tmp_inpoolfreq_list.add(hap_inpoolfreq_listlist.get(p).get(h));
+				}
+			}
+			final_hap_inpoolfreq_listlist.add(tmp_inpoolfreq_list);
+		}
+		
+		/*
+	     * Re_name the hap_ID according to haplotypes in the hap_string_list;
+	     * The HapID is naturally coded by 0 and 1 strings. 
+		 * For very long haplotypes, we hope to convert them in to an integer 
+		 * of base 16. To indicate it is a haplotype, we add an "h" before the integer 
+		 */
+		for(int h=0;h<final_hapString_list.size();h++) {
 			for(int locus=0;locus<recon_num_loci;locus++) {
-				if(new_hap_IDs[h].charAt(locus)!='1' && new_hap_IDs[h].charAt(locus)!='0') {
-					System.out.println("Exception: hap-ID "+new_hap_IDs[h]+" is not 1/0 coded."
+				if(final_hapString_list.get(h).charAt(locus)!='1' && final_hapString_list.get(h).charAt(locus)!='0') {
+					System.out.println("Exception: hap-ID "+final_hapString_list.get(h)+" is not 1/0 coded."
 			+ "Returned without converting to base 16");
 				}
 			}
 		}    
 		// after check, convert the IDs to hexadecimal: 
-		ArrayList<String> new_hapIDs_list = new ArrayList<>();
-		for(int h=0;h<hap_string_list.size();h++) {
-			BigInteger the_integer=new BigInteger(new_hap_IDs[h],2);
-//		    new_hap_IDs[h]="h"+the_integer.toString(16);
-		    new_hapIDs_list.add("h"+the_integer.toString(16));
+		String[] new_hap_IDs = new String[final_hapString_list.size()];
+		for(int h=0;h<final_hapString_list.size();h++) {
+			BigInteger the_integer=new BigInteger(final_hapString_list.get(h),2);
+		    new_hap_IDs[h]="h"+the_integer.toString(16);
 		}
-		/*
-		 * Check for identical haplotypes (Hap_ID), combine the haplotypes and
-		 * corresponding frequency
-		 */
-		for(int h1=0;h1<new_hapIDs_list.size();h1++) {
-			for(int h2=1;h2<new_hapIDs_list.size();h2++) {
-				if(new_hapIDs_list.get(h2).equals(new_hapIDs_list.get(h1))) {
-					new_hapIDs_list.remove(h2);
-					hap_freq_array[h1]=hap_freq_array[h1]+hap_freq_array[h2];
-				}
-			}
-		}
-
 		
-		
-		 // generate hap2fre hashmap
-		 // Combine identical haplotypes and their corresponding frequency 
-		 for (int h=0; h<hap_string_list.size();h++) {
-			 if(!hap2fre.containsKey(hap_string_list.get(h))) {
-				hap2fre.put(hap_string_list.get(h), hap_freq_list.get(h));
-			}else if (hap2fre.containsKey(hap_string_list.get(h))){
-				hap2fre.put(hap_string_list.get(h), 
-						(hap2fre.get(hap_string_list.get(h))+hap_freq_list.get(h)));
-				
-			}
-		 }
-		 // generate final_hap_string_list using hap2fre
-		for ( String key : hap2fre.keySet() ) {
-		    final_hap_string_list.add(key);
-		}
-		// final_hap_string_list transfer to final_hap_seq_listlist
-		// final_hap_seq_listlist contains each haplotypes and their loci(0/1)
-		for (int h=0; h < final_hap_string_list.size(); h++) {
-			ArrayList<String> tmp_hap_string_list=new ArrayList<String>();
-			for(int i=0; i < final_hap_string_list.get(h).split("").length; i++) {
-				tmp_hap_string_list.add(final_hap_string_list.get(h).split("")[i]);
-			}
-			final_hap_seq_listlist.add(tmp_hap_string_list);
-		}
     	 //Over-write recon_inter_file, for those variant_positions 
     	 //in the ori_inter_file that are not called in the recon_inter_file, 
     	 //write 0 for all haplotypes; 
          PrintWriter pw_inter = new PrintWriter(new FileWriter(recon_inter_file, false)); 
          pw_inter.append("Hap_ID");
-		 for (int h=0; h<final_hap_string_list.size();h++) {
-			 pw_inter.append("\t"+"h"+h);
+		 for (int h=0; h<new_hap_IDs.length;h++) {
+			 pw_inter.append("\t"+new_hap_IDs[h]);
 		 }
 		 pw_inter.append("\n");
 		 pw_inter.append("Freq");
-		 for (int h=0; h<final_hap_string_list.size();h++) {
-			 double curr_hap_freq = hap2fre.get(final_hap_string_list.get(h));
-			 pw_inter.append("\t"+ curr_hap_freq);
+		 for (int h=0; h<final_freq_list.size();h++) {
+			 pw_inter.append("\t"+ final_freq_list.get(h));
 		 }
 		 pw_inter.append("\n");
 		 int loci_position =0;
@@ -223,19 +206,35 @@ public class CompareHaps {
 			 pw_inter.write("0;"+ori_variant_position_list.get(l)+";"
 					 +ori_variant_position_list.get(l)+";0:1");
 			 if(recon_variant_position_list.contains(ori_variant_position_list.get(l))) {
-				 for(int h=0; h<final_hap_seq_listlist.size();h++) {
-					 pw_inter.append("\t"+ final_hap_seq_listlist.get(h).get(loci_position));
+				 for(int h=0; h<final_hapString_list.size();h++) {
+					 pw_inter.append("\t"+ final_hapString_list.get(h).charAt(loci_position));
 				 }
 				 loci_position++;
 				 pw_inter.write("\n");
 			 }else {
-				 for(int h=0; h<final_hap_seq_listlist.size();h++) {
+				 for(int h=0; h<final_hapString_list.size();h++) {
 					 pw_inter.append("\t"+ "0");
 				 }
 				 pw_inter.write("\n");
 			 }
 		 }
 		 pw_inter.close();
+		 
+		//Over-write recon_intra_file
+		 PrintWriter pw_intra = new PrintWriter(new FileWriter(recon_intra_file, false));
+		 pw_intra.append("Hap_ID");
+		 for (int h=0; h<new_hap_IDs.length;h++) {
+			 pw_intra.append("\t"+new_hap_IDs[h]);
+		 }
+		 pw_intra.append("\n");
+		 for(int p=0;p<pool_ID_list.size();p++) {
+			 pw_intra.append(pool_ID_list.get(p));
+			 for(int h=0;h<final_hap_inpoolfreq_listlist.get(p).size();h++) {
+				pw_intra.append("\t"+final_hap_inpoolfreq_listlist.get(p).get(h));
+			 }
+			 pw_intra.append("\n");
+		 }
+		 pw_intra.close();
     }
     
     public static double[] single_pool_evaluator(
@@ -351,22 +350,14 @@ public class CompareHaps {
         multipool_quasispecies.addAll(quasi_indices);
 
         PrintWriter pw = new PrintWriter(
-            new FileWriter(dir_prefix + "_" + quasi_cutoff + "_single_pools.result.txt", true));
+            new FileWriter(dir_prefix + "_" + quasi_cutoff + "_single_pools.result.txt", false));
         pw.append("Pool_ID"+"\t"+"Ori_Hap_ID"+"\t"+"Closest_Recon_Hap_ID"+"\t"
                 +"Min_diff_Pos"+"\t"+"Min_freq_diff"+"\t"+"Num_of_Recon_Meet_Cutoff"+"\n");
         for (int h_index = 0; h_index < num_inpool_ori; h_index++) {
-            pw.append(pool_ID + "\t" + none_0_ori_hap_id.get(h_index) + "\t"
+            pw.append(pool_ID + "\t" + none_0_ori_hap_id.get(h_index) +"\t"
                 + min_diff_ID[h_index] + "\t" + min_diff_pos[h_index]
                 + "\t" + min_diff_freq[h_index] + "\t" + max_diff_haps[h_index] + "\n");
-            // also_min_diff[h_id] + "\t" + min_diff_freq_prop[h_id] + "\t" +
         }
-        // pw.append("\n");
-        // pw.append("Pool\tAverage_Min_Diff\tAverage_Diff_Freq\tAverage_Diff_Freq_Prop\n");
-        // double avg_diff_ct = diff_ct / num_inpool;
-        // double avg_diff_freq = diff_abs / num_inpool;
-        // double avg_diff_prop = diff_prop / num_inpool;
-        // pw.append(pool + "\t" + avg_diff_ct + "\t" + avg_diff_freq + "\t" + avg_diff_prop +
-        // "\n\n");
         pw.close();
         return new double[] {
             (double) num_accurate / num_inpool_ori,
@@ -398,13 +389,9 @@ public class CompareHaps {
                 output_files_prefix);
         }
         PrintWriter pw1 = new PrintWriter(
-            new FileWriter(output_files_prefix + "_" + quasi_cutoff + "_extended_results.txt", true));
+            new FileWriter(output_files_prefix + "_" + quasi_cutoff + "_extended_results.txt", false));
         pw1.append("## parameters: cut-off = " + quasi_cutoff + "\n");
-//        pw1.append("## orig_hap_files: " + ori_inter_file + "\t" + ori_intra_file + "\n");
-//        pw1.append("## recon_hap_files: " + recon_inter_file + "\t" + recon_intra_file + "\n");
         pw1.append(
-//            "# Project_name\tPool_ID\t" + "Prop_of_OH_recovered\t" + "Ave_dist_btw OH_closest_RH\t"
-//                + "Ave_freq_diff_btw OH_closest_RH\t" + "Sum_in-pool_freq_valid_quasispecies\n");
         		"#Project_Name\t"
                 + "Pool_ID\t"
                 + "OH_Recovery\t"
@@ -423,14 +410,8 @@ public class CompareHaps {
         pw1.close();
 
         PrintWriter pw2 = new PrintWriter(
-            new FileWriter(output_files_prefix + "_" + quasi_cutoff + "_aggregated_results.txt", true));
+            new FileWriter(output_files_prefix + "_" + quasi_cutoff + "_aggregated_results.txt", false));
         pw2.append("## parameters: cut-off = " + quasi_cutoff + "\n");
-
-//        pw1.append("## orig_hap_files: " + ori_inter_file + "\t" + ori_intra_file + "\n");
-//        pw1.append("## recon_hap_files: " + recon_inter_file + "\t" + recon_intra_file + "\n");
-//        pw1.append(
-//            "# Project_name\tPool_ID\t" + "Prop_of_OH_recovered\t" + "Ave_dist_btw OH_closest_RH\t"
-//                + "Ave_freq_diff_btw OH_closest_RH\t" + "Sum_in-pool_freq_valid_quasispecies\n");
         
         pw2.append("#Project_Name\t"
                 + "Mean_OH_Recovery\t"
