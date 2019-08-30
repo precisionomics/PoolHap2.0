@@ -5,15 +5,11 @@ import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.util.ArrayList;
-import java.util.Collections;
-
-import spire.optional.intervalGeometricPartialOrder;
 
 public class Hippo_transfer_output {
 
 	public static void main(String[] args) {
-		//String folder="C:\\Users\\lenovo\\Desktop\\HIV project\\Hippo\\";
-		String results_out="results.out"; //"sample_reference.fasta";//"HIV_reference.fasta";//
+		String results_out="results.out";
 		String project_name=args[0];
 		String vars_file = project_name + "_vars.intra_freq.txt";
 		String final_results_out=project_name + ".inter_freq_vars.txt";
@@ -54,17 +50,12 @@ public class Hippo_transfer_output {
 				for(int i=0;i<haplo_array.length;i++) {
 					if(haplo_array[i].equals("1")) {
 						loci_reads_row.add(i);
-//						if(!haplo_diff_loci.contains(i)) {
-//							haplo_diff_loci.add(i);
-//						}
 					}
 				}
 				loci_reads_listlist.add(loci_reads_row);
 				haplo_frequency_list.add(each_line_arry[1]);
 				each_line=br_file.readLine();
 			}
-			// sort the arraylist
-//			Collections.sort(haplo_diff_loci);
 			br_file.close();
 			// write the haplotype ID
 			bw_file.write("Hap_ID"+"\t");

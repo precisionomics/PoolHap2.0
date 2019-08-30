@@ -7,12 +7,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 
 import PoolHap.HapConfig;
-import shapeless.newtype;
-import spire.optional.intervalGeometricPartialOrder;
 
 public class CompareHaps {
 
@@ -77,7 +74,6 @@ public class CompareHaps {
     	 //Read reconstruct_inter_file
     	 String curr_recon_inter = br_recon_inter.readLine(); //read hap_ID line
     	 String[] hap_id_array = curr_recon_inter.split("\t");
-    	 System.out.println( hap_id_array.length-1);
 		 for(int id=1; id < hap_id_array.length; id++) { 
 			 ArrayList<String> new_hap_list=new ArrayList<String>();
 			 hap_seq_listlist.add(new_hap_list);
@@ -89,7 +85,6 @@ public class CompareHaps {
 			 //hap_freq_list.add(Double.parseDouble(freq_array[h]));
 			 hap_freq_array[h-1]=Double.parseDouble(freq_array[h]);
 		 }
-		 System.out.println( hap_freq_array.length);
     	 curr_recon_inter = br_recon_inter.readLine(); //read the variant line
     	 int recon_num_loci = 0;
     	 while(curr_recon_inter != null) {
@@ -240,11 +235,9 @@ public class CompareHaps {
     public static double[] single_pool_evaluator(
         HapConfig orig_haps,
         HapConfig recon_haps,
-        // int compare_loci, // total number of loci in the comparison
-        // int[] o2r_indices, // index mapping between original and reconstructed
         double quasi_cutoff, // a ratio of acceptable differences.
-        String pool_ID,
-        String dir_prefix) throws IOException {
+        String pool_ID,//pool_ID in the ori_file
+        String output_files_prefix) throws IOException {
         if (orig_haps.num_loci != recon_haps.num_loci) {
             System.out.println("Error: orig_haps.num_loci!=recon_haps.num_loci: \n"
                 + "Returned without comparison!");
@@ -350,7 +343,7 @@ public class CompareHaps {
         multipool_quasispecies.addAll(quasi_indices);
 
         PrintWriter pw = new PrintWriter(
-            new FileWriter(dir_prefix + "_" + quasi_cutoff + "_single_pools.result.txt", false));
+            new FileWriter(output_files_prefix + "_" + quasi_cutoff + "_single_pools.result.txt", true));
         pw.append("Pool_ID"+"\t"+"Ori_Hap_ID"+"\t"+"Closest_Recon_Hap_ID"+"\t"
                 +"Min_diff_Pos"+"\t"+"Min_freq_diff"+"\t"+"Num_of_Recon_Meet_Cutoff"+"\n");
         for (int h_index = 0; h_index < num_inpool_ori; h_index++) {

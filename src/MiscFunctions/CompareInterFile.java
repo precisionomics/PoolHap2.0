@@ -7,10 +7,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
-
-import Viral_Reconstructions_Tools.HapConfig_inter_file;
 
 public class CompareInterFile {
 	
@@ -164,132 +161,12 @@ public class CompareInterFile {
 			 pw_inter.close();
 	    }
 	
-	
-//	public static void compare_loci(String ori_inter_file, 
-//    		String recon_inter_file) throws IOException, InterruptedException{
-//    	 BufferedReader br_ori_inter = new BufferedReader(new FileReader(
-//    			 ori_inter_file));
-//    	 BufferedReader br_recon_inter = new BufferedReader(new FileReader(
-//    			 recon_inter_file));
-//    	 
-//    	 ArrayList<String> ori_variant_position_list = new ArrayList<>();
-//    	 ArrayList<String> recon_variant_position_list = new ArrayList<>();
-//    	 ArrayList<ArrayList<String>> hap_seq_listlist=new ArrayList<ArrayList<String>>();
-//		 ArrayList<String> hap_string_list=new ArrayList<String>();
-//		 ArrayList<String> final_hap_string_list=new ArrayList<String>();
-//		 ArrayList<ArrayList<String>> final_hap_seq_listlist=new ArrayList<ArrayList<String>>();
-//		 ArrayList<Double> hap_freq_list=new ArrayList<Double>();
-//		 HashMap<String, Double> hap2fre = new HashMap<String, Double>();
-//		 
-//    	 //Read original_inter_file, and generate ori_variant_position_list
-//    	 String curr_ori_inter = br_ori_inter.readLine(); // read hap_ID line
-//    	 curr_ori_inter = br_ori_inter.readLine(); // read freq line
-//    	 curr_ori_inter = br_ori_inter.readLine(); // read third line
-//    	 while(curr_ori_inter != null) {
-//    		 String[] var_position_line = curr_ori_inter.split("\t");
-//    	 	 String[] var_position = var_position_line[0].split(";");
-//    	 	 ori_variant_position_list.add(var_position[1]);
-//    	 	 curr_ori_inter = br_ori_inter.readLine();
-//    	 }
-//    	 br_ori_inter.close();
-//    	 //Read reconstruct_inter_file
-//    	 String curr_recon_inter = br_recon_inter.readLine(); //read hap_ID line
-//    	 String[] hap_id_array = curr_recon_inter.split("\t");
-//		 for(int id=1; id < hap_id_array.length; id++) { 
-//			 ArrayList<String> new_hap_list=new ArrayList<String>();
-//			 hap_seq_listlist.add(new_hap_list);
-//		 }
-//    	 curr_recon_inter = br_recon_inter.readLine(); //read freq line
-//    	 String[] freq_array = curr_recon_inter.split("\t");
-//		 for (int h =1; h < freq_array.length; h++ ) {
-//			 hap_freq_list.add(Double.parseDouble(freq_array[h]));
-//		 }
-//    	 curr_recon_inter = br_recon_inter.readLine(); //read the variant line
-//    	 while(curr_recon_inter != null) {
-//			 String[] var_position_line = curr_recon_inter.split("\t");
-//    	 	 String[] var_position = var_position_line[0].split(";");
-//    	 	 // get rid of false_positive variant positions
-//    	 	 if(ori_variant_position_list.contains(var_position[1])) {
-//    	 		   recon_variant_position_list.add(var_position[1]);
-//    	 		   for (int index = 1; index < var_position_line.length; index ++) {
-//    	 			   hap_seq_listlist.get(index-1).add(var_position_line[index]);
-//    	 		   }
-//    	 	 }
-//    	 	 curr_recon_inter = br_recon_inter.readLine();
-//    	 }
-//    	 br_recon_inter.close();
-//		 // change hap_seq_listlist to hap_string_list
-//		 for (int h=0; h<hap_seq_listlist.size();h++) {
-//			 String hap_str = "" ;
-//			 for (int index =0; index < hap_seq_listlist.get(h).size();index ++) {
-//				 hap_str = hap_str + hap_seq_listlist.get(h).get(index);
-//			 }
-//			 hap_string_list.add(hap_str);
-//		 }
-//		 // generate hap2fre hashmap
-//		 // Combine identical haplotypes and their corresponding frequency
-//		 for (int h=0; h<hap_string_list.size();h++) {
-//			 if(!hap2fre.containsKey(hap_string_list.get(h))) {
-//				hap2fre.put(hap_string_list.get(h), hap_freq_list.get(h));
-//			}else if (hap2fre.containsKey(hap_string_list.get(h))){
-//				hap2fre.put(hap_string_list.get(h), 
-//						(hap2fre.get(hap_string_list.get(h))+hap_freq_list.get(h)));
-//			}
-//		 }
-//		 // generate final_hap_string_list using hap2fre
-//		for ( String key : hap2fre.keySet() ) {
-//		    final_hap_string_list.add(key);
-//		}
-//		// final_hap_string_list transfer to final_hap_seq_listlist
-//		// final_hap_seq_listlist contains each haplotypes and their loci(0/1)
-//		for (int h=0; h < final_hap_string_list.size(); h++) {
-//			ArrayList<String> tmp_hap_string_list=new ArrayList<String>();
-//			for(int i=0; i < final_hap_string_list.get(h).split("").length; i++) {
-//				tmp_hap_string_list.add(final_hap_string_list.get(h).split("")[i]);
-//			}
-//			final_hap_seq_listlist.add(tmp_hap_string_list);
-//		}
-//    	 //Over-write recon_inter_file, for those variant_positions 
-//    	 //in the ori_inter_file that are not called in the recon_inter_file, 
-//    	 //write 0 for all haplotypes; 
-//         PrintWriter pw_inter = new PrintWriter(new FileWriter(recon_inter_file, false)); 
-//         pw_inter.append("Hap_ID");
-//		 for (int h=0; h<final_hap_string_list.size();h++) {
-//			 pw_inter.append("\t"+"h"+h);
-//		 }
-//		 pw_inter.append("\n");
-//		 pw_inter.append("Freq");
-//		 for (int h=0; h<final_hap_string_list.size();h++) {
-//			 double curr_hap_freq = hap2fre.get(final_hap_string_list.get(h));
-//			 pw_inter.append("\t"+ curr_hap_freq);
-//		 }
-//		 pw_inter.append("\n");
-//		 int loci_position =0;
-//		 for (int l=0;l<ori_variant_position_list.size();l++) {
-//			 pw_inter.write("0;"+ori_variant_position_list.get(l)+";"
-//					 +ori_variant_position_list.get(l)+";0:1");
-//			 if(recon_variant_position_list.contains(ori_variant_position_list.get(l))) {
-//				 for(int h=0; h<final_hap_seq_listlist.size();h++) {
-//					 pw_inter.append("\t"+ final_hap_seq_listlist.get(h).get(loci_position));
-//				 }
-//				 loci_position++;
-//				 pw_inter.write("\n");
-//			 }else {
-//				 for(int h=0; h<final_hap_seq_listlist.size();h++) {
-//					 pw_inter.append("\t"+ "0");
-//				 }
-//				 pw_inter.write("\n");
-//			 }
-//		 }
-//		 pw_inter.close();
-//    }
-//	
 	public static double[] global_hap_evaluator(String orig_inter_file, 
 			String recon_inter_file, double quasi_cutoff, String dir_prefix,
 			String project_name) throws IOException, InterruptedException {
 		
-		HapConfig_inter_file orig_haps = new HapConfig_inter_file(orig_inter_file);
-		HapConfig_inter_file recon_haps = new HapConfig_inter_file(recon_inter_file);
+		HapConfigInterFile orig_haps = new HapConfigInterFile(orig_inter_file);
+		HapConfigInterFile recon_haps = new HapConfigInterFile(recon_inter_file);
 		int max_pos_diff = (int)Math.floor(orig_haps.num_loci*quasi_cutoff);
 		double diff_ct = 0.0;
 		double diff_abs = 0;
@@ -382,24 +259,22 @@ public class CompareInterFile {
             orig_haps.num_global_hap,
             recon_haps.num_global_hap
         };
-        
 	}
 	
 	public static void main(String[] args) throws IOException, InterruptedException{
-    	String project_name = args[0];//"0_0";//
-    	double quasi_cutoff= Double.parseDouble(args[1]); // "0.01"//
-    	String main_dir = args[2];
-    	String function = args[3]; // for 2nd GC: gc2, for aem: aem
-    	String orig_inter_file;
-    	String recon_inter_file;
-    	String gs_dir = main_dir + "/gold_standard/";
-    	String output_dir = main_dir + "/output/";
-    	String aem_dir = main_dir + "/intermediate/aem/";
+    	String project_name = args[0];
+    	double quasi_cutoff= Double.parseDouble(args[1]); 
+    	String gs_dir= args[2]+"/"; 
+    	String output_dir= args[3]+"/"; 
+    	String aem_dir = args[4] + "/";
+    	String function = args[5]; // for 2nd GC: gc2, for aem: aem
     	// when compare aem output, the project_name looks like: 
     	// XXX_level_1_region_0
+    	String orig_inter_file;
+    	String recon_inter_file;
     	if(function.equals("aem")) {
-    		int level = Integer.parseInt(args[4]);
-    		int region_count = Integer.parseInt(args[5]);
+    		int level = Integer.parseInt(args[6]);
+    		int region_count = Integer.parseInt(args[7]);
     		project_name=args[0]+"_level_"+level+"_region_"
          			+ region_count;
   	    }else {

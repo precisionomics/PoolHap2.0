@@ -9,12 +9,9 @@ import java.util.ArrayList;
 public class Hippo_datafile_transfer {
 
 	public static void main(String[] args) {
-		//String folder="C:\\Users\\lenovo\\Desktop\\HIV project\\Hippo\\";
 		String project_name=args[0];
 		String input_datafile = project_name + "_vars.intra_freq.txt";
 		String output_datafile= project_name + "_vars.intra_freq_datafile";
-//		String input_datafile="9_vars.intra_freq_"+args[0]+"_loci.txt";//"9_vars.intra_freq_20_loci.txt";
-//		String output_datafile="9_vars.intra_freq_"+args[0]+"_loci_datafile";//"9_vars.intra_freq_20_loci_datafile";
 		transfer_datafile(input_datafile,output_datafile);
 	}
 	
