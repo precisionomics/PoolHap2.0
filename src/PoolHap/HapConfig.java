@@ -542,7 +542,7 @@ public class HapConfig {
      *
      *  It will be done by invoking the function encoding_alleles in the class LocusAnnotation.
      *  The key algorithm of how to design the encoding will be implemented later by translating 
-     *  Michael's MDS code in R to Java TODO [Quan]
+     *  Michael (michaeljohn.ilagan@ucalgary.ca)'s MDS code in R to Java TODO [Quan]
      *
      */
     public void encoding_haps(){
