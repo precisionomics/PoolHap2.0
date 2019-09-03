@@ -153,7 +153,7 @@ public class Entrance {
         /*
          * Input arguments.
          */
-    	String[] supported_functions_array = {"format", "gc", "aem", "lasso", "split", "aemgc"};
+    	String[] supported_functions_array = {"format", "gc", "aem", "lasso", "split", "gcaem"};
     	HashSet<String> supported_functions = new HashSet<String>();
         for (int k = 0; k < supported_functions_array.length; k++) {
              supported_functions.add(supported_functions_array[k]);
@@ -189,7 +189,7 @@ public class Entrance {
         /*
          * Local haplotype configuration.
          */
-
+        Evaluate  eva = new Evaluate ();
         // By design, HapConfig contains haps of all pools.
         if (function.equals("format")) {
             // SAM files in input_dir/sam initiates pool-IDs and orders, and write to the
@@ -228,6 +228,9 @@ public class Entrance {
                 .println("\nGraph-Coloring Finished: " + dtf.format(LocalDateTime.now()) + "\n");
         } else if (function.equals("aem")) { // Note: aem includes DC and AEM
             // Apply divide and conquer across all pools.
+        	
+
+//        	System.exit(0);
             String dc_out_file = gp.inter_dir + gp.project_name + "_dc_plan.txt"; // dc output
                                                                                   // filepath string
             String[] vef_files = 
@@ -281,6 +284,8 @@ public class Entrance {
 
             System.out.println("\nPost-AEM GC Finished: " + dtf.format(LocalDateTime.now()) + "\n");
             
+//        	eva.AemEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+//        			"/home/chencao/Desktop/sim001/output/sim001_gc.inter_freq_haps.txt");
         } else if (function.equals("lasso")) {
             /*
              * Final intra pool haplotype configuration via LASSO selection. TODO: [Question]:: are
@@ -348,7 +353,7 @@ public class Entrance {
                 .println("\nFile Split Finished.\n");
         
         //Using Exhaustive search to find all possible regional haplotypes based on the vef file
-        }else if (function.equals("aemgc")) {
+        }else if (function.equals("gcaem")) {
             String dc_out_file = gp.inter_dir + gp.project_name + "_dc_plan.txt"; // dc output
             // filepath string       	
             String[] vef_files = 
@@ -368,12 +373,54 @@ public class Entrance {
                     gs_var_pos,
                     gp.inter_dir + "gcf/" + Entrance.names_array[p] + ".gcf",
                     dc_maker.regions_level_I );
-
+                dc_maker.loci_link_freq[p]= pool_in.loci_link_freq;
                 System.out.println("Graph colouring for pool " + p + ":" + Entrance.names_array[p]
                     + " is finished.");
             }
+            
+            
+            new File(gp.inter_dir + "/gcaem/").mkdir();
+            
+            HapConfig[] level_I_config = dc_maker.regional_AEM(
+                    Entrance.names_array,
+                    vef_files,
+                    dc_maker.regions_level_I,
+                    parameter_file,
+                    gp.inter_dir + "/aem/" + gp.project_name,
+                    gp.inter_dir + "/aem_fail_regional_lasso/",
+                    1, Entrance.name2index);
+
+            
+            HapConfig[] level_II_config = dc_maker.regional_AEM(
+                    Entrance.names_array,
+                    vef_files,
+                    dc_maker.regions_level_II,
+                    parameter_file,
+                    gp.inter_dir + "/aem/" + gp.project_name,
+                    gp.inter_dir + "/aem_fail_regional_lasso/",
+                    2,  Entrance.name2index);
+
+                System.out.println("Level 2 AEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
+
+                // Link regions by applying graph coloring across the level 1 and level 2 regional
+                // haplotype configurations.
+                GraphColoring region_linker =
+                    new GraphColoring(level_I_config, level_II_config, gs_var_pos, gp.virtual_cov_link_gc);
+
+                // Write final global haplotype configurations (inter pool) to output.
+                HapConfig final_global_haps; // final global haplotype configuration object
+                final_global_haps = region_linker.hapOut(Entrance.names_array); // HapConfig from
+                                                                                // GC-linked regions
+                final_global_haps.recode_HapIDs_to_base16();
+                final_global_haps.write_global_file_string( // write to output
+                    gp.out_dir + gp.project_name + "_gc.inter_freq_haps.txt");
+            
+            
             System.out
-                .println("\nGraph-Coloring Finished: " + dtf.format(LocalDateTime.now()) + "\n");
+                .println("\nGCAEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
+//            eva.AemEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+//        			"/home/chencao/Desktop/sim001/output/sim001_gc.inter_freq_haps.txt");
+
         }    
     }
 }

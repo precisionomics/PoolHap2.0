@@ -15,6 +15,7 @@ public class RandomSimulator {
 	int num_vars;
 	int read_len;
 	int outer_dist;
+	int mut_each_generation;
 	double ave_coverage;
 	/*	1	0	1	0	0	0	1
 	 * 	1	0	0	0	0	0	1
@@ -25,15 +26,43 @@ public class RandomSimulator {
 	double [][] hap_freq_inpool; // num_pools* num_total_haps 
 	int[] var_pos; 
 	
+	public int  mut(int  base)  throws IOException {
+		if (base==0 ) {
+			return 1;
+		}else {
+			return 0;
+		}
+	}
 	public void GenomeSimulator() throws IOException {
 		this.sim_genome = new int [this.num_total_haps][this.num_vars];
-		for (int i = 0; i < this.sim_genome.length; i++) {
+		
+		for (int i = 0; i < this.sim_genome[0].length; i++) {
+			Random random = new Random(); 
+			int genotype  = random.nextInt(2);
+			this.sim_genome[0][i] = genotype ;
+		}
+		
+		
+		for (int i = 1; i < this.sim_genome.length; i++) {
+			HashSet<Integer> pos_set = new HashSet<Integer>();
 			for (int j = 0; j < this.sim_genome[i].length; j++) {
-				Random random = new Random(); 
-				int genotype  = random.nextInt(2);
-				this.sim_genome[i][j] = genotype ;
+				this.sim_genome[i][j] = this.sim_genome[i-1][j];
 			}
-		}	 
+			int count =0;
+			while (count < this.mut_each_generation) { 
+				
+				Random random = new Random(); 
+				int pos   = random.nextInt(this.num_vars);
+				if  (!pos_set.contains(pos)){
+					count++;
+					sim_genome[i][pos]=mut (sim_genome[i-1][pos] );
+					pos_set.add(pos);
+				}
+				
+			}
+		}	
+		
+		
 		Boolean[] array = new Boolean[this.genome_len];
 		this.var_pos = new int [this.num_vars];
 		Arrays.fill(array, Boolean.FALSE);
@@ -271,6 +300,7 @@ public class RandomSimulator {
 		this.read_len = Integer.parseInt(args[7]);
 		this.outer_dist = Integer.parseInt(args[8]);
 		this.ave_coverage= Double.parseDouble( args[9]);
+		this.mut_each_generation = Integer.parseInt(args[10]);
 		new File(this.folder_path + "/"+this.project_name ).mkdir();
 		new File(this.folder_path + "/"+this.project_name + "/"+ "/gold_standard/").mkdir();
 		new File(this.folder_path + "/"+this.project_name + "/"+ "/input/").mkdir();
@@ -287,7 +317,7 @@ public class RandomSimulator {
 	}
 	
 	public static void main(String[] args) throws IOException {
-		// /home/chencao/Desktop  sim001	10	20	15	5000	50	150	50	100
+		// /home/chencao/Desktop  sim001	10	20	15	5000	50	150	50	100		5
 		//parameter 0: folder path
 		//parameter 1: project name
 		//parameter 2: number of pools
@@ -298,6 +328,7 @@ public class RandomSimulator {
 		//parameter	7: read length
 		//parameter 8: outer distance between the two ends for pairs
 		//parameter 9: average coverage
+		//parameter 10: number of mutations each generation
 		RandomSimulator rs = new RandomSimulator(args);
 	}
 	
