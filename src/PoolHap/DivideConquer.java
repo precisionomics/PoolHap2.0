@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -49,6 +50,7 @@ public class DivideConquer {
     public String[][] global_haps_gc;
     public double[] global_gc_freq;
     public int num_haps_gc;
+    public double[][][] loci_link_freq;
 
     // Note that we do NOT generate the fields for HapConfigs of each regions. These will be
     // generated on-the-fly during the calculation.
@@ -93,7 +95,7 @@ public class DivideConquer {
              *  Division?
              */
             this.generate_dividing_plan_two_level(this.gc_outcome);
-
+            this.loci_link_freq=new double [num_pools][num_sites-1][4];
             // TODO: LEFTOVER ML 20190702
             // // If can be divided...
             // if (this.region_solve) {
@@ -646,6 +648,32 @@ public class DivideConquer {
     }
 
 
+    
+    
+    double freq_cal (double [][] link_freq, String hap, int start, int end){
+    	if (end==start){
+    	 return 0.5;
+    	}
+    	HashMap<String, Integer> hap2index= new HashMap<String, Integer>();
+    	hap2index.put("00",0);
+    	hap2index.put("01",1);
+    	hap2index.put("10",2);
+    	hap2index.put("11",3);
+    	double min_freq =1.0;
+    	for (int i=0; i<(end-start-1); i++ ){
+    		String sub_hap= hap.substring(i, i+2);  
+    		double freq= link_freq[start+i][hap2index.get(sub_hap)];
+    		if (freq> 0.001) {
+    			if (freq< min_freq){
+    				min_freq= freq;
+    			}
+    		}else{
+    			return 0.0;
+    		}
+    	}
+    	return min_freq;
+    }
+
     /**
      *  Analyze a set of regions based on the dividing plan.
      *
@@ -658,6 +686,7 @@ public class DivideConquer {
      *  @return
      *  @throws Exception
      */
+    
     public HapConfig[] regional_AEM(
     	String[] pool_IDs,
     	String[] vef_files,
@@ -704,15 +733,144 @@ public class DivideConquer {
 
         return region_haps;
     }
+    
+
+    
+    public HapConfig[] regional_AEM(
+        	String[] pool_IDs,
+        	String[] vef_files,
+            int[][] regions,
+            String parameter_file,
+            String dir_prefix,
+            String aem_fail_lasso_path,
+            int level_index, 
+            HashMap<String, Integer> name2index) throws Exception {
+    		
+            HapConfig[] region_haps = new HapConfig[regions.length];
+            for (int r_index = 0; r_index < regions.length; r_index++) {
+                System.out.print("AEM for level " + level_index + " region " + r_index + "... ");
+                HapConfig hap_config = generate_hapconfig_gc_exhaustive(regions, r_index,
+                		pool_IDs, name2index);
+                
+                RegionEMSolver hap_solver = new RegionEMSolver(hap_config, parameter_file);
+                if (hap_solver.failure) {
+                    System.out.println("AEM failed to converge. Initiating regional LASSO... ");
+
+                    // If AEM fails, at least some of the frequencies will be NaN. In that case, use
+                    // sub-optimal GC results. TODO [Quan] 
+                    region_haps[r_index] = generate_hapconfig_gc_regional_lasso(pool_IDs, vef_files,
+                        regions[r_index], level_index, r_index, aem_fail_lasso_path);
+                } else {
+                    region_haps[r_index] = hap_solver.final_Haps;
+                }
+                region_haps[r_index].recode_HapIDs_to_base16();
+                region_haps[r_index].write_global_file_string(dir_prefix
+                    + "_level_"
+                    + level_index
+                    + "_region_"
+                    + r_index
+                    + ".inter_freq_haps.txt");
+
+                System.out.print("Done. AEM ");
+                if (hap_solver.failure) {
+                    System.out.print("failed to converge. ");
+                } else {
+                    System.out.print("successfully converged. ");
+                }
+
+                System.out.println(region_haps[r_index].num_global_hap
+                    + " regional haplotypes have been generated.");
+            }
+
+            return region_haps;
+        }
 
 
-   
     
     public HapConfig generate_hapconfig_gc_exhaustive(
-    		int[][] the_region, int region_index, String[] pool_IDs) throws IOException {
-    	
-		return null;
-    	
+    	int[][] the_region, int region_index, String[] pool_IDs, 
+    		HashMap<String, Integer> name2index_dict) throws IOException {
+
+            int region_start = the_region[region_index][0];
+            int region_end = the_region[region_index][1];
+            int num_site_regional = region_end-region_start + 1;
+            double[][] inpool_site_freqs = new double[num_site_regional][];
+            LocusAnnotation[] locusInfo = new LocusAnnotation[num_site_regional];
+            for (int l = 0; l < num_site_regional; l++) {
+                locusInfo[l] = this.in_pool_sites_freq_anno.loci_annotations[l + region_start];
+                inpool_site_freqs[l] = this.in_pool_sites_freq_anno.inpool_freqs[l + region_start];
+            }
+            
+            int haps_2n = (int) Math.pow(2, num_site_regional);
+            String[][] global_haps_string_tmp  = new String[haps_2n][num_site_regional];
+            String[] hap_IDs_tmp = new String[haps_2n];
+            double[] global_haps_freq_tmp  = new double [haps_2n];
+            double total_freq =0;
+            for (int h = 0; h < haps_2n; h++) {
+            	String curr_ID = "";
+            	String vc_str = Integer.toBinaryString(h);
+            	String[] vc_arr  = vc_str.split("");
+            	// the length of vc_str may not reach num_site_regional; so put zeros in.
+            	for (int locus = 0; locus < num_site_regional - vc_arr.length; locus++) {
+                    global_haps_string_tmp[h][locus] = "0";
+                    curr_ID += "0";
+                }
+            	for (int locus = num_site_regional - vc_arr.length; locus<num_site_regional; locus++) {
+            		global_haps_string_tmp[h][locus] = vc_arr[locus - num_site_regional 
+            		                                          + vc_arr.length];
+            		curr_ID += vc_arr[locus - num_site_regional + vc_arr.length];
+            	}
+            	hap_IDs_tmp[h] = curr_ID;
+            	for (int p=0; p< this.num_pools;p++) {
+            		double freq = freq_cal(this.loci_link_freq[p],curr_ID, region_start,region_end );
+            		global_haps_freq_tmp[h]+= freq ;
+            		total_freq+= freq;
+            	}
+            }
+            int count=0;
+            for (int i=0; i < global_haps_freq_tmp.length;i++) {
+            	if ((global_haps_freq_tmp[i]/ total_freq) > (0.1 / (double) haps_2n)) {
+            		count++;
+            	}
+            }
+
+            String[][] global_haps_string = new String[count][num_site_regional];
+            String[] hap_IDs = new String[count];
+            double[] global_haps_freq = new double[count];
+            count=0;
+            for (int i=0; i < global_haps_freq_tmp.length;i++) {
+            	if ((global_haps_freq_tmp[i]/ total_freq) > (0.1 / (double) haps_2n)) {
+            		for (int j=0; j < global_haps_string[count].length;j++) {
+            			global_haps_string[count][j]= global_haps_string_tmp[i][j];
+            		}
+            		hap_IDs[count]= hap_IDs_tmp[i];
+            		global_haps_freq[count]= global_haps_freq_tmp[i]/ total_freq;
+            		count++;
+            	}
+            }
+            
+//            for (int i=0; i < global_haps_freq.length;i++) {
+//            	String tmp="";
+//            	for (int j=0; j < global_haps_string[i].length;j++) {
+//            		tmp=tmp+ global_haps_string[i][j];
+//            	}
+//            	System.out.println(tmp);
+//            	System.out.println(global_haps_freq[i]);
+//            	System.out.println(hap_IDs[i]);
+//            }
+//            Arrays.fill(global_haps_freq, 1.0 / (double) haps_2n);
+            System.out.println(global_haps_string.length); 
+            return new HapConfig(
+                global_haps_string,
+                global_haps_freq,
+                null,
+                inpool_site_freqs,
+                locusInfo,
+                this.num_pools,
+                hap_IDs,
+                pool_IDs,
+                this.dp.est_ind_pool);    	
+            
     }
     
     /**
@@ -770,7 +928,7 @@ public class DivideConquer {
             this.dp.est_ind_pool);
     }
 
-
+    
     /**
      *
      *  @param region

@@ -32,8 +32,8 @@ public class GraphColoring {
     public int num_loci_window;
     public int max_num_gap;
     public String vef_file;
-    public double[][] loci_link_count; // (num_loci-1) x 4 (4:0/0; 0/1/; 1/0; 1/1)
-    public boolean[][] loci_link_supp; // (num_loci-1) x 4 (4:0/0; 0/1/; 1/0; 1/1) 
+    public double[][] loci_link_count; // (num_loci-1) x 4 (4:	0/0; 0/1/; 1/0; 1/1)
+    public double[][] loci_link_freq; // (num_loci-1) x 4 (4:	0/0; 0/1/; 1/0; 1/1) 
     public HashMap<Integer, Integer> loci_index_dict;
     
 
@@ -56,11 +56,11 @@ public class GraphColoring {
     		) throws IOException {
     	this.gc_solver(gs_var_pos, false);
     	this.loci_link_count = new double[this.num_loci-1][4];
-    	this.loci_link_supp = new boolean [this.num_loci-1][4];
+    	this.loci_link_freq = new double [this.num_loci-1][4];
     	for (int i = 0; i < this.loci_link_count.length; i++) {
     		for (int j = 0; j < this.loci_link_count[i].length; j++) {
     			this.loci_link_count[i][j] =0.0;
-    			this.loci_link_supp[i][j] = true;
+    			this.loci_link_freq[i][j] = 0.0;
     		}
     	}
 
@@ -68,7 +68,7 @@ public class GraphColoring {
         String line = "";
         while ((line = bufferedreader.readLine()) != null) {
             line = line.replace("\r", ""); // remove newline characters
-            System.out.println( line);
+//            System.out.println( line);
             String[] line_arr = line.split("\t"); // Read_Name\tPos=Allele;...\t//\tStart\tEnd
             // If the read contains a segregating site (i.e.: has a distinguishing genotype)...
             if (line_arr[1].contains("=")) {
@@ -83,20 +83,20 @@ public class GraphColoring {
 	                	loci_arr[i]= Integer.parseInt(tmp_arr2[0] ) ;
 	                	geno_arr[i]= Integer.parseInt(tmp_arr2[1] ) ;
 	                }
-	                for (int i = 0; i < (geno_arr.length); i++) {
-	                	System.out.println( geno_arr[i]);
-	                }
+//	                for (int i = 0; i < (geno_arr.length); i++) {
+//	                	System.out.println( geno_arr[i]);
+//	                }
 	                for (int i = 0; i < (geno_arr.length-1); i++) {
 	                	if ((loci_index_dict.get(loci_arr[i+1] ) - loci_index_dict.get(loci_arr[i] )) 
 	                		==1 ) {
 		                	if ((geno_arr[i]==0)  && (geno_arr[i+1]==0) ) {
-		                		loci_link_count [loci_index_dict.get(loci_arr[i] )][0] += 1.0;
+		                		this.loci_link_count [this.loci_index_dict.get(loci_arr[i] )][0] += 1.0;
 		               		}else if ((geno_arr[i]==0)  && (geno_arr[i+1]==1) ) {
-		               			loci_link_count [loci_index_dict.get(loci_arr[i] )][1] += 1.0;
+		               			this.loci_link_count [this.loci_index_dict.get(loci_arr[i] )][1] += 1.0;
 		               		}else if ((geno_arr[i]==1)  && (geno_arr[i+1]==0) ) {
-		               			loci_link_count [loci_index_dict.get(loci_arr[i] )][2] += 1.0;
+		               			this.loci_link_count [this.loci_index_dict.get(loci_arr[i] )][2] += 1.0;
 		               		}else if ((geno_arr[i]==1)  && (geno_arr[i+1]==1) ) {
-		               			loci_link_count [loci_index_dict.get(loci_arr[i] )][3] += 1.0;
+		               			this.loci_link_count [this.loci_index_dict.get(loci_arr[i] )][3] += 1.0;
 		               		}
 	                	}
 	                }
@@ -105,19 +105,9 @@ public class GraphColoring {
         }
         bufferedreader.close();
         
-    	double lowest_freq= 0.05;
-    	double loci_min_count = 10.0;
-    	for (int i = 0; i < this.loci_link_count.length; i++) {
-    		System.out.print(this.loci_link_count[i][0]
-                    + "\t"
-                    + this.loci_link_count[i][1]
-                    + "\t"
-                    + this.loci_link_count[i][2]
-                    + "\t"
-    				+ this.loci_link_count[i][3]
-                    + "\n"
-    				);
-    	}
+    	double lowest_freq_cutoff= 0.05;
+    	double loci_min_count = 20.0;
+    	
     	for (int i = 0; i < this.loci_link_count.length; i++) {
     		double total_count =0.0;
     		for (int j = 0; j < this.loci_link_count[i].length; j++) {
@@ -125,13 +115,31 @@ public class GraphColoring {
     		}
     		if (total_count > loci_min_count) {
     			for (int j = 0; j < this.loci_link_count[i].length; j++) {
-    				if (( this.loci_link_count[i][j]/ total_count) < lowest_freq) {
-    					this.loci_link_supp[i][j] = false;
+    				if (( this.loci_link_count[i][j]/ total_count) >  lowest_freq_cutoff) {
+    					this.loci_link_freq[i][j]= this.loci_link_count[i][j]/ total_count;
+    				}else {
+    					this.loci_link_freq[i][j] = 0.0;
     				}
     			}
+    		}else {
+    			this.loci_link_freq[i][0] = this.loci_link_freq[i][1]=
+    					this.loci_link_freq[i][2]=this.loci_link_freq[i][3]=0.25;
     		}
     	}
+    	
+//    	for (int i = 0; i < this.loci_link_count.length; i++) {
+//    		System.out.print(this.loci_link_freq[i][0]
+//                    + "\t"
+//                    + this.loci_link_freq[i][1]
+//                    + "\t"
+//                    + this.loci_link_freq[i][2]
+//                    + "\t"
+//    				+ this.loci_link_freq[i][3]
+//                    + "\n"
+//    				);
+//    	}
     }
+    
     
     
     public GraphColoring(String vef, String gs_var_pos, String out_file, int num_pos_window, 
