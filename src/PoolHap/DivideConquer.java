@@ -89,29 +89,13 @@ public class DivideConquer {
                 + "\tNumber of segregating sites = "
                 + this.num_sites);
 
-            /*
-             *  Division?
-             */
             this.generate_dividing_plan_two_level(this.gc_outcome);
-
-            // TODO: LEFTOVER ML 20190702
-            // // If can be divided...
-            // if (this.region_solve) {
 
             this.output_current_DC_plan(dc_out_file);
             System.out.println("The current dividing plan: ");
             System.out.println(
                 "\nFinished generating divide-and-conquer plan. The plan has been written to "
                 + dc_out_file);
-
-            // TODO: LEFTOVER ML 20190702
-            // // If not enough gaps...
-            // }
-            // else {
-            //     System.out.println(
-            //         "There are not enough locations of linkage uncertainty to run regional "
-            //         + "reconstruction. Skipping straight to linkage-informed LASSO regression.");
-            // }
 
             this.in_pool_sites_freq_anno = new SiteInPoolFreqAnno(frequency_file);
 
@@ -178,37 +162,38 @@ public class DivideConquer {
     /**
      *
      *  @param gc_pathes_file
+     *  convert the pathes in a file to a String[] array.
      *  @return
      */
-    public String[] parse_gc_input(String gc_pathes_file) {
-        ArrayList<String> pathes = new ArrayList<String>();
-        try{
-            BufferedReader br = new BufferedReader(new FileReader(gc_pathes_file));
-            String line = br.readLine();
-
-            // TODO: [ReconEP]:: extract to static utils method.
-            while (line.startsWith("#")) { // skip headers, if any
-                line = br.readLine();
-            }
-
-            while (line != null) {
-                pathes.add(line);
-                line = br.readLine();
-            }
-
-            this.num_pools = pathes.size();
-            br.close();
-
-        } catch(Exception e) {
-            e.printStackTrace();
-        }
-
-        String[] gc_input_files = new String[this.num_pools];
-        for (int p = 0; p < this.num_pools; p++) {
-            gc_input_files[p] = pathes.get(p);
-        }
-        return gc_input_files;
-    }
+//    public String[] parse_gc_input(String gc_pathes_file) {
+//        ArrayList<String> pathes = new ArrayList<String>();
+//        try{
+//            BufferedReader br = new BufferedReader(new FileReader(gc_pathes_file));
+//            String line = br.readLine();
+//
+//            // TODO: [ReconEP]:: extract to static utils method.
+//            while (line.startsWith("#")) { // skip headers, if any
+//                line = br.readLine();
+//            }
+//
+//            while (line != null) {
+//                pathes.add(line);
+//                line = br.readLine();
+//            }
+//
+//            this.num_pools = pathes.size();
+//            br.close();
+//
+//        } catch(Exception e) {
+//            e.printStackTrace();
+//        }
+//
+//        String[] gc_input_files = new String[this.num_pools];
+//        for (int p = 0; p < this.num_pools; p++) {
+//            gc_input_files[p] = pathes.get(p);
+//        }
+//        return gc_input_files;
+//    }
 
 
     /**
@@ -290,7 +275,7 @@ public class DivideConquer {
         this.regions_level_II = new int[num_regions_level_II][2];
 
         // !!! This is the midpoint of the 0th level 1 region.
-        this.regions_level_II[0][0] = (this.regions_level_I[0][1] - this.regions_level_I[0][0]) / 2;
+        this.regions_level_II[0][0] = (this.regions_level_I[0][1] + this.regions_level_I[0][0]) / 2;
         for (int r = 0; r < num_regions_level_II - 1; r++) {
             int tmp_end = (this.regions_level_I[r+1][0] + this.regions_level_I[r + 1][1]) / 2;
             int tmp_reg_2_len = tmp_end - this.regions_level_II[r][0] + 1;
@@ -317,9 +302,9 @@ public class DivideConquer {
             this.regions_level_II[r + 1][0] = this.regions_level_II[r][1] + 1;
         }
 
-        this.regions_level_II[num_regions_level_II - 1][1] = (this.num_sites
-            + this.regions_level_II[num_regions_level_II - 1][0])
-            / 2; // !!!
+        this.regions_level_II[num_regions_level_II - 1][1] = 
+                (this.regions_level_I[num_regions_level_II][0] + 
+                    this.regions_level_I[num_regions_level_II][1]) / 2;
     }
 
 

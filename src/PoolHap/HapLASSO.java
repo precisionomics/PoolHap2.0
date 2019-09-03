@@ -62,7 +62,7 @@ public class HapLASSO {
     /*
      *  Input parameters.
      */
-    public double lambda; // the parameter that sets the weight of regularizer; not used in v8
+    public double lambda; // the parameter that sets the weight of regularizer; 
 
     // The cutoff for a haplotype in HapConfig to be passed to the regression.
     double raw_hap_freq_cutoff;
@@ -190,19 +190,6 @@ public class HapLASSO {
      */
     public void write_1_H_HH_to_file(String lasso_in_file) {
 
-        // TODO: [LEFTOVER]
-        // // ArrayList<Integer> quanlified_hap_index_array = new ArrayList<Integer>();
-        // for (int h = 0; h < this.potential_haps.num_global_hap; h++) {
-        //     if (this.potential_haps.global_haps_freq[h] >= this.raw_hap_freq_cutoff) {
-        //         quanlified_hap_index_array.add(h);
-        //     }
-        // }
-        // this.potential_haps.num_global_hap = 0;
-        // this.quanlified_hap_index = new int[this.potential_haps.num_global_hap];
-        // for (int h = 0; h < this.potential_haps.num_global_hap; h++) {
-        //     this.quanlified_hap_index[h]=quanlified_hap_index_array.get(h);
-        // }
-
         try {
             BufferedWriter bw = new BufferedWriter(new FileWriter(lasso_in_file));
 
@@ -246,13 +233,6 @@ public class HapLASSO {
                         bw.write(this.ld_weights[loc1][loc2] * this.ld_matrix[loc1][loc2] + "");
                         for (int h = 0; h < this.potential_haps.num_global_hap; h++) {
 
-                            // TODO: [LEFTOVER]
-                            // int hap_index=this.quanlified_hap_index[h];
-
-                            // TODO: DONE?(old) Lauren: please double-check whether Quan's line
-                            // below is correct!!!!
-                            // Below is the correlation, or co-occurrence of alternate alleles at
-                            // loci 1 and 2 on the same haplotype.
                             bw.write(" "
                                 + (h + 1)
                                 + ":"

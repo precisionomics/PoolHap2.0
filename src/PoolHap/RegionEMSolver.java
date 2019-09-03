@@ -39,7 +39,7 @@ public class RegionEMSolver {
 
     /**
      *  The main method for running EM on haplotypes to estimate their global frequency. Inspired by
-     *  the AEM function from Zhang et al., 2008.
+     *  the AEM function from Kuk et al., 2009.
      *
      *  @param this.initial_Haps, the set of possible sub-haplotypes in a specific region.
      *  aem_parameters include est_ind_pool, epsilon, rare_cutoff.
