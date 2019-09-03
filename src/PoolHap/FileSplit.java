@@ -11,7 +11,6 @@ public class FileSplit {
 		BufferedReader br = new BufferedReader(new FileReader(gs_var_pos));
         String line = "";
         int line_count =-1;
-        
         String header_gs_var_pos = "";
         ArrayList<String> file_arr= new ArrayList<String>();
         ArrayList<String> pos_arr= new ArrayList<String>();

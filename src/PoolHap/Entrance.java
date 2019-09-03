@@ -153,7 +153,7 @@ public class Entrance {
         /*
          * Input arguments.
          */
-    	String[] supported_functions_array = {"format", "gc", "aem", "lasso", "split"};
+    	String[] supported_functions_array = {"format", "gc", "aem", "lasso", "split", "aemgc"};
     	HashSet<String> supported_functions = new HashSet<String>();
         for (int k = 0; k < supported_functions_array.length; k++) {
              supported_functions.add(supported_functions_array[k]);
@@ -251,7 +251,7 @@ public class Entrance {
                 gp.inter_dir + "/aem/" + gp.project_name,
                 gp.inter_dir + "/aem_fail_regional_lasso/",
                 1);
-
+            
             System.out.println("Level 1 AEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
 
             // Resolve level 2 regions with the same strategy as above.
@@ -346,7 +346,34 @@ public class Entrance {
                 FileSplit split_file = new FileSplit (vef_files,gs_var_pos,  gp.num_pos_job );        
             System.out
                 .println("\nFile Split Finished.\n");
-        }
         
+        //Using Exhaustive search to find all possible regional haplotypes based on the vef file
+        }else if (function.equals("aemgc")) {
+            String dc_out_file = gp.inter_dir + gp.project_name + "_dc_plan.txt"; // dc output
+            // filepath string       	
+            String[] vef_files = 
+                    Entrance.get_filepaths(name_file, gp.inter_dir + "vef", "vef", false);
+            String[] gcf_files = 
+                    Entrance.get_filepaths(name_file, gp.inter_dir + "gcf", "gcf", false);     
+            DivideConquer dc_maker = new DivideConquer(gs_var_pos,
+                    gcf_files,
+                    // gp.inter_dir + prefix + "_p.in.list",
+                    parameter_file,
+                    dc_out_file);
+            
+            for (int p = 0; p < num_pools; p++) {
+                // TODO: [Question]:: this "pool_in" variable not used anywhere.
+                // Previously added to initial_local_haps but now commented out. ML 20190702
+                GraphColoring pool_in = new GraphColoring(vef_files[p],
+                    gs_var_pos,
+                    gp.inter_dir + "gcf/" + Entrance.names_array[p] + ".gcf",
+                    dc_maker.regions_level_I );
+
+                System.out.println("Graph colouring for pool " + p + ":" + Entrance.names_array[p]
+                    + " is finished.");
+            }
+            System.out
+                .println("\nGraph-Coloring Finished: " + dtf.format(LocalDateTime.now()) + "\n");
+        }    
     }
 }
