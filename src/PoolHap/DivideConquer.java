@@ -317,9 +317,9 @@ public class DivideConquer {
             this.regions_level_II[r + 1][0] = this.regions_level_II[r][1] + 1;
         }
 
-        this.regions_level_II[num_regions_level_II - 1][1] = (this.num_sites
-            + this.regions_level_II[num_regions_level_II - 1][0])
-            / 2; // !!!
+        this.regions_level_II[num_regions_level_II - 1][1] = 
+        		(this.regions_level_I[num_regions_level_II][0] + 
+        				this.regions_level_I[num_regions_level_II][1]) / 2;
     }
 
 
@@ -671,6 +671,7 @@ public class DivideConquer {
         for (int r_index = 0; r_index < regions.length; r_index++) {
             System.out.print("AEM for level " + level_index + " region " + r_index + "... ");
             HapConfig hap_config = generate_hapconfig_2n(regions, r_index, pool_IDs);
+            
             RegionEMSolver hap_solver = new RegionEMSolver(hap_config, parameter_file);
             if (hap_solver.failure) {
                 System.out.println("AEM failed to converge. Initiating regional LASSO... ");
@@ -705,6 +706,15 @@ public class DivideConquer {
     }
 
 
+   
+    
+    public HapConfig generate_hapconfig_gc_exhaustive(
+    		int[][] the_region, int region_index, String[] pool_IDs) throws IOException {
+    	
+		return null;
+    	
+    }
+    
     /**
      *	generate the HapConfig with 2^n haplotypes (n is the number of sites).
      *
@@ -713,7 +723,7 @@ public class DivideConquer {
      *  @param pool_IDs
      *  @return
      *  @throws IOException
-     */
+     */	
     public HapConfig generate_hapconfig_2n(
         int[][] the_region, int region_index, String[] pool_IDs) throws IOException {
 

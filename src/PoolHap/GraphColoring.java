@@ -32,6 +32,9 @@ public class GraphColoring {
     public int num_loci_window;
     public int max_num_gap;
     public String vef_file;
+    public double[][] loci_link_count; // (num_loci-1) x 4 (4:0/0; 0/1/; 1/0; 1/1)
+    public boolean[][] loci_link_supp; // (num_loci-1) x 4 (4:0/0; 0/1/; 1/0; 1/1) 
+    public HashMap<Integer, Integer> loci_index_dict;
     
 
     // TODO: [LEFTOVER]
@@ -48,6 +51,89 @@ public class GraphColoring {
      *  @param out_file output file path string.
      *  @throws IOException on input error.
      */
+    
+    public GraphColoring(String vef, String gs_var_pos, String out_file, int[][] regions_level_I
+    		) throws IOException {
+    	this.gc_solver(gs_var_pos, false);
+    	this.loci_link_count = new double[this.num_loci-1][4];
+    	this.loci_link_supp = new boolean [this.num_loci-1][4];
+    	for (int i = 0; i < this.loci_link_count.length; i++) {
+    		for (int j = 0; j < this.loci_link_count[i].length; j++) {
+    			this.loci_link_count[i][j] =0.0;
+    			this.loci_link_supp[i][j] = true;
+    		}
+    	}
+
+    	BufferedReader bufferedreader = new BufferedReader(new FileReader(vef));
+        String line = "";
+        while ((line = bufferedreader.readLine()) != null) {
+            line = line.replace("\r", ""); // remove newline characters
+            System.out.println( line);
+            String[] line_arr = line.split("\t"); // Read_Name\tPos=Allele;...\t//\tStart\tEnd
+            // If the read contains a segregating site (i.e.: has a distinguishing genotype)...
+            if (line_arr[1].contains("=")) {
+                String str1  = line_arr[1]; // the segregating site information column
+                String[] tmp_arr = str1.split(";"); 
+                if (tmp_arr.length> 1) {
+	                int[] loci_arr = new int[tmp_arr.length];
+	                int[] geno_arr = new int[tmp_arr.length] ;
+	                for (int i = 0; i < tmp_arr.length; i++) {
+	                	String str2  =  tmp_arr[i];
+	                	String[] tmp_arr2 = str2.split("=");
+	                	loci_arr[i]= Integer.parseInt(tmp_arr2[0] ) ;
+	                	geno_arr[i]= Integer.parseInt(tmp_arr2[1] ) ;
+	                }
+	                for (int i = 0; i < (geno_arr.length); i++) {
+	                	System.out.println( geno_arr[i]);
+	                }
+	                for (int i = 0; i < (geno_arr.length-1); i++) {
+	                	if ((loci_index_dict.get(loci_arr[i+1] ) - loci_index_dict.get(loci_arr[i] )) 
+	                		==1 ) {
+		                	if ((geno_arr[i]==0)  && (geno_arr[i+1]==0) ) {
+		                		loci_link_count [loci_index_dict.get(loci_arr[i] )][0] += 1.0;
+		               		}else if ((geno_arr[i]==0)  && (geno_arr[i+1]==1) ) {
+		               			loci_link_count [loci_index_dict.get(loci_arr[i] )][1] += 1.0;
+		               		}else if ((geno_arr[i]==1)  && (geno_arr[i+1]==0) ) {
+		               			loci_link_count [loci_index_dict.get(loci_arr[i] )][2] += 1.0;
+		               		}else if ((geno_arr[i]==1)  && (geno_arr[i+1]==1) ) {
+		               			loci_link_count [loci_index_dict.get(loci_arr[i] )][3] += 1.0;
+		               		}
+	                	}
+	                }
+                }
+            }
+        }
+        bufferedreader.close();
+        
+    	double lowest_freq= 0.05;
+    	double loci_min_count = 10.0;
+    	for (int i = 0; i < this.loci_link_count.length; i++) {
+    		System.out.print(this.loci_link_count[i][0]
+                    + "\t"
+                    + this.loci_link_count[i][1]
+                    + "\t"
+                    + this.loci_link_count[i][2]
+                    + "\t"
+    				+ this.loci_link_count[i][3]
+                    + "\n"
+    				);
+    	}
+    	for (int i = 0; i < this.loci_link_count.length; i++) {
+    		double total_count =0.0;
+    		for (int j = 0; j < this.loci_link_count[i].length; j++) {
+    			total_count +=   this.loci_link_count[i][j];
+    		}
+    		if (total_count > loci_min_count) {
+    			for (int j = 0; j < this.loci_link_count[i].length; j++) {
+    				if (( this.loci_link_count[i][j]/ total_count) < lowest_freq) {
+    					this.loci_link_supp[i][j] = false;
+    				}
+    			}
+    		}
+    	}
+    }
+    
+    
     public GraphColoring(String vef, String gs_var_pos, String out_file, int num_pos_window, 
     		int num_gap_window) throws IOException {
         /*
@@ -72,7 +158,7 @@ public class GraphColoring {
 
         // The maximum number of times a genotype can be counted in a single pool.
         // TODO: (old) [Question]::  Why does this exist?
-        int max_num_geno = 32878;
+        int max_num_geno = 30000;
 
 
         /*
@@ -120,7 +206,7 @@ public class GraphColoring {
         /*
          *  Solve and produce haplotype configurations.
          */
-        this.gc_solver(gs_var_pos);
+        this.gc_solver(gs_var_pos, true);
         this.fileOut(out_file);
     }
 
@@ -190,7 +276,7 @@ public class GraphColoring {
         System.out.println("There are " + count
             + " individual fragments (reads or regional haplotypes) in the dataset.");
 
-        this.gc_solver(gs_var_pos);
+        this.gc_solver(gs_var_pos, true);
     }
 
 
@@ -206,7 +292,9 @@ public class GraphColoring {
      *  @param gs_var_pos (required) gold standard variant positions file path string.
      *  @throws IOException on input error.
      */
-    public void gc_solver(String gs_var_pos) throws IOException {
+    
+    
+    public void gc_solver(String gs_var_pos , boolean run_gc) throws IOException {
         /*
          *  Initialize variables.
          */
@@ -236,10 +324,10 @@ public class GraphColoring {
             pos_index++; // move to next variant position index
             currLine = br.readLine(); // read next line
         }
-
         br.close();
+        this.loci_index_dict = pos_dict;
         this.num_loci = pos_dict.size(); // number of loci in gold standard variants file
-
+        
 
         /*
          *  Read through gold standard variant positions file again to load loci info into a matrix.
@@ -254,6 +342,9 @@ public class GraphColoring {
         this.num_pools = currLine.split("\t").length - 1;
         this.locusInfo = new LocusAnnotation[this.num_loci];
         this.inpool_site_freqs = new double[this.num_loci][this.num_pools];
+        if (  run_gc ==false) {
+        	return;
+        }
 
         // Read through file.
         while (currLine != null) {
