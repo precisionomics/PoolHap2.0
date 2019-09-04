@@ -13,6 +13,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Properties;
 
+import org.netlib.util.doubleW;
+
 public class generate_inter_intra_file {
     String output_dir;
     String fasta_folder;
@@ -93,12 +95,10 @@ public class generate_inter_intra_file {
 		// The variant position is changed
 		while(fa_line!=null) {
 			if(each_base[0].equals(">")) {
-				// write the header for each haplotype
-				//bw_file.write(fa_line + "\n"); 
 				String[] fre_position = fa_line.split("_");
+				String curr_pool=fre_position[1].split("l")[1];
 				ArrayList<String> hap_sequence=new ArrayList<String>();
 				hap_sequence.add(fre_position[0]); // add ">Hap0"
-				String curr_pool=fre_position[1].split("l")[1];
 				//fre_position[1] is pool1 to pool19, split by "l"
 				hap_sequence.add(curr_pool); // add the pool ID index
 				hap_sequence.add(fre_position[2]); //add the frequency
@@ -148,7 +148,7 @@ public class generate_inter_intra_file {
 						break;
 					}
 				} // end of while
-				this.hap_seq_listlist.add(hap_sequence);
+				this.hap_seq_listlist.add(hap_sequence);	
 			}// end of if
 		} // end of while
 		br_fa.close();
@@ -213,17 +213,20 @@ public class generate_inter_intra_file {
 		
 		// Generate hap2poolfre_hashmap
 		// go over all the hapletypes that in the hap_string_list
-		for(int h =0; h < hap_string_list.size(); h++) {	
-			if(!hap2poolfre.containsKey(hap_string_list.get(h))) {
-				this.hap2poolfre.put(hap_string_list.get(h), new double[num_pools]);
-				int current_pool = Integer.parseInt(hap_seq_listlist.get(h).get(1));
-				hap2poolfre.get(hap_string_list.get(h))[current_pool] = 
+		for(int h =0; h < hap_string_list.size(); h++) {
+			double tmp_fre= Double.parseDouble(hap_seq_listlist.get(h).get(2));
+			if(tmp_fre>0.01) {
+				if(!hap2poolfre.containsKey(hap_string_list.get(h))) {
+					this.hap2poolfre.put(hap_string_list.get(h), new double[num_pools]);
+					int current_pool = Integer.parseInt(hap_seq_listlist.get(h).get(1));
+					hap2poolfre.get(hap_string_list.get(h))[current_pool] = 
 						Double.parseDouble(hap_seq_listlist.get(h).get(2));
-			}else if (hap2poolfre.containsKey(hap_string_list.get(h))){
-				int current_pool = Integer.parseInt(hap_seq_listlist.get(h).get(1));
-				hap2poolfre.get(hap_string_list.get(h))[current_pool] = 
+				}else if (hap2poolfre.containsKey(hap_string_list.get(h))){
+					int current_pool = Integer.parseInt(hap_seq_listlist.get(h).get(1));
+					hap2poolfre.get(hap_string_list.get(h))[current_pool] = 
 						hap2poolfre.get(hap_string_list.get(h))[current_pool] 
 						+ Double.parseDouble(hap_seq_listlist.get(h).get(2));
+				}
 			}
 		}
 	}
@@ -244,7 +247,7 @@ public class generate_inter_intra_file {
 		}
 		
 		BufferedWriter bw_intra_file=new BufferedWriter(new FileWriter(
-				final_output_dir + project_name + ".intra_freq.txt"));
+				final_output_dir + project_name + ".intra_freq_haps.txt"));
 		bw_intra_file.write("Hap_ID");
 		for(int h=0; h<final_rc_hap_string_list.size(); h++) {
 			bw_intra_file.write("\t"+"h"+ h);
@@ -264,7 +267,7 @@ public class generate_inter_intra_file {
 	
 	public void generate_inter_file() throws IOException, InterruptedException {
 		BufferedWriter bw_inter_file=new BufferedWriter(new FileWriter(
-				final_output_dir + project_name + ".inter_freq_vars.txt"));
+				final_output_dir + project_name + ".inter_freq_haps.txt"));
 		bw_inter_file.write("Hap_ID");
 		for(int h=0; h<final_rc_hap_string_list.size(); h++) {
 			bw_inter_file.write("\t"+"h"+ h);

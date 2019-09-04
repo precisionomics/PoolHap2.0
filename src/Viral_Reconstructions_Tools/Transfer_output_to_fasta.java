@@ -76,7 +76,6 @@ public class Transfer_output_to_fasta {
 					+ output_file));
 			String currline = br.readLine(); // read the first line
 			while(currline!=null) {
-				
 				String[] each_position = currline.split("");
 				if(each_position[0].equals(">")) {
 					bw_fasta_file.write("\n");
