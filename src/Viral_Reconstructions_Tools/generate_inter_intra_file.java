@@ -13,8 +13,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Properties;
 
-import org.netlib.util.doubleW;
-
 public class generate_inter_intra_file {
     String output_dir;
     String fasta_folder;
@@ -22,6 +20,7 @@ public class generate_inter_intra_file {
     String gs_dir;
 	String project_name;
 	int num_pools;
+	double cutoff_lowest_freq;
 	ArrayList<ArrayList<String>> ref_seq_listlist=new ArrayList<ArrayList<String>>();
 	ArrayList<ArrayList<String>> hap_seq_listlist=new ArrayList<ArrayList<String>>();
 	ArrayList<String> hap_string_list=new ArrayList<String>();
@@ -47,6 +46,7 @@ public class generate_inter_intra_file {
 	     this.gs_dir = prop.getProperty("Gold-Standard_Dir");
 	     this.project_name=prop.getProperty("Proj_Name");
 	     this.num_pools= Integer.parseInt(prop.getProperty("Num_Pools"));
+	     this.cutoff_lowest_freq = Double.parseDouble(prop.getProperty("Cutoff_Lowest_Freq"));
 	     is.close();
 	     
 	}
@@ -215,7 +215,7 @@ public class generate_inter_intra_file {
 		// go over all the hapletypes that in the hap_string_list
 		for(int h =0; h < hap_string_list.size(); h++) {
 			double tmp_fre= Double.parseDouble(hap_seq_listlist.get(h).get(2));
-			if(tmp_fre>0.01) {
+			if(tmp_fre>cutoff_lowest_freq) {
 				if(!hap2poolfre.containsKey(hap_string_list.get(h))) {
 					this.hap2poolfre.put(hap_string_list.get(h), new double[num_pools]);
 					int current_pool = Integer.parseInt(hap_seq_listlist.get(h).get(1));
