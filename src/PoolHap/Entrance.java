@@ -179,8 +179,9 @@ public class Entrance {
 
         // Gold standard variant positions file path (intra pool).
         String gs_var_pos = gp.inter_dir + gp.project_name + "_vars.intra_freq.txt"; // TODO: change
-                                                                                     // name
+                                                                             // name
         String name_file = gp.inter_dir + gp.project_name + "_sample_names.txt";
+        
         // Print start time.
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
         System.out
@@ -268,6 +269,12 @@ public class Entrance {
                 2);
 
             System.out.println("Level 2 AEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
+            
+            eva.AemEvaluate(gp.project_name, dc_out_file, 
+            		"/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+        			"/home/chencao/Desktop/sim001/intermediate/aem/");
+            
+//            System.exit(0);
 
             // Link regions by applying graph coloring across the level 1 and level 2 regional
             // haplotype configurations.
@@ -283,9 +290,9 @@ public class Entrance {
                 gp.out_dir + gp.project_name + "_gc.inter_freq_haps.txt");
 
             System.out.println("\nPost-AEM GC Finished: " + dtf.format(LocalDateTime.now()) + "\n");
-            
-//        	eva.AemEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
-//        			"/home/chencao/Desktop/sim001/output/sim001_gc.inter_freq_haps.txt");
+            eva.GcAemEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+        			"/home/chencao/Desktop/sim001/output/sim001_gc.inter_freq_haps.txt");
+        	
         } else if (function.equals("lasso")) {
             /*
              * Final intra pool haplotype configuration via LASSO selection. TODO: [Question]:: are
@@ -331,6 +338,7 @@ public class Entrance {
                 System.out.println(final_inpool_haps[pool_index].num_global_hap
                     + " haplotypes were generated for pool " + pool_index + ":"
                     + Entrance.names_array[pool_index] + ".");
+                
 
             }
 
@@ -344,6 +352,9 @@ public class Entrance {
             final_reconstruction.write2files(gp.out_dir + gp.project_name + ".inter_freq_haps.txt",
                 gp.out_dir + gp.project_name + ".intra_freq_haps.txt",
                 "string");
+        	eva.LassoEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+ 			"/home/chencao/Desktop/sim001/output/sim001.inter_freq_haps.txt");
+        	
         } else if (function.equals("split")) { //split the vef file into several files (N variants one file)
             String[] vef_files =
                 Entrance.get_filepaths(name_file, gp.inter_dir + "vef", "vef", false);     
@@ -351,9 +362,14 @@ public class Entrance {
                 FileSplit split_file = new FileSplit (vef_files,gs_var_pos,  gp.num_pos_job );        
             System.out
                 .println("\nFile Split Finished.\n");
+            
         
         //Using Exhaustive search to find all possible regional haplotypes based on the vef file
         }else if (function.equals("gcaem")) {
+        	
+
+//        	System.exit(0);
+        	
             String dc_out_file = gp.inter_dir + gp.project_name + "_dc_plan.txt"; // dc output
             // filepath string       	
             String[] vef_files = 
@@ -379,7 +395,7 @@ public class Entrance {
             }
             
             
-            new File(gp.inter_dir + "/gcaem/").mkdir();
+//          new File(gp.inter_dir + "/gcaem/").mkdir();
             
             HapConfig[] level_I_config = dc_maker.regional_AEM(
                     Entrance.names_array,
@@ -389,8 +405,9 @@ public class Entrance {
                     gp.inter_dir + "/aem/" + gp.project_name,
                     gp.inter_dir + "/aem_fail_regional_lasso/",
                     1, Entrance.name2index);
-
-            
+            dc_maker.level_I_config= level_I_config;
+            	System.out.println("Level 1 AEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
+            	
             HapConfig[] level_II_config = dc_maker.regional_AEM(
                     Entrance.names_array,
                     vef_files,
@@ -399,13 +416,57 @@ public class Entrance {
                     gp.inter_dir + "/aem/" + gp.project_name,
                     gp.inter_dir + "/aem_fail_regional_lasso/",
                     2,  Entrance.name2index);
+            dc_maker.level_II_config= level_II_config;
+            System.out.println("Level 2 AEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
+            
+            HapConfig[] level_III_config = dc_maker.level_III_regional_AEM( 
+            		Entrance.names_array,
+                    vef_files,
+                    dc_maker.regions_level_III,
+                    parameter_file,
+                    gp.inter_dir + "/aem/" + gp.project_name,
+                    gp.inter_dir + "/aem_fail_regional_lasso/",
+                    3,  Entrance.name2index);
+            dc_maker.level_III_config= level_III_config;
 
-                System.out.println("Level 2 AEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
+                
+//                String gold_hap_file = gp.inter_dir + gp.project_name + "_dc_plan.txt";
+                
+                
+                
+//            eva.AemEvaluate(gp.project_name, dc_out_file, 
+//               "/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+//            		"/home/chencao/Desktop/sim001/intermediate/aem/");
+            eva.Level_III_AemEvaluate(gp.project_name, dc_out_file, 
+                    "/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+                 		"/home/chencao/Desktop/sim001/intermediate/aem/"); 
+                
+                
+//                System.exit(0);
+                
+//                eva.AemEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+//            			"/home/chencao/Desktop/sim001/output/sim001_gc.inter_freq_haps.txt");
 
-                // Link regions by applying graph coloring across the level 1 and level 2 regional
-                // haplotype configurations.
+                // Link regions by applying Breadth-First-Search across the level 1 and level 2 regional
+                // haplotype configurations (Pruning strategy, Chen).
+//                
                 GraphColoring region_linker =
-                    new GraphColoring(level_I_config, level_II_config, gs_var_pos, gp.virtual_cov_link_gc);
+                    new GraphColoring(level_I_config, level_II_config, gs_var_pos, dc_maker.regions_level_I,
+                    		dc_maker.regions_level_II);
+                
+                
+                
+                
+//                eva.StringEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+//                		"/home/chencao/Desktop/ccc.txt");
+                
+//                eva.AemEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+//            			"/home/chencao/Desktop/sim001/output/sim001.inter_freq_haps.txt");
+//                System.exit(0);
+                
+              
+//                GraphColoring region_linker =
+//                        new GraphColoring(level_I_config, level_II_config, gs_var_pos, gp.virtual_cov_link_gc);
 
                 // Write final global haplotype configurations (inter pool) to output.
                 HapConfig final_global_haps; // final global haplotype configuration object
@@ -415,12 +476,10 @@ public class Entrance {
                 final_global_haps.write_global_file_string( // write to output
                     gp.out_dir + gp.project_name + "_gc.inter_freq_haps.txt");
             
-            
             System.out
                 .println("\nGCAEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
-//            eva.AemEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
-//        			"/home/chencao/Desktop/sim001/output/sim001_gc.inter_freq_haps.txt");
-
+            eva.GcAemEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+        			"/home/chencao/Desktop/sim001/output/sim001_gc.inter_freq_haps.txt");
         }    
     }
 }
