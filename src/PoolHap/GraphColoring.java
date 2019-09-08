@@ -5,6 +5,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -12,6 +13,12 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Vector;
 import java.util.Random;
+
+/**
+ * @author Chen Cao 2019-07
+ * 
+ * 
+ */
 
 public class GraphColoring {
     // TODO: [ReconEP]:: refactor variable names to be more sensible (e.g. camelCase for Java).
@@ -23,7 +30,7 @@ public class GraphColoring {
     // The list of all possible genotypes, ArrayList<site=allele; ... site=allele;>
     public Vector<String> readinfo_arr_tmp;
 
-    public HashMap<String, Integer> output_ref_arr;
+    public HashMap<String, Integer> output_ref_arr ;
     public HashMap<String, String> conf_ref_arr;
     public int num_loci;
     public int num_pools;
@@ -52,6 +59,14 @@ public class GraphColoring {
      *  @throws IOException on input error.
      */
     
+    /**
+     * @author Chen Cao 2019-08
+     * Construct the frequency path for four possible ways: 0/0 0/1 1/0 1/1
+     * Using the frequency path to  Evaluate whether the haplotypes ( 2^N )exist 
+     * And Estimate the frequency of the haplotypes.
+     * The output is used as the initial matrix for AEM 
+     * 
+     */  
     public GraphColoring(String vef, String gs_var_pos, String out_file, int[][] regions_level_I
     		) throws IOException {
     	this.gc_solver(gs_var_pos, false);
@@ -126,7 +141,6 @@ public class GraphColoring {
     					this.loci_link_freq[i][2]=this.loci_link_freq[i][3]=0.25;
     		}
     	}
-    	
 //    	for (int i = 0; i < this.loci_link_count.length; i++) {
 //    		System.out.print(this.loci_link_freq[i][0]
 //                    + "\t"
@@ -217,8 +231,352 @@ public class GraphColoring {
         this.gc_solver(gs_var_pos, true);
         this.fileOut(out_file);
     }
+    
+	public static String link_str(String x, String y,ArrayList<Integer >  pos_arr  )
+			throws IOException {
+		String[] x_char = new String [x.length()];
+		String[] y_char = new String [y.length()];
+		for (int i=0; i< x_char.length;i++) {
+			x_char[i]= x.substring(i,i+1);
+		}
+		for (int i=0; i< y_char.length;i++) {
+			y_char[i]= y.substring(i,i+1);
+		}
+		for (int i=0; i< x_char.length;i++) {
+			for (int j=0; j< pos_arr.size();j++) {
+				if (i== pos_arr.get(j)) {
+					x_char[i] = y_char[j];
+				}
+			}
+		}
+		String tmp ="";
+		for (int i=0; i< x_char.length;i++) {
+			tmp=tmp+ x_char[i];
+		}
+		return tmp ;
+	}
+    /**
+     * @author Chen Cao 2019-09
+     * For the adjacent level I regions, mismatches tolerance (num of 
+     * mismatches bases ) is constructed regions linked in the process
+     * of breadth first search.
+     * 
+     */  	
+    
+    public String [] strmatch (String x, String y, String z, 
+    		int num, int num_mismatch_cutoff)  throws IOException {
+		
+    	ArrayList<Integer >  pos_arr = new ArrayList<Integer>();
+//    	System.out.println( x );
+//    	System.out.println( y );
+//    	System.out.println( z );
+//    	System.out.println( num );
+    	String overlap_x= x.substring(x.length()-num);
+    	String overlap_xz= z.substring(0, num);
+    	int distance=0; 
+    	
+    	for (int i = 0; i < overlap_x.length(); i++) {
+			if (overlap_x.charAt(i) != overlap_xz.charAt(i)) {
+				distance++;
+				pos_arr.add(x.length()- num+i);
+			}
+		}
+    	
+    	String overlap_y= y.substring(0, z.length()-num);
+    	String overlap_yz= z.substring( num);
+//    	System.out.println( overlap_y );
+//    	System.out.println( overlap_yz );
+    	for (int i = 0; i < overlap_y.length(); i++) {
+			if (overlap_y.charAt(i) != overlap_yz.charAt(i)) {
+				distance++;
+				pos_arr.add(x.length()+ i);
+			}
+		}
+    	int haps_2n = (int) Math.pow(2, distance); 
+    	String[] com_str = new String [ haps_2n];
+    	for (int h = 0; h < haps_2n; h++) {
+    		com_str[h]= x+y;
+    	}
+    	String[] sub_str = new String [ haps_2n];
+    	for (int h = 0; h < haps_2n; h++) {
+    		String curr_ID = "";
+        	String vc_str = Integer.toBinaryString(h);
+        	
+        	int l = vc_str.length();
+        	// the length of vc_str may not reach num_site_regional; so put zeros in.
+        	for (int locus = 0; locus < distance - l ; locus++) {
+        		vc_str = "0"+ vc_str;
+            }
+//        	System.out.println( vc_str);
+        	sub_str[h] = vc_str;
+    	}
+    	if (distance > num_mismatch_cutoff) {
+    		String[] com_str2 = new String [ 0];
+    		return com_str2;
+    	}else {
+    		for (int h = 0; h < haps_2n; h++) {
+    			com_str[h]= link_str(com_str[h], sub_str[h], pos_arr );
+//    			System.out.println( com_str[h] );
+    		}
+    	}
+    	return com_str;
+    }
+    
+    
+    public boolean strmatch (String x, String y,  int num) throws IOException {
+    	
+    	if (num <1) {
+    		return true;
+    	}
+    	String overlap_x= x.substring(x.length()-num);
+    	String overlap_y= y.substring(0, num);
+    	if (overlap_x.equals(overlap_y)) {
+    		return true;
+    	}else {
+    		return false;
+    	}
+    }
+    
+    
+    public String  strcombine (String x, String y, int num) throws IOException {
+    	if (num==0) {
+    		return x+y;
+    	} else {
+    		return x+y.substring(num);
+    	}
+    }
+    
+    public double  minvalue (double x, double y) throws IOException {
+    	if (x>= y) {
+    		return y;
+    	}else {
+    		return x;
+    	}
+    }
+    
+    
+    /**
+     *  Chen: apply Breadth-First-Search (incluing Pruning )to replace gc.
+     *  TODO: [Javadoc]:: .
+     *
+     *  @param level_1 all level 1 haplotype configurations
+     *  @param level_2 all level 2 haplotype configurations
+     *  @param gs_var_pos (required) gold standard variant positions file path string
+     *  @param virtual_cov_link_gc // Do not need this parameter any more. 
+     *  @throws IOException on input error.
+     *  Adjacent level I regions are linked using the info comes from
+     *  level II.
+     *  For the adjacent level I regions, mismatches tolerance (num of 
+     * 	mismatches bases ) is constructed regions linked in the process
+     * 	of breadth first search.
+     */
 
+    public GraphColoring(HapConfig[] level_1,  HapConfig[] level_2,  String gs_var_pos, 
+    		int [][] level_1_region , int [][] level_2_region
+            ) throws IOException {
+    	
+    	ArrayList<String >  bfs_haps= new ArrayList<String>();
+    	ArrayList<Double >  haps_min_freq= new ArrayList<Double>();
+    	ArrayList<Integer >  haps_end_pos= new ArrayList<Integer>();
+    	ArrayList<Integer >  haps_score= new ArrayList<Integer>();
+    	int start_index =0;
+    	int end_index=0;
+    	double aver_freq= 1/ (double) level_1[0].global_haps_freq.length;
+    	for (int i = 0; i  < level_1[0].global_haps_string.length; i++) {
+    		String tmp = "";
+    		for (int j = 0; j  < level_1[0].global_haps_string[i].length; j++) {
+    			tmp=tmp+ level_1[0].global_haps_string[i][j];
+    		}
+    		bfs_haps.add(tmp);
+    		haps_min_freq.add(level_1[0].global_haps_freq[i]);
+    		haps_end_pos.add(level_1_region[0][1]);
+    		if (level_1[0].global_haps_freq[i]>= aver_freq) {
+    			haps_score.add(0);
+    		}else {
+    			haps_score.add(-1);
+    		}
+    		end_index++;
+    	}
+    	
+    	boolean  one_one_search= true;
+    	int num_mismatch_cutoff=1;
+//Chen:     Breadth-First-Search
+    	//Search Strategy: Level I 1 -> Level I 2 -> Level I 3 -> Level I 4...
+    	if (one_one_search) {
+	    	for (int i = 0; i  < (level_1_region.length -1); i++) {   
+	    		System.out.println( i );
+	    		System.out.println( end_index-start_index  ); 
+	    		ArrayList<String  >  seg_haps= new ArrayList<String >();
+	    		ArrayList<Double  >  seg_freq= new ArrayList<Double >();
+	    		int end_pos= haps_end_pos.get(end_index-1);
+	    		int start_pos= level_1_region[i+1][0];
+	    		int fix_end_index= end_index;
+	    		
+	    		for (int j = 0; j  < level_1[i+1].global_haps_string.length; j++) {
+	    			String tmp = "";
+	    			for (int k = 0; k  < level_1[i+1].global_haps_string[j].length; k++) {
+	    				tmp=tmp+ level_1[i+1].global_haps_string[j][k];
+	    			}
+	    			seg_haps.add(tmp );
+	    			seg_freq.add(level_1[i+1].global_haps_freq[j]); 
+	    		}
+	    		
+	    		ArrayList<String  >  stick_haps= new ArrayList<String >();
+	    		for (int j = 0; j  < level_2[i].global_haps_string.length; j++) {
+	    			String tmp = "";
+	    			start_pos= level_2_region[i][0];
+	    			for (int k = 0; k  < level_2[i].global_haps_string[j].length; k++) {
+	    				tmp=tmp+ level_2[i].global_haps_string[j][k];
+	    			}
+	    			stick_haps.add(tmp );
+	    		}
+	    		
+	    		for (int j = start_index; j  < fix_end_index; j++) {
+	    			
+	    			for (int k = 0; k  < seg_haps.size(); k++) {
+	    				for (int l = 0; l  < stick_haps.size(); l++) {
+	    					String [] com_str = strmatch(bfs_haps.get(j), seg_haps.get(k) ,stick_haps.get(l), 
+		    						end_pos- start_pos+1, num_mismatch_cutoff);
+		    				if ((com_str.length!= 0)  && (haps_score.get(j)> -2)){
+		    					for (int h = 0; h  < com_str.length; h++) {
+			    					bfs_haps.add( com_str[h]);
+			    					haps_min_freq.add(minvalue(haps_min_freq.get(j), seg_freq.get(k) )  ); 
+			    					haps_end_pos.add(level_1_region[i+1][1]  ); 
+			    					end_index++;
+			    					if (seg_freq.get(k) >= (1/ (double) seg_haps.size())) {
+			    						haps_score.add(haps_score.get(j)  );
+			    					}else {
+			    						haps_score.add(haps_score.get(j)-1);
+			    					}
+		    					}
+		    				}
+	    				}
+	    			}
+	    		}
+	    		start_index =fix_end_index;
+	    		seg_haps.clear();
+	    		seg_freq.clear();
+	    		stick_haps.clear();
+	    	}
+    	}
+    	
+    	//Search Strategy: Level I 1 -> Level II 1 -> Level I 1 -> Level II 2...
+    	if (!one_one_search) {
+	    	for (int i = 0; i  < level_2_region.length; i++) {   
+	    		ArrayList<String  >  seg_haps= new ArrayList<String >();
+	    		ArrayList<Double  >  seg_freq= new ArrayList<Double >();
+	    		for (int j = 0; j  < level_2[i].global_haps_string.length; j++) {
+	    			String tmp = "";
+	    			for (int k = 0; k  < level_2[i].global_haps_string[j].length; k++) {
+	    				tmp=tmp+ level_2[i].global_haps_string[j][k];
+	    			}
+	    			seg_haps.add(tmp );
+	    			seg_freq.add(level_2[i].global_haps_freq[j]); 
+	    		}
+	    		int end_pos= haps_end_pos.get(end_index-1);
+	    		int start_pos= level_2_region[i][0];
+	    		int fix_end_index= end_index;
+	    		for (int j = start_index; j  < fix_end_index; j++) {
+	    			for (int k = 0; k  < seg_haps.size(); k++) {
+	    				if ((strmatch(bfs_haps.get(j), seg_haps.get(k) ,end_pos- start_pos+1)) 
+	        					&& (haps_score.get(j) > (-1*(i+2) ) ) ){
+	    					bfs_haps.add( strcombine ( bfs_haps.get(j), seg_haps.get(k) ,end_pos- start_pos+1) );
+	    					haps_min_freq.add(minvalue(haps_min_freq.get(j), seg_freq.get(k) )  ); 
+	    					haps_end_pos.add(level_2_region[i][1]  ); 
+	    					if (seg_freq.get(k) >= (1/ (double) seg_haps.size())) {
+	    						haps_score.add(haps_score.get(j)  );
+	    					}else {
+	    						haps_score.add(haps_score.get(j)-1);
+	    					}
+	    					end_index++;
+	    				}
+	    			}
+	    		}
+	    		
+	    		start_index =fix_end_index;
+	    		seg_haps.clear();
+	    		seg_freq.clear();
+	    		for (int j = 0; j  < level_1[i+1].global_haps_string.length; j++) {
+	    			String tmp = "";
+	    			for (int k = 0; k  < level_1[i+1].global_haps_string[j].length; k++) {
+	    				tmp=tmp+ level_1[i+1].global_haps_string[j][k];
+	    			}
+	    			seg_haps.add(tmp );
+	    			seg_freq.add(level_1[i+1].global_haps_freq[j]); 
+	    		}
+	
+	    		end_pos= haps_end_pos.get(end_index-1);
+	    		start_pos= level_1_region[i+1][0];
+	    		fix_end_index= end_index;
+	    		for (int j = start_index; j  < fix_end_index; j++) {
+	    			for (int k = 0; k  < seg_haps.size(); k++) {
+	    				if ((strmatch(bfs_haps.get(j), seg_haps.get(k) ,end_pos- start_pos+1)) 
+	    					&& (haps_score.get(j) >  (-1*(i+2) ) ) ){
+	    					bfs_haps.add( strcombine ( bfs_haps.get(j), seg_haps.get(k) ,end_pos- start_pos+1) );
+	    					haps_min_freq.add(minvalue(haps_min_freq.get(j), seg_freq.get(k) )  ); 
+	    					haps_end_pos.add(level_1_region[i+1][1]  ); 
+	    					if (seg_freq.get(k) >= (1/ (double) seg_haps.size())) {
+	    						haps_score.add(haps_score.get(j)  );
+	    					}else {
+	    						haps_score.add(haps_score.get(j)-1);
+	    					}
+	    					end_index++;
+	    				}
+	    			}
+	    		}
+	    		start_index =fix_end_index;
+	    	}
+    	}
+    	
 
+        this.output_ref_arr = new HashMap<String,Integer>();
+        ArrayList<String>  hap_list = new ArrayList<String>(); 
+        
+        for (int i = start_index; i  < end_index; i++) {
+        	if ( (i%100)==0) {
+        		
+        		hap_list.add(bfs_haps.get(i)); 
+        	}
+        }
+//        Collections.shuffle(hap_list,new Random()); 
+        
+        
+//        this.output_ref_arr.put("0110101001111110101", 1);
+//        this.output_ref_arr.put("1110101100110110001", 1);
+//        this.output_ref_arr.put("1110101100110110001", 1);
+//        this.output_ref_arr.put("1110111000000110000", 1);
+//        this.output_ref_arr.put("0010011000000100001", 1);
+//        this.output_ref_arr.put("1010011001101000001", 1);
+//        
+//        this.output_ref_arr.put("1011011001000100101", 1);
+//        this.output_ref_arr.put("1011111011011000101", 1);
+//        this.output_ref_arr.put("1011111001100100101", 1);
+//        this.output_ref_arr.put("1010010101100000101", 1);
+//        
+//        this.output_ref_arr.put("1010011000110000001", 1);
+//        this.output_ref_arr.put("1010010001111010000", 1);
+//        this.output_ref_arr.put("1110010011010010100", 1);
+//        
+//        this.output_ref_arr.put("1110000011101010110", 1);
+//        this.output_ref_arr.put("1110100011011010000", 1);
+//        this.output_ref_arr.put("1001111111010111001", 1);
+//        
+//        this.output_ref_arr.put("0100111001010111001", 1);
+//        this.output_ref_arr.put("0110111100010110011", 1);
+//        this.output_ref_arr.put("1100110101110110011", 1);
+//        this.output_ref_arr.put("1100100111111100111", 1);
+//        
+        for (int i = 0; i  < hap_list.size(); i++) {
+        	this.output_ref_arr.put(hap_list.get(i) , 1); 
+        }
+//        
+        
+        
+        this.gc_solver(gs_var_pos, false);
+//    	System.exit(0);
+    }
+    
+    
     /**
      *  2nd round of graph coloring for global haplotype through region linking.
      *  TODO: [Javadoc]:: improve description of this 2nd GC round constructor.
@@ -350,11 +708,7 @@ public class GraphColoring {
         this.num_pools = currLine.split("\t").length - 1;
         this.locusInfo = new LocusAnnotation[this.num_loci];
         this.inpool_site_freqs = new double[this.num_loci][this.num_pools];
-        if (  run_gc ==false) {
-        	return;
-        }
-
-        // Read through file.
+        
         while (currLine != null) {
             String[] tmp = currLine.split("\t");
 
@@ -369,6 +723,14 @@ public class GraphColoring {
             loci_index++; // move to next locus index
             currLine = br.readLine(); // read next line
         }
+        
+        
+        if (  run_gc ==false) {
+        	return;
+        }
+
+        // Read through file.
+       
 
         br.close();
 

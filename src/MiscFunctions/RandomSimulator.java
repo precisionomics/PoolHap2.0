@@ -5,6 +5,15 @@ import java.util.*;
 
 import PoolHap.Entrance;
 
+/**
+ * @author Chen Cao 2019-08
+ * Random Generate all files which could be used for PoolHapX testing.
+ * Including the gold standard files, vef files, sample name file,
+ * Each pool variant frequency file (In paratice, this file could be 
+ * called by GATK/ SamTools). 
+ * To simulate the evolution, each round n (last parameter) snps changes. 
+ */  
+
 public class RandomSimulator {
 	String project_name;
 	String folder_path;
@@ -316,11 +325,13 @@ public class RandomSimulator {
 		System.out.println(" Vef File Simulation Finished!");
 	}
 	
-	public static void main(String[] args) throws IOException {
+
+	
+	public static  void main(String[] args) throws IOException {
 		// /home/chencao/Desktop  sim001	10	20	15	5000	50	150	50	100		5
 		//parameter 0: folder path
 		//parameter 1: project name
-		//parameter 2: number of pools
+		//parameter 2: number of pools (or generations)
 		//parameter 3: number of total haplotypes
 		//parameter 4: average number of haplotypes in each pool
 		//parameter 5: genome length 
@@ -329,6 +340,8 @@ public class RandomSimulator {
 		//parameter 8: outer distance between the two ends for pairs
 		//parameter 9: average coverage
 		//parameter 10: number of mutations each generation
+
+		
 		RandomSimulator rs = new RandomSimulator(args);
 	}
 	

@@ -758,6 +758,7 @@ public class HapConfig {
      *  Updates the global variables mu, sigma, and logL respectively for this HapConfig object.
      */
     public void update_sigma_mu_logL() {
+    	
         this.mu = new double[this.num_loci];
         for (int l = 0; l < this.num_loci; l++) {
             for (int h = 0; h < this.num_global_hap; h++) {
