@@ -596,11 +596,12 @@ public class HapLASSO {
      *  @param weights
      *  @throws FileNotFoundException
      */
+    
     public void estimate_frequencies_lasso(
         String vef_file,
         String[] vef_files,
         double[] weights) throws FileNotFoundException {
-
+    	
         // First calculate Ys (MAF and LD) from pooled data.
         if (vef_file != null && vef_files == null) { // there is a vef_file, indicating single pool
             if (this.pool_index == -1) {
@@ -609,14 +610,11 @@ public class HapLASSO {
             this.get_MAF_single_pool();
             this.setup_site_locations2index_map();
             this.ld_matrix = calcualte_LD_matrix_single_pool(vef_file);
-
         } else if (vef_file == null) { // multiple pools.
             if (this.pool_index != -1) {
                 System.out.println("ERROR: pool_index!=-1 but we don't have a VEF file");
             }
-
             this.calculate_MAF_multi_pool();
-
             if(vef_files!=null) { // multiple VEF files supplied, indicating read-based
                 this.calcualte_LD_matrix_multi_pool_reads(vef_files);
 
