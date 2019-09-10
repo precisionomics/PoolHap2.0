@@ -366,11 +366,14 @@ public class Entrance {
         
         //Using Exhaustive search to find all possible regional haplotypes based on the vef file
         }else if (function.equals("gcaem")) {
+        	eva.GcAemEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+        			"/home/chencao/Desktop/sim001/output/sim001_gc.inter_freq_haps.txt");
         	
-
-//        	System.exit(0);
+        	System.exit(0);
         	
             String dc_out_file = gp.inter_dir + gp.project_name + "_dc_plan.txt"; // dc output
+            
+            
             // filepath string       	
             String[] vef_files = 
                     Entrance.get_filepaths(name_file, gp.inter_dir + "vef", "vef", false);
@@ -393,6 +396,8 @@ public class Entrance {
                 System.out.println("Graph colouring for pool " + p + ":" + Entrance.names_array[p]
                     + " is finished.");
             }
+            
+            
             
             
 //          new File(gp.inter_dir + "/gcaem/").mkdir();
@@ -428,31 +433,55 @@ public class Entrance {
                     gp.inter_dir + "/aem_fail_regional_lasso/",
                     3,  Entrance.name2index);
             dc_maker.level_III_config= level_III_config;
+            System.out.println("Level 3 AEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
+            
+            HapConfig[] level_IV_config = dc_maker.level_IV_regional_AEM( 
+            		Entrance.names_array,
+                    vef_files,
+                    dc_maker.regions_level_IV,
+                    parameter_file,
+                    gp.inter_dir + "/aem/" + gp.project_name,
+                    gp.inter_dir + "/aem_fail_regional_lasso/",
+                    4,  Entrance.name2index);
+            dc_maker.level_IV_config= level_IV_config;
+            System.out.println("Level 4 AEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
+            
 
                 
 //                String gold_hap_file = gp.inter_dir + gp.project_name + "_dc_plan.txt";
                 
                 
                 
-//            eva.AemEvaluate(gp.project_name, dc_out_file, 
-//               "/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
-//            		"/home/chencao/Desktop/sim001/intermediate/aem/");
+            eva.AemEvaluate(gp.project_name, dc_out_file, 
+               "/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+            		"/home/chencao/Desktop/sim001/intermediate/aem/");
             eva.Level_III_AemEvaluate(gp.project_name, dc_out_file, 
                     "/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
                  		"/home/chencao/Desktop/sim001/intermediate/aem/"); 
+            eva.Level_IV_AemEvaluate(gp.project_name, dc_out_file, 
+                    "/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+                 		"/home/chencao/Desktop/sim001/intermediate/aem/");
+           
+            
+            GraphColoring region_linker =
+                    new GraphColoring(level_III_config, level_IV_config, 
+                    		gs_var_pos, dc_maker.regions_level_III,
+                    		dc_maker.regions_level_IV);
+            
+          
+       
                 
-                
-//                System.exit(0);
-                
-//                eva.AemEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
-//            			"/home/chencao/Desktop/sim001/output/sim001_gc.inter_freq_haps.txt");
+
+
 
                 // Link regions by applying Breadth-First-Search across the level 1 and level 2 regional
                 // haplotype configurations (Pruning strategy, Chen).
 //                
-                GraphColoring region_linker =
-                    new GraphColoring(level_I_config, level_II_config, gs_var_pos, dc_maker.regions_level_I,
-                    		dc_maker.regions_level_II);
+//            GraphColoring region_linker =
+//                    new GraphColoring(level_I_config, level_II_config, gs_var_pos, dc_maker.regions_level_I,
+//                    		dc_maker.regions_level_II);
+                
+                
                 
                 
                 
@@ -478,8 +507,7 @@ public class Entrance {
             
             System.out
                 .println("\nGCAEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
-            eva.GcAemEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
-        			"/home/chencao/Desktop/sim001/output/sim001_gc.inter_freq_haps.txt");
+            
         }    
     }
 }
