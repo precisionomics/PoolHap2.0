@@ -170,7 +170,7 @@
 	<classpathentry kind="lib" path="external_jars/derby-10.12.1.1.jar"/>
 	<classpathentry kind="lib" path="external_jars/guava-14.0.1.jar"/>
 	<classpathentry kind="lib" path="external_jars/datanucleus-rdbms-3.2.9.jar"/>
-	<classpathentry kind="lib" path="external_jars/commons-math3-3.4.1.jar"/>
+	<classpathentry kind="lib" path="external_jars/commons-math3-3.4.1.jar" sourcepath="external_jars"/>
 	<classpathentry kind="lib" path="external_jars/guice-3.0.jar"/>
 	<classpathentry kind="lib" path="external_jars/hadoop-client-2.7.3.jar"/>
 	<classpathentry kind="lib" path="external_jars/hadoop-auth-2.7.3.jar"/>

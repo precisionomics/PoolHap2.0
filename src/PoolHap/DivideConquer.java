@@ -111,6 +111,7 @@ public class DivideConquer {
              */
             this.generate_dividing_plan_two_level(this.gc_outcome);
             this.generate_dividing_plan_level_III();
+            this.generate_dividing_plan_level_IV();
             this.loci_link_freq=new double [num_pools][num_sites-1][4];
             // TODO: LEFTOVER ML 20190702
             // // If can be divided...
@@ -157,6 +158,22 @@ public class DivideConquer {
     		this.regions_level_III[ this.num_regions_level_III-1][0]= 
     				regions_level_I[this.num_regions_level_I-1] [0];
     		this.regions_level_III[ this.num_regions_level_III-1][1]= 
+    				regions_level_I[this.num_regions_level_I-1] [1];
+    	}
+    }
+    
+    public void generate_dividing_plan_level_IV() {
+    	
+    	this.num_regions_level_IV= (this.num_regions_level_I )/2;
+    	this.regions_level_IV = new int[num_regions_level_IV][2];
+    	for (int i=0; i< (this.num_regions_level_I-1 )/2;i++) {
+    		this.regions_level_IV[i][0]= regions_level_I[2*i+1] [0];
+    		this.regions_level_IV[i][1]= regions_level_I[2*i+2] [1];
+    	}
+    	if ((this.num_regions_level_I) %2 ==0) {
+    		this.regions_level_IV[ this.num_regions_level_IV-1][0]= 
+    				regions_level_I[this.num_regions_level_I-1] [0];
+    		this.regions_level_IV[ this.num_regions_level_IV-1][1]= 
     				regions_level_I[this.num_regions_level_I-1] [1];
     	}
     }
@@ -697,7 +714,19 @@ public class DivideConquer {
                     + this.regions_level_III[r][1]
                     + "\t");
             }
+            bw.write("\nLevel_IV\n");
+            System.out.println("\nLevel_IV");
+            for (int r = 0; r < this.num_regions_level_IV; r++) {
+                bw.write(this.regions_level_IV[r][0] + ":" + this.regions_level_IV[r][1] + "\t");
+                System.out.print(this.regions_level_IV[r][0]
+                    + ":"
+                    + this.regions_level_IV[r][1]
+                    + "\t");
+            }
             bw.write("\n");
+            
+            
+            
             bw.close();
             System.out.println();
 
@@ -877,6 +906,65 @@ public class DivideConquer {
                 System.out.print("AEM for level " + level_index + " region " + r_index + "... ");
                 
                 HapConfig hap_config = generate_hapconfig_level_III(regions, r_index,
+                		pool_IDs);
+                
+//        		String file_path= "/home/chencao/Desktop/cc.txt";
+//        		FileWriter mydata = new FileWriter(file_path,false);
+//                PrintWriter pw = new PrintWriter(mydata);
+//                String pw_line ="";
+//               
+//                pw.flush();
+//                pw.close();
+                
+                RegionEMSolver hap_solver = new RegionEMSolver(hap_config, parameter_file);
+                if (hap_solver.failure) {
+                    System.out.println("AEM failed to converge. Initiating regional LASSO... ");
+
+                    // If AEM fails, at least some of the frequencies will be NaN. In that case, use
+                    // sub-optimal GC results. TODO [Quan] 
+                    region_haps[r_index] = generate_hapconfig_gc_regional_lasso(pool_IDs, vef_files,
+                        regions[r_index], level_index, r_index, aem_fail_lasso_path);
+                    
+                } else {
+                    region_haps[r_index] = hap_solver.final_Haps;
+                }
+                region_haps[r_index].recode_HapIDs_to_base16();
+                region_haps[r_index].write_global_file_string(dir_prefix
+                    + "_level_"
+                    + level_index
+                    + "_region_"
+                    + r_index
+                    + ".inter_freq_haps.txt");
+
+                System.out.print("Done. AEM ");
+                if (hap_solver.failure) {
+                    System.out.print("failed to converge. ");
+                } else {
+                    System.out.print("successfully converged. ");
+                }
+
+                System.out.println(region_haps[r_index].num_global_hap
+                    + " regional haplotypes have been generated.");
+            }
+
+            return region_haps;
+    }
+    
+    public HapConfig[] level_IV_regional_AEM(
+        	String[] pool_IDs,
+        	String[] vef_files,
+            int[][] regions,
+            String parameter_file,
+            String dir_prefix,
+            String aem_fail_lasso_path,
+            int level_index, 
+            HashMap<String, Integer> name2index) throws Exception {
+    		
+            HapConfig[] region_haps = new HapConfig[regions.length];
+            for (int r_index = 0; r_index < regions.length; r_index++) {
+                System.out.print("AEM for level " + level_index + " region " + r_index + "... ");
+                
+                HapConfig hap_config = generate_hapconfig_level_IV(regions, r_index,
                 		pool_IDs);
                 
 //        		String file_path= "/home/chencao/Desktop/cc.txt";
@@ -1142,7 +1230,6 @@ public class DivideConquer {
                 hap_IDs,
                 pool_IDs,
                 this.dp.est_ind_pool);    	
-            
     }
     
     /**
@@ -1259,6 +1346,138 @@ public class DivideConquer {
             		for (int j =0; j< this.level_II_config[2*region_index].global_haps_string[i].length;
             				j++) {
             			tmp=tmp+ this.level_II_config[2*region_index].global_haps_string[i][j];
+            		}
+            		String_Z.add(tmp);
+            	}
+//            	
+            	for (int i =0;i< String_X.size();i++) {
+            		for (int j =0;j< String_Y.size();j++) {
+            			for (int k =0;k< String_Z.size();k++) {
+            				String[] comb_str = strmatch( String_X.get(i),
+            						String_Y.get(j), String_Z.get(k),overlap,mismatch_cutoff);
+            				for (int h=0;h<comb_str.length;h++ ) {
+            					if (!haps_set.contains(comb_str[h])) {
+            						linked_haps.add(comb_str[h]);
+            						haps_set.add(comb_str[h]);
+            					}
+            				}
+            			}
+            		}
+            	}
+            }
+//            for (int i=0;i<linked_haps.size();i++ ) {
+//            	System.out.println(linked_haps.get(i).length()); 
+//            }
+            
+//            
+          //Chen: Construct a diagonal matrix
+            for (int i=0;i< num_site_regional;i++) {
+            	String diagonal_hap =  diagonal_str(i, num_site_regional);
+            	if (!haps_set.contains(diagonal_hap )) {
+            		linked_haps.add(diagonal_hap);
+            	}
+            }
+            int haps_2n = linked_haps.size();
+            String[][] global_haps_string = new String[haps_2n][num_site_regional];
+            String[] hap_IDs = new String[haps_2n];
+            for (int h = 0; h < haps_2n; h++) {
+                String curr_ID = "";
+                String vc_str = linked_haps.get(h);
+                String[] vc_arr  = vc_str.split("");
+                // the length of vc_str may not reach num_site_regional; so put zeros in.
+                for (int locus = 0; locus < num_site_regional - vc_arr.length; locus++) {
+                    global_haps_string[h][locus] = "0";
+                    curr_ID += "0";
+                }
+                for (int locus = num_site_regional - vc_arr.length; locus<num_site_regional; locus++) {
+                    global_haps_string[h][locus] = vc_arr[locus - num_site_regional + vc_arr.length];
+                    curr_ID += vc_arr[locus - num_site_regional + vc_arr.length];
+                }
+                hap_IDs[h] = curr_ID;
+            }
+//            for (int i=0;i<global_haps_string.length;i++ ) {
+//            	for (int j=0;j <global_haps_string[i].length;j++ ) {
+//            		System.out.print(global_haps_string[i][j]); 
+//            	}
+//            	System.out.println();
+//            }
+            //Chen: Construct a diagonal matrix
+            
+            double[] global_haps_freq = new double[haps_2n];
+            Arrays.fill(global_haps_freq, 1.0 / (double) haps_2n);
+            return new HapConfig(
+                global_haps_string,
+                global_haps_freq,
+                null,
+                inpool_site_freqs,
+                locusInfo,
+                this.num_pools,
+                hap_IDs,
+                pool_IDs,
+                this.dp.est_ind_pool);
+        }
+    
+    /**
+     *Chen: Construct hap config for level IV
+     * 
+     */
+    
+    public HapConfig generate_hapconfig_level_IV(
+            int[][] the_region, int region_index, String[] pool_IDs) throws IOException {
+
+            int region_start = the_region[region_index][0];
+            int region_end = the_region[region_index][1];
+            int num_site_regional = region_end-region_start + 1;
+            double[][] inpool_site_freqs = new double[num_site_regional][];
+            LocusAnnotation[] locusInfo = new LocusAnnotation[num_site_regional];
+
+            for (int l = 0; l < num_site_regional; l++) {
+                locusInfo[l] = this.in_pool_sites_freq_anno.loci_annotations[l + region_start];
+                inpool_site_freqs[l] = this.in_pool_sites_freq_anno.inpool_freqs[l + region_start];
+            }
+            HashSet<String > haps_set =new HashSet<String >();
+            ArrayList<String >  linked_haps= new ArrayList<String >();
+            if ((this.num_regions_level_I%2==0) && (region_index==this.num_regions_level_IV-1)){
+            	for (int i =0;i< this.level_I_config[ this.level_I_config.length-1].num_global_hap;
+            			i++) {
+            		String tmp ="";
+            		for (int j =0; j< this.level_I_config[ this.level_I_config.length-1].
+            				global_haps_string[i].length;j++) {
+            			tmp=tmp+ this.level_I_config[ this.level_I_config.length-1].
+                				global_haps_string[i][j];
+            		}
+            		linked_haps.add(tmp);
+            	}
+            }else {
+            	ArrayList<String >  String_X= new ArrayList<String >();
+            	ArrayList<String >  String_Y= new ArrayList<String >();
+            	ArrayList<String >  String_Z= new ArrayList<String >();
+            	int overlap= 1+ this.regions_level_I[2*region_index+1 ][1]- 
+            			this.regions_level_II[2*region_index +1][0];
+//            	
+            	int mismatch_cutoff=0;
+            	for (int i =0;i< this.level_I_config[2*region_index+1].num_global_hap;i++) {
+            		String tmp ="";
+            		for (int j =0; j< this.level_I_config[2*region_index+1].global_haps_string[i].length;
+            				j++) {
+            			tmp=tmp+ this.level_I_config[2*region_index+1].global_haps_string[i][j];
+            		}
+            		String_X.add(tmp);
+            	}
+            	for (int i =0;i< this.level_I_config[2*region_index+2].num_global_hap;i++) {
+            		String tmp ="";
+            		for (int j =0; j< this.level_I_config[2*region_index+2].global_haps_string[i].length;
+            				j++) {
+            			tmp=tmp+ this.level_I_config[2*region_index+2].global_haps_string[i][j];
+            		}
+            		String_Y.add(tmp);
+            	}
+            	
+            	for (int i =0;i< this.level_II_config[2*region_index+1].num_global_hap;i++) {
+            		String tmp ="";
+            		for (int j =0; j< this.level_II_config[2*region_index+1].global_haps_string[i].length;
+            				j++) {
+            			tmp=tmp+ this.level_II_config[2*region_index+1].global_haps_string[i][j];
             		}
             		String_Z.add(tmp);
             	}

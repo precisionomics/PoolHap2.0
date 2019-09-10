@@ -399,7 +399,7 @@ public class GraphColoring {
     	}
     	
     	boolean  one_one_search= true;
-    	int num_mismatch_cutoff=1;
+    	int num_mismatch_cutoff=0;
 //Chen:     Breadth-First-Search
     	//Search Strategy: Level I 1 -> Level I 2 -> Level I 3 -> Level I 4...
     	if (one_one_search) {
@@ -432,7 +432,6 @@ public class GraphColoring {
 	    		}
 	    		
 	    		for (int j = start_index; j  < fix_end_index; j++) {
-	    			
 	    			for (int k = 0; k  < seg_haps.size(); k++) {
 	    				for (int l = 0; l  < stick_haps.size(); l++) {
 	    					String [] com_str = strmatch(bfs_haps.get(j), seg_haps.get(k) ,stick_haps.get(l), 
@@ -533,39 +532,15 @@ public class GraphColoring {
         ArrayList<String>  hap_list = new ArrayList<String>(); 
         
         for (int i = start_index; i  < end_index; i++) {
-        	if ( (i%100)==0) {
+        	if ( (i%1)==0) {
         		
         		hap_list.add(bfs_haps.get(i)); 
         	}
         }
-//        Collections.shuffle(hap_list,new Random()); 
         
         
 //        this.output_ref_arr.put("0110101001111110101", 1);
-//        this.output_ref_arr.put("1110101100110110001", 1);
-//        this.output_ref_arr.put("1110101100110110001", 1);
-//        this.output_ref_arr.put("1110111000000110000", 1);
-//        this.output_ref_arr.put("0010011000000100001", 1);
-//        this.output_ref_arr.put("1010011001101000001", 1);
-//        
-//        this.output_ref_arr.put("1011011001000100101", 1);
-//        this.output_ref_arr.put("1011111011011000101", 1);
-//        this.output_ref_arr.put("1011111001100100101", 1);
-//        this.output_ref_arr.put("1010010101100000101", 1);
-//        
-//        this.output_ref_arr.put("1010011000110000001", 1);
-//        this.output_ref_arr.put("1010010001111010000", 1);
-//        this.output_ref_arr.put("1110010011010010100", 1);
-//        
-//        this.output_ref_arr.put("1110000011101010110", 1);
-//        this.output_ref_arr.put("1110100011011010000", 1);
-//        this.output_ref_arr.put("1001111111010111001", 1);
-//        
-//        this.output_ref_arr.put("0100111001010111001", 1);
-//        this.output_ref_arr.put("0110111100010110011", 1);
-//        this.output_ref_arr.put("1100110101110110011", 1);
-//        this.output_ref_arr.put("1100100111111100111", 1);
-//        
+
         for (int i = 0; i  < hap_list.size(); i++) {
         	this.output_ref_arr.put(hap_list.get(i) , 1); 
         }

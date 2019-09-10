@@ -340,11 +340,9 @@ public class RandomSimulator {
 		//parameter 8: outer distance between the two ends for pairs
 		//parameter 9: average coverage
 		//parameter 10: number of mutations each generation
-
 		
 		RandomSimulator rs = new RandomSimulator(args);
 	}
-	
 	
 
 }
