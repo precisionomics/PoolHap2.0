@@ -17,10 +17,10 @@ public class test {
 		ArrayList<HashMap<String, Integer>> pool=new ArrayList<HashMap<String, Integer>>();
 		HashMap<String, Integer> has1HashMap= new HashMap<String, Integer>();
 		HashMap<String, Integer> has2HashMap= new HashMap<String, Integer>();
-		String[] str1Strings= {"0","0","0","0"};
-		String[] str2Strings= {"0","0","0","0"};
-		System.out.println(str1Strings);
-		System.out.println(str2Strings);
+//		String[] str1Strings= {"0","0","0","0"};
+//		String[] str2Strings= {"0","0","0","0"};
+//		System.out.println(str1Strings);
+//		System.out.println(str2Strings);
 		has1HashMap.put("1000", 3);
 		pool.add(has1HashMap);
 		has2HashMap.put("000", 2);
@@ -28,5 +28,7 @@ public class test {
 		pool.add(has2HashMap);
 		pool.get(0).put("1111", 4);
 		System.out.println(pool);
+		System.out.println(pool.get(0).containsKey("1111"));
+		System.out.println(pool.get(0).get("1000"));
 	}
 }

@@ -15,6 +15,8 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 
+import shapeless.newtype;
+
 /*
  * The properties_file looks like this:
  * 
@@ -86,6 +88,7 @@ public class PoolSimulator_SLiM {
     ArrayList<ArrayList<Integer>> hap2varpos= new ArrayList<ArrayList<Integer>>(); 
     // hap_id -> [alternate allele variant pos]
     HashMap<Integer, ArrayList<Integer>> pool2hapcomp = new HashMap<Integer, ArrayList<Integer>>();
+    ArrayList<HashMap<String, Integer>> pool2allhapList=new ArrayList<HashMap<String, Integer>>();
     
     int all_pool_haps;  // total number of haps in all pools.
     double var_burden_avg;
@@ -136,12 +139,12 @@ public class PoolSimulator_SLiM {
 	public void processing_standard_outcome(Boolean is_single_population) throws IOException{
 		BufferedReader br = new BufferedReader(new FileReader(gs_dir + project_name + "_slim.txt")); 
 		ArrayList<String> index2varpos = new ArrayList<String>();
-		ArrayList<HashMap<String, Integer>> pool2allhapList=new ArrayList<HashMap<String, Integer>>();
+		
 		String currLine = br.readLine(); // header
 		String[] tmpcurrpos = currLine.split(" "); 
 		if(is_single_population==true) {
 			HashMap<String, Integer> hapforpool= new HashMap<String, Integer>();
-			pool2allhapList.add(hapforpool);
+			this.pool2allhapList.add(hapforpool);
 			while(!tmpcurrpos[0].equals("Mutations:")) { // Read those lines before "Mutations:"
 				currLine = br.readLine();
 				tmpcurrpos = currLine.split(" ");
@@ -156,7 +159,7 @@ public class PoolSimulator_SLiM {
 			currLine = br.readLine();
 			while(!tmpcurrpos[0].equals("Mutations:")) { // Read those lines before "Mutations:"
 				HashMap<String, Integer> hapforpool= new HashMap<String, Integer>();
-				pool2allhapList.add(hapforpool);
+				this.pool2allhapList.add(hapforpool);
 				currLine = br.readLine();
 				tmpcurrpos = currLine.split(" ");
 			}
@@ -181,19 +184,67 @@ public class PoolSimulator_SLiM {
 			}
 		}
 		currLine = br.readLine();
+		HashMap<String, Integer> hapsHS = new HashMap<String, Integer>();
+		int num_hap=0;
 		while(currLine!=null) {
 			tmpcurrpos = currLine.split(" ");
-			ArrayList<String> tmpvarlist = new ArrayList<String>();
-			int curr_pool_index= Integer.parseInt(tmpcurrpos[0].split("")[1]);
-			for (int p=2;p<tmpcurrpos.length;p++){
+			int curr_pool_index= Integer.parseInt(tmpcurrpos[0].split("")[1])-1;
+			if(tmpcurrpos.length>2) {
+				num_hap++;
+				ArrayList<Integer> currvarpos = new ArrayList<Integer>();
 				String curr_hap="";
+				for (int p=2;p<tmpcurrpos.length;p++){
+					currvarpos.add(Integer.parseInt(tmpcurrpos[p]));
+				}
+				for(int p=0;p<num_var_pos;p++) {
+					if(currvarpos.contains(p)) {
+						curr_hap=curr_hap+1;
+					}else {
+						curr_hap=curr_hap+0;
+					}
+				}
+				if (!hapsHS.containsKey(curr_hap)) {
+					hapsHS.put(curr_hap, 1);
+				}else {
+					int tmpCt =  hapsHS.get(curr_hap) + 1;
+					hapsHS.put(curr_hap, tmpCt);
+				}
+				if(!pool2allhapList.get(curr_pool_index).containsKey(curr_hap)) {
+					this.pool2allhapList.get(curr_pool_index).put(curr_hap, 1);
+				}else if(pool2allhapList.get(curr_pool_index).containsKey(curr_hap)) {
+					int tmpCt = pool2allhapList.get(curr_pool_index).get(curr_hap)+1;
+					this.pool2allhapList.get(curr_pool_index).put(curr_hap, tmpCt);
+				}
 			}
-			
-			
 			currLine = br.readLine();
 		}
-		
 		br.close();
+		this.all_pool_haps=num_hap;
+		this.actual_num_haps = hapsHS.size();
+        this.hap2varcomp = new int[actual_num_haps][num_var_pos]; 
+        this.hap2cts = new int[actual_num_haps]; 
+        int hap = 0; 
+        double var_burden_ct = 0.0; 
+        int[] true_var_pos = new int[num_var_pos];
+        for (String h : hapsHS.keySet()) {
+            String[] tmpHapComp = h.split("");
+            this.hap2varpos.add(new ArrayList<Integer>());
+            for (int p = 0; p < num_var_pos; p++) {
+                int tmpAllele = Integer.parseInt(tmpHapComp[p]); 
+                this.hap2varcomp[hap][p] = tmpAllele; 
+                if (tmpAllele == 1) {
+                    true_var_pos[p] = 1;    
+                    // If this variant position is represented by at least one alternate allele, 
+                    // then it's a true variant position.
+                    this.hap2varpos.get(hap).add(sim_var_pos[p]);
+                }
+                var_burden_ct += (double) tmpAllele; 
+            }
+            hap2cts[hap] = hapsHS.get(h);
+            hap++; 
+        }
+        this.actual_num_vars = SimpleMath.sum(true_var_pos); 
+        this.var_burden_avg = var_burden_ct / (double) actual_num_haps; 
 	}
 	
 	public void processing_ms_outcome() throws IOException{
@@ -261,7 +312,8 @@ public class PoolSimulator_SLiM {
         this.actual_num_vars = SimpleMath.sum(true_var_pos); 
         this.var_burden_avg = var_burden_ct / (double) actual_num_haps; 
 	}
-     
+
+	
 	/**
 	 * Step 2A: Report properties of the simulated haplotypes to the user 
 	 * to check if they're acceptable.
@@ -597,10 +649,11 @@ public class PoolSimulator_SLiM {
         Properties prop = new Properties();
         prop.load(is);
 //        Boolean is_perfect = Boolean.parseBoolean(prop.getProperty("Is_Perfect"));
+          Boolean is_single_population = true;
         is.close();
 //        	    //1st step: Read the property file
 		PoolSimulator_SLiM ps=new PoolSimulator_SLiM(parameter);
-		ps.processing_standard_outcome();
+		ps.processing_standard_outcome(is_single_population);
 //	    //2nd step: Simulate all pool haplotypes using ms, and write outcome
 //	   // ps.simulate_backwards_ms();
 //	    ps.processing_ms_outcome();
