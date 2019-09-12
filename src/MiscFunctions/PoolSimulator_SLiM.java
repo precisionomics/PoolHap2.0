@@ -15,7 +15,10 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.netlib.util.doubleW;
+
 import shapeless.newtype;
+import spire.optional.intervalGeometricPartialOrder;
 
 /*
  * The properties_file looks like this:
@@ -64,7 +67,9 @@ public class PoolSimulator_SLiM {
     String dwgsimCMDLine ;
     
     // configurations set by the users
+    int all_pool_haps;  // total number of haps in all pools.
     int haps_per_pool ;
+    int[] haps_per_pop_arr;
     int num_pools ;
     int est_ind_pool ;
     double mutation_rate ;
@@ -89,8 +94,8 @@ public class PoolSimulator_SLiM {
     // hap_id -> [alternate allele variant pos]
     HashMap<Integer, ArrayList<Integer>> pool2hapcomp = new HashMap<Integer, ArrayList<Integer>>();
     ArrayList<HashMap<String, Integer>> pool2allhapList=new ArrayList<HashMap<String, Integer>>();
-    
-    int all_pool_haps;  // total number of haps in all pools.
+    ArrayList<String> actual_hap_list = new ArrayList<String>();
+
     double var_burden_avg;
     
 	public PoolSimulator_SLiM(String parameter_file) throws IOException {
@@ -184,6 +189,11 @@ public class PoolSimulator_SLiM {
 			}
 		}
 		currLine = br.readLine();
+		// pool2allhapList: haplotypes and their corresponding number within each pool
+		// hapsHS:all the haplotypes and their corresponding number cross all pools
+		// For single_population, the pool2allhapList and hapsHS will be the same,
+		// we just need to use the hapsHS and randonly assign those haplotypes to different pools
+		// For island model, we generate the gold_standard and fastq file using pool2allhapList
 		HashMap<String, Integer> hapsHS = new HashMap<String, Integer>();
 		int num_hap=0;
 		while(currLine!=null) {
@@ -227,6 +237,7 @@ public class PoolSimulator_SLiM {
         double var_burden_ct = 0.0; 
         int[] true_var_pos = new int[num_var_pos];
         for (String h : hapsHS.keySet()) {
+        	this.actual_hap_list.add(h);
             String[] tmpHapComp = h.split("");
             this.hap2varpos.add(new ArrayList<Integer>());
             for (int p = 0; p < num_var_pos; p++) {
@@ -322,6 +333,7 @@ public class PoolSimulator_SLiM {
 	public void ms_reports() throws IOException {
         System.out.println("Step 2A: Report properties of the simulated haplotypes to the user "
             + "to check if they're acceptable.");
+        
         int[] pwDifference = new int[actual_num_haps * (actual_num_haps - 1) / 2];
         int compare = 0; 
         this.hap2allfreqs = new double[actual_num_haps]; 
@@ -377,77 +389,123 @@ public class PoolSimulator_SLiM {
      * @throws IOException
      * @throws InterruptedException
      */
-	public void assign_haps_to_pools() throws IOException {          
-                
+	public void assign_haps_to_pools(Boolean is_single_population) throws IOException {                          
         System.out.println("\nStep 3A: Assign each haplotype individual to a patient, "
             + "and write all of the gold standard files.\n");
-        int[][] hap2incts = new int[actual_num_haps][num_pools];
+        
         this.hap2infreqs = new double[actual_num_haps][num_pools];
         int[][] var2incts = new int[actual_num_vars][num_pools];
-        boolean[] poolFull = new boolean[num_pools]; 
-        
-        for (int h = 0; h < actual_num_haps; h++) {
-            while (hap2cts[h] != 0) {
-                int currPool = ThreadLocalRandom.current().nextInt(0, num_pools);
-                if (!this.pool2hapcomp.containsKey(currPool)) this.pool2hapcomp.put(currPool, new ArrayList<Integer>());
-                if (poolFull[currPool]) continue; 
-                this.pool2hapcomp.get(currPool).add(h);
-                hap2incts[h][currPool]++; 
-                for (int v = 0; v < num_var_pos; v++) var2incts[v][currPool] += hap2varcomp[h][v];
-                hap2cts[h]--; 
-                if (this.pool2hapcomp.get(currPool).size() == haps_per_pool) poolFull[currPool] = true;
+    	double[][] var2infreqs = new double[actual_num_vars][num_pools];
+        if(is_single_population==true) {
+        	this.haps_per_pool = all_pool_haps/this.num_pools;
+        	int[][] hap2incts = new int[actual_num_haps][num_pools];
+            boolean[] poolFull = new boolean[num_pools]; 
+            
+            for (int h = 0; h < actual_num_haps; h++) {
+                while (hap2cts[h] != 0) {
+                    int currPool = ThreadLocalRandom.current().nextInt(0, num_pools);
+                    if (!this.pool2hapcomp.containsKey(currPool)) this.pool2hapcomp.put(currPool, new ArrayList<Integer>());
+                    if (poolFull[currPool]) continue; 
+                    this.pool2hapcomp.get(currPool).add(h);
+                    hap2incts[h][currPool]++; 
+                    for (int v = 0; v < num_var_pos; v++) var2incts[v][currPool] += hap2varcomp[h][v];
+                    hap2cts[h]--; 
+                    if (this.pool2hapcomp.get(currPool).size() == haps_per_pool) poolFull[currPool] = true;
+                }
+                for(int p = 0; p < num_pools; p++)
+                    hap2infreqs[h][p] = (double) hap2incts[h][p] / haps_per_pool;
             }
+            
             for(int p = 0; p < num_pools; p++)
-                hap2infreqs[h][p] = (double) hap2incts[h][p] / haps_per_pool;
-        }
-        BufferedWriter bw = new BufferedWriter(new FileWriter(gs_dir + project_name + 
-            "_haps.inter_freq_vars.txt"));
-        bw.write("Hap_ID");
-        for(int h = 0; h < actual_num_haps; h++)
-            bw.write("\t" + "h"+h);
-        bw.write("\nFreq");
-        for(int h = 0; h < actual_num_haps; h++)
-            bw.write("\t" + hap2allfreqs[h]);
-        bw.write("\n");
-        for(int v = 0; v < actual_num_vars; v++){
-            bw.write("0;" + sim_var_pos[v] + ";" + sim_var_pos[v] + ";0:1");
-            for(int h = 0; h < actual_num_haps; h++)
-                bw.write("\t" + hap2varcomp[h][v]);
-            bw.write("\n");
-        } bw.close();
+                for(int v = 0; v < actual_num_vars; v++)
+                    var2infreqs[v][p] = (double) var2incts[v][p] / haps_per_pool;
 
-        bw = new BufferedWriter(new FileWriter(gs_dir + project_name + "_haps.intra_freq.txt"));
-        bw.write("Hap_ID");
-        for(int h = 0; h < actual_num_haps; h++)
-            bw.write("\t" + "h"+h);
-        bw.write("\n");
-        for(int p = 0; p < num_pools; p++){
-            bw.write(project_name + "_p"+p);
+        }else if(is_single_population==false) {
+        	if(this.num_pools!=pool2allhapList.size()) {
+        		System.out.println("Number of pools is not consistent with the SLiM output");
+        	}
+        	this.haps_per_pop_arr= new int[this.num_pools];
+        	for(int p=0;p<haps_per_pop_arr.length;p++) {
+        		int curr_num_hap=0;
+        		for(String h:pool2allhapList.get(p).keySet()) {
+        			curr_num_hap=curr_num_hap+pool2allhapList.get(p).get(h);
+        		}
+        		haps_per_pop_arr[p]=curr_num_hap;
+        	}
+        	// Generate hap2infreqs according to the pool2allhapList
+        	for(int h=0;h<actual_num_haps;h++) {
+        		String curr_hap = actual_hap_list.get(h);
+        		for(int p=0;p<num_pools;p++) {
+        			if(pool2allhapList.get(p).containsKey(curr_hap)) {
+        				double hap2poolfre = (double)pool2allhapList.get(p).get(curr_hap)/
+        						(double)haps_per_pop_arr[p];
+        				hap2infreqs[h][p]=hap2poolfre;
+        			}else {
+        				hap2infreqs[h][p]=0.0;
+        			}
+        		}
+        	}
+        	// Generate var2infreqs according to the pool2allhapList
+        	for(int p=0;p<num_pools;p++) {
+        		for(String h:pool2allhapList.get(p).keySet()) {
+        			for(int v=0;v<sim_var_pos.length;v++) {
+        				if(h.split("")[v].equals("1")) {
+        					var2incts[v][p]=var2incts[v][p]+pool2allhapList.get(p).get(h);
+        				}
+        			}
+        		}
+        	}
+        	for(int p=0;p<num_pools;p++) {
+        		for(int v=0;v<sim_var_pos.length;v++) {
+        			var2infreqs[v][p] = (double)var2incts[v][p]/(double)haps_per_pop_arr[p];
+        		}
+        	}
+        } // end of if
+        
+        	BufferedWriter bw_inter = new BufferedWriter(new FileWriter(gs_dir + project_name + 
+                "_haps.inter_freq_vars.txt"));
+        	bw_inter.write("Hap_ID");
             for(int h = 0; h < actual_num_haps; h++)
-                bw.write("\t" + hap2infreqs[h][p]);
-            bw.write("\n");
-        }
-        bw.close();
+            	bw_inter.write("\t" + "h"+h);
+            bw_inter.write("\nFreq");
+            for(int h = 0; h < actual_num_haps; h++)
+            	bw_inter.write("\t" + hap2allfreqs[h]);
+            bw_inter.write("\n");
+            for(int v = 0; v < actual_num_vars; v++){
+            	bw_inter.write("0;" + sim_var_pos[v] + ";" + sim_var_pos[v] + ";0:1");
+                for(int h = 0; h < actual_num_haps; h++)
+                	bw_inter.write("\t" + hap2varcomp[h][v]);
+                bw_inter.write("\n");
+            } bw_inter.close();
 
-        double[][] var2infreqs = new double[actual_num_vars][num_pools];
-        for(int p = 0; p < num_pools; p++)
-            for(int v = 0; v < actual_num_vars; v++)
-                var2infreqs[v][p] = (double) var2incts[v][p] / haps_per_pool;
-        if(is_perfect == true) {
-        	bw = new BufferedWriter(new FileWriter(inter_dir + project_name + "_vars.intra_freq.txt"));
-        }else {
-        	bw = new BufferedWriter(new FileWriter(gs_dir + project_name + "_vars.intra_freq.txt"));
-        }
-        bw.write("Pool_ID");
-        for (int p = 0; p < num_pools; p++)
-            bw.write("\t" + project_name + "_p" + p); 
-        bw.write("\n");
-        for (int v = 0; v < actual_num_vars; v++){
-            bw.write("0;" + sim_var_pos[v] + ";" + sim_var_pos[v] + ";0:1");
+            BufferedWriter bw = new BufferedWriter(new FileWriter(gs_dir + project_name + "_haps.intra_freq.txt"));
+            bw.write("Hap_ID");
+            for(int h = 0; h < actual_num_haps; h++)
+                bw.write("\t" + "h"+h);
+            bw.write("\n");
+            for(int p = 0; p < num_pools; p++){
+                bw.write(project_name + "_p"+p);
+                for(int h = 0; h < actual_num_haps; h++)
+                    bw.write("\t" + hap2infreqs[h][p]);
+                bw.write("\n");
+            }
+            bw.close();
+
+            if(is_perfect == true) {
+            	bw = new BufferedWriter(new FileWriter(inter_dir + project_name + "_vars.intra_freq.txt"));
+            }else {
+            	bw = new BufferedWriter(new FileWriter(gs_dir + project_name + "_vars.intra_freq.txt"));
+            }
+            bw.write("Pool_ID");
             for (int p = 0; p < num_pools; p++)
-                bw.write("\t" + var2infreqs[v][p]);
+                bw.write("\t" + project_name + "_p" + p); 
             bw.write("\n");
-        } bw.close();
+            for (int v = 0; v < actual_num_vars; v++){
+                bw.write("0;" + sim_var_pos[v] + ";" + sim_var_pos[v] + ";0:1");
+                for (int p = 0; p < num_pools; p++)
+                    bw.write("\t" + var2infreqs[v][p]);
+                bw.write("\n");
+            } bw.close();
 	}
 	
 
@@ -459,21 +517,9 @@ public class PoolSimulator_SLiM {
 	 * @throws InterruptedException
 	 */
         // 
-	public void generate_fastq()  throws IOException, InterruptedException {
+	public void generate_fastq(Boolean is_single_population)  throws IOException, InterruptedException {
         System.out.println("Step 3B: Make all of the patient FASTA files.");
         System.out.println("Concurrently, Step 4: Convert each patient's FASTQ file(s) to a VEF file. \n");
-//        BufferedReader br = new BufferedReader(new FileReader(ref_seq_file_path)); 
-//        ArrayList<String> refSequence = new ArrayList<String>();
-//        String currLine = br.readLine();
-//        while (currLine != null) {
-//            if (currLine.contains(">")) {
-//                currLine = br.readLine();
-//                continue; 
-//            }
-//            refSequence.add(currLine);
-//            currLine = br.readLine();
-//        }
-//        br.close();
 
         BufferedReader br = new BufferedReader(new FileReader(ref_seq_file_path));
         String[] refSequence = new String[ref_seq_len];
@@ -527,17 +573,35 @@ public class PoolSimulator_SLiM {
         // HashMap<Integer, ArrayList<Integer>> pool2hapcomp = new HashMap<Integer, ArrayList<Integer>>(); // pool id -> [hap_ids]
         System.out.println("\nStep 6) Simulate all of the pool FastA files, given the distribution"
             + " of haplotypes in step 3.\n");
-            
-        for (int p = 0; p < num_pools; p++) {
+        
+        if(is_single_population==true) {
+        	for (int p = 0; p < num_pools; p++) {
             PrintWriter pw = new PrintWriter(fasta_folder + project_name + "_p" + p + ".fa");
-            for (int h = 0; h < haps_per_pool; h++) {
-                int currHap = this.pool2hapcomp.get(p).get(h);
-                pw.append(">Haplotype_" + currHap + " \n");
-                for (String s : allSimHaps[currHap]) pw.append(s);
-                pw.append("\n\n");
-            }
+            	for (int h = 0; h < haps_per_pool; h++) {
+            		int currHap = this.pool2hapcomp.get(p).get(h);
+            		pw.append(">Haplotype_" + currHap + " \n");
+            		for (String s : allSimHaps[currHap]) pw.append(s);
+            		pw.append("\n\n");
+            	}
             pw.close();
+        	}
+        }else if(is_single_population==false) {
+        	for (int p = 0; p < num_pools; p++) {
+                PrintWriter pw = new PrintWriter(fasta_folder + project_name + "_p" + p + ".fa");
+                for(int h=0;h < actual_num_haps;h++) {
+                	String curr_hap = actual_hap_list.get(h);
+                	if(pool2allhapList.get(p).containsKey(curr_hap)) {
+                		for(int currhap_num=0;currhap_num<pool2allhapList.get(p).get(curr_hap);currhap_num++) {
+                    		pw.append(">Haplotype_" + h + " \n");
+                    		for (String s : allSimHaps[h]) pw.append(s);
+                    		pw.append("\n\n");
+                		}
+                	}
+                }
+                pw.close();
+        	}
         }
+        
         for (int p = 0; p < num_pools; p++) {
             ProcessBuilder CMDLine = new ProcessBuilder(dwgsimCMDLine,
                 fasta_folder + project_name + "_p" + p + ".fa", 

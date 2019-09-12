@@ -30,5 +30,20 @@ public class test {
 		System.out.println(pool);
 		System.out.println(pool.get(0).containsKey("1111"));
 		System.out.println(pool.get(0).get("1000"));
+//		System.out.println(pool.get(0).size());
+		
+		ArrayList<String> actualhaplist = new ArrayList<String>();
+		
+		for(int i=0;i<pool.size();i++) {
+			int num_hap=0;
+			for(String h:pool.get(i).keySet()) {
+				num_hap=num_hap+pool.get(i).get(h);
+				actualhaplist.add(h);
+			}
+			System.out.println(num_hap);
+		}
+		System.out.println(actualhaplist);
+		
+		
 	}
 }
