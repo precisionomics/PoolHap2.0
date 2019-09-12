@@ -59,8 +59,10 @@ public class PoolSimulator_SLiM {
     String fastq_folder;
     String fasta_folder;
     String vef_folder;
+    String slim_model;
+    String slim_output_path;
     String project_name;
-    
+    Boolean is_single_population;
     // executables
     String msCMDLine ; 
     String slimCMDLine ;
@@ -112,7 +114,10 @@ public class PoolSimulator_SLiM {
         this.fasta_folder=this.input_dir + "fasta/";
         this.fastq_folder=this.input_dir + "fastq/";
         this.vef_folder=this.inter_dir+"vef/";
+        this.slim_output_path=prop.getProperty("Slim_Output_Path")+"/";
+        this.slim_model=prop.getProperty("Slim_Model");
         this.project_name=prop.getProperty("Proj_Name");
+        this.is_single_population=Boolean.parseBoolean(prop.getProperty("Is_Single_Population"));
         this.dwgsimCMDLine = prop.getProperty("DWGSIM"); 
         this.num_pools = Integer.parseInt(prop.getProperty("Num_Pools"));
         this.ref_seq_len = Integer.parseInt(prop.getProperty("Ref_Seq_Len"));
@@ -142,9 +147,8 @@ public class PoolSimulator_SLiM {
 	 * @throws IOException
 	 */
 	public void processing_standard_outcome(Boolean is_single_population) throws IOException{
-		BufferedReader br = new BufferedReader(new FileReader(gs_dir + project_name + "_slim.txt")); 
+		BufferedReader br = new BufferedReader(new FileReader(gs_dir + project_name + "_"+slim_model+".out")); 
 		ArrayList<String> index2varpos = new ArrayList<String>();
-		
 		String currLine = br.readLine(); // header
 		String[] tmpcurrpos = currLine.split(" "); 
 		if(is_single_population==true) {
@@ -176,6 +180,8 @@ public class PoolSimulator_SLiM {
 			currLine = br.readLine();
 			tmpcurrpos = currLine.split(" ");
 		}
+		System.out.println(index2varpos);
+		ArrayList<Integer> var_pos_list = new ArrayList<Integer>();
 		this.num_var_pos=index2varpos.size();
 		this.sim_var_pos=new int[num_var_pos];
 		for(int p=0;p<index2varpos.size();p++) {
@@ -189,6 +195,10 @@ public class PoolSimulator_SLiM {
 			}
 		}
 		currLine = br.readLine();
+		for(int v=0;v<sim_var_pos.length;v++) {
+			System.out.println(sim_var_pos[v]);
+		}
+		System.out.println(sim_var_pos.length);
 		// pool2allhapList: haplotypes and their corresponding number within each pool
 		// hapsHS:all the haplotypes and their corresponding number cross all pools
 		// For single_population, the pool2allhapList and hapsHS will be the same,
@@ -229,6 +239,7 @@ public class PoolSimulator_SLiM {
 			currLine = br.readLine();
 		}
 		br.close();
+
 		this.all_pool_haps=num_hap;
 		this.actual_num_haps = hapsHS.size();
         this.hap2varcomp = new int[actual_num_haps][num_var_pos]; 
@@ -254,6 +265,8 @@ public class PoolSimulator_SLiM {
             hap2cts[hap] = hapsHS.get(h);
             hap++; 
         }
+		System.out.println(pool2allhapList);
+		System.out.println(hapsHS);
         this.actual_num_vars = SimpleMath.sum(true_var_pos); 
         this.var_burden_avg = var_burden_ct / (double) actual_num_haps; 
 	}
@@ -396,11 +409,12 @@ public class PoolSimulator_SLiM {
         this.hap2infreqs = new double[actual_num_haps][num_pools];
         int[][] var2incts = new int[actual_num_vars][num_pools];
     	double[][] var2infreqs = new double[actual_num_vars][num_pools];
+    	System.out.println(all_pool_haps);
         if(is_single_population==true) {
         	this.haps_per_pool = all_pool_haps/this.num_pools;
+        	System.out.println(haps_per_pool);
         	int[][] hap2incts = new int[actual_num_haps][num_pools];
             boolean[] poolFull = new boolean[num_pools]; 
-            
             for (int h = 0; h < actual_num_haps; h++) {
                 while (hap2cts[h] != 0) {
                     int currPool = ThreadLocalRandom.current().nextInt(0, num_pools);
@@ -419,10 +433,11 @@ public class PoolSimulator_SLiM {
             for(int p = 0; p < num_pools; p++)
                 for(int v = 0; v < actual_num_vars; v++)
                     var2infreqs[v][p] = (double) var2incts[v][p] / haps_per_pool;
+            System.out.println(var2infreqs);
 
         }else if(is_single_population==false) {
         	if(this.num_pools!=pool2allhapList.size()) {
-        		System.out.println("Number of pools is not consistent with the SLiM output");
+        		System.out.println("Number of pools in property file is not consistent with the SLiM output");
         	}
         	this.haps_per_pop_arr= new int[this.num_pools];
         	for(int p=0;p<haps_per_pop_arr.length;p++) {
@@ -431,8 +446,12 @@ public class PoolSimulator_SLiM {
         			curr_num_hap=curr_num_hap+pool2allhapList.get(p).get(h);
         		}
         		haps_per_pop_arr[p]=curr_num_hap;
+        		System.out.println(haps_per_pop_arr[p]);
         	}
+        	System.out.println(haps_per_pop_arr[0]);
         	// Generate hap2infreqs according to the pool2allhapList
+        	System.out.println(actual_hap_list);
+        	System.out.println(actual_hap_list.get(9));
         	for(int h=0;h<actual_num_haps;h++) {
         		String curr_hap = actual_hap_list.get(h);
         		for(int p=0;p<num_pools;p++) {
@@ -445,6 +464,7 @@ public class PoolSimulator_SLiM {
         			}
         		}
         	}
+        	System.out.println(hap2infreqs[9][0]);
         	// Generate var2infreqs according to the pool2allhapList
         	for(int p=0;p<num_pools;p++) {
         		for(String h:pool2allhapList.get(p).keySet()) {
@@ -602,27 +622,27 @@ public class PoolSimulator_SLiM {
         	}
         }
         
-        for (int p = 0; p < num_pools; p++) {
-            ProcessBuilder CMDLine = new ProcessBuilder(dwgsimCMDLine,
-                fasta_folder + project_name + "_p" + p + ".fa", 
-                fastq_folder + project_name + "_p" + p, 
-                "-e", Double.toString(error_rate),
-                "-E", Double.toString(error_rate), "-C", Integer.toString(coverage),
-                "-1", Integer.toString(read_len),
-                "-2", Integer.toString(read_len),
-                "-r", "0",
-                "-F", "0",
-                "-H",
-                "-d", Integer.toString(outer_dist),
-                "-o", "1",
-                "-s", "0",
-                "-y", "0");
-            
-            // System.out.println(String.join(" ", CMDLine.command()));  // TODO: LEFTOVER
-            Process CMDProcess = CMDLine.start();
-            CMDProcess.waitFor();
-            System.out.println("Finished simulating reads for pool " + p + ".");
-        }
+//        for (int p = 0; p < num_pools; p++) {
+//            ProcessBuilder CMDLine = new ProcessBuilder(dwgsimCMDLine,
+//                fasta_folder + project_name + "_p" + p + ".fa", 
+//                fastq_folder + project_name + "_p" + p, 
+//                "-e", Double.toString(error_rate),
+//                "-E", Double.toString(error_rate), "-C", Integer.toString(coverage),
+//                "-1", Integer.toString(read_len),
+//                "-2", Integer.toString(read_len),
+//                "-r", "0",
+//                "-F", "0",
+//                "-H",
+//                "-d", Integer.toString(outer_dist),
+//                "-o", "1",
+//                "-s", "0",
+//                "-y", "0");
+//            
+//            // System.out.println(String.join(" ", CMDLine.command()));  // TODO: LEFTOVER
+//            Process CMDProcess = CMDLine.start();
+//            CMDProcess.waitFor();
+//            System.out.println("Finished simulating reads for pool " + p + ".");
+//        }
     
 	}
 	
@@ -708,28 +728,27 @@ public class PoolSimulator_SLiM {
 	}
 	  
 	public static void main(String[] args) throws IOException, InterruptedException {
-		String parameter= args[0];
+		String parameter= "D:\\PhD-Studying\\Informatics\\Project\\HIV_project\\PoolHapX_testing\\SLiM\\input\\PoolSimulator.properties";//args[0];
 		InputStream is = new FileInputStream(parameter);
         Properties prop = new Properties();
         prop.load(is);
-//        Boolean is_perfect = Boolean.parseBoolean(prop.getProperty("Is_Perfect"));
-          Boolean is_single_population = true;
+        Boolean is_perfect = Boolean.parseBoolean(prop.getProperty("Is_Perfect"));
+        Boolean is_single_population = Boolean.parseBoolean(prop.getProperty("Is_Single_Population"));
         is.close();
-//        	    //1st step: Read the property file
+        //1st step: Read the property file
 		PoolSimulator_SLiM ps=new PoolSimulator_SLiM(parameter);
 		ps.processing_standard_outcome(is_single_population);
 //	    //2nd step: Simulate all pool haplotypes using ms, and write outcome
-//	   // ps.simulate_backwards_ms();
 //	    ps.processing_ms_outcome();
-//	    //3rd step: Report the properties of the simulated haplotypes
-//	    ps.ms_reports();
-//	    //4th step: Assign haplotypes to individuals
-//	    ps.assign_haps_to_pools();
-//	    //5th step: Generate FASTA and FASTQ files
-//	    ps.generate_fastq();
-//	    //6th step: Only if is_perfect=true, run the 6th step
-//	    if(is_perfect==true) {
-//	    	ps.generate_VEF();
-//	    }
+	    //3rd step: Report the properties of the simulated haplotypes
+	    ps.ms_reports();
+	    //4th step: Assign haplotypes to individuals
+	    ps.assign_haps_to_pools(is_single_population);
+	    //5th step: Generate FASTA and FASTQ files
+	    ps.generate_fastq(is_single_population);
+	    //6th step: Only if is_perfect=true, run the 6th step
+	    if(is_perfect==true) {
+	    	ps.generate_VEF();
+	    }
 	}
 }
