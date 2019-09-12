@@ -15,11 +15,6 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.netlib.util.doubleW;
-
-import shapeless.newtype;
-import spire.optional.intervalGeometricPartialOrder;
-
 /*
  * The properties_file looks like this:
  * 
@@ -221,7 +216,7 @@ public class PoolSimulator_SLiM {
 		int num_hap=0;
 		while(currLine!=null) {
 			tmpcurrpos = currLine.split(" ");
-			int curr_pool_index= Integer.parseInt(tmpcurrpos[0].split("")[1])-1;
+			int curr_pool_index= Integer.parseInt(tmpcurrpos[0].split(":")[0].split("p")[1])-1;
 			if(tmpcurrpos.length>2) {
 				num_hap++;
 				ArrayList<Integer> currvarpos = new ArrayList<Integer>();
@@ -636,26 +631,26 @@ public class PoolSimulator_SLiM {
         
         System.out.println("\nStep 3D: Simulate all of the pool FastQ files, given the distribution"
                 + " of haplotypes in step 3.\n");
-        for (int p = 0; p < num_pools; p++) {
-            ProcessBuilder CMDLine = new ProcessBuilder(dwgsimCMDLine,
-                fasta_folder + project_name + "_p" + p + ".fa", 
-                fastq_folder + project_name + "_p" + p, 
-                "-e", Double.toString(error_rate),
-                "-E", Double.toString(error_rate), "-C", Integer.toString(coverage),
-                "-1", Integer.toString(read_len),
-                "-2", Integer.toString(read_len),
-                "-r", "0",
-                "-F", "0",
-                "-H",
-                "-d", Integer.toString(outer_dist),
-                "-o", "1",
-                "-s", "0",
-                "-y", "0");
-            
-            Process CMDProcess = CMDLine.start();
-            CMDProcess.waitFor();
-            System.out.println("Finished simulating reads for pool " + p + ".");
-        }
+//        for (int p = 0; p < num_pools; p++) {
+//            ProcessBuilder CMDLine = new ProcessBuilder(dwgsimCMDLine,
+//                fasta_folder + project_name + "_p" + p + ".fa", 
+//                fastq_folder + project_name + "_p" + p, 
+//                "-e", Double.toString(error_rate),
+//                "-E", Double.toString(error_rate), "-C", Integer.toString(coverage),
+//                "-1", Integer.toString(read_len),
+//                "-2", Integer.toString(read_len),
+//                "-r", "0",
+//                "-F", "0",
+//                "-H",
+//                "-d", Integer.toString(outer_dist),
+//                "-o", "1",
+//                "-s", "0",
+//                "-y", "0");
+//            
+//            Process CMDProcess = CMDLine.start();
+//            CMDProcess.waitFor();
+//            System.out.println("Finished simulating reads for pool " + p + ".");
+//        }
     
 	}
 	
@@ -742,7 +737,7 @@ public class PoolSimulator_SLiM {
 	}
 	  
 	public static void main(String[] args) throws IOException, InterruptedException {
-		String parameter= "D:\\PhD-Studying\\Informatics\\Project\\HIV_project\\PoolHapX_testing\\SLiM\\input\\PoolSimulator.properties";//args[0];
+		String parameter= args[0];//"D:\\PhD-Studying\\Informatics\\Project\\HIV_project\\PoolHapX_testing\\SLiM\\input\\PoolSimulator.properties";//
 		InputStream is = new FileInputStream(parameter);
         Properties prop = new Properties();
         prop.load(is);
