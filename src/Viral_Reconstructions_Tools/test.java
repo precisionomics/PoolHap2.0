@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import shapeless.newtype;
+import spire.optional.intervalGeometricPartialOrder;
 
 public class test {
 
@@ -43,7 +44,27 @@ public class test {
 			System.out.println(num_hap);
 		}
 		System.out.println(actualhaplist);
-		
-		
+		int[] array = {15,7,10,5,2,9,22};
+		int[] array2 = {1,2,3,4,5,6,7};
+		for(int i = 0; i < array.length - 1;i++) {
+			for(int j = 0; j < array.length - 1 - i; j++) {
+				if(array[j] > array[j+1]) {
+					int temp = array[j];
+					array[j] = array[j+1];
+					array[j+1] = temp;
+					int temp2 = array2[j];
+					array2[j] = array2[j+1];
+					array2[j+1] = temp2;
+				}
+			}
+		}
+		for(int i=0;i<array.length;i++) {
+			System.out.println(array[i]);
+
+		}
+		for(int i=0;i<array.length;i++) {
+			System.out.println(array2[i]);
+
+		}
 	}
 }

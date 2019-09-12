@@ -23,33 +23,32 @@ import spire.optional.intervalGeometricPartialOrder;
 /*
  * The properties_file looks like this:
  * 
-FullSimulator2 Parameters
+# PoolSimulator_SLiM Parameters
 ##########
 # General: Commands and file locations
-Input_Dir = /export/home/jhe/project/Viral_reconstruction/PoolHapX_test/25_pools/PHX_perfect_10
-Intermediate Dir =
-Gold-Standard_Dir =
+Input_Dir = D:\\PhD-Studying\\Informatics\\Project\\HIV_project\\PoolHapX_testing\\SLiM\\input
+##fasta_Dir = /export/home/jhe/project/Viral_reconstruction/PoolHapX_test/PHX_perfect_20/input/fasta
+Intermediate_Dir = D:\\PhD-Studying\\Informatics\\Project\\HIV_project\\PoolHapX_testing\\SLiM\\intermediate
+Gold-Standard_Dir = D:\\PhD-Studying\\Informatics\\Project\\HIV_project\\PoolHapX_testing\\SLiM\\gold_standard
+Slim_Output_Path = D:\\PhD-Studying\\Informatics\\Project\\HIV_project\\PoolHapX_testing\\SLiM\\input
+Slim_Model = island_haploid
 Proj_Name = 0_1
-slim = 
-ms = /export/home/jhe/download/msdir/ms
-DWGSIM = /export/home/jhe/download/DWGSIM-master/dwgsim
+Is_Single_Population = false
+Is_Ms_Output = false
+DWGSIM = /gpfs/home/lmak/programs/DWGSIM-master/dwgsim
 ##########
-# SLiM: Pass the SLiM output
-Num_Pools = 25
+Num_Pools = 9
 Ref_Seq_Len = 9719
 ##########
-# dwgsim: Simulating a variety of next- and third-generation sequencing reads from input genetic sequences.
-Reference_Seq = /export/home/jhe/project/Viral_reconstruction/PoolHapX_test/50_pools/PHX_perfect_10/input/HIV_HXB2.fa
-Is_Perfect = true
-## non_perfect:0.001, perfect:0
+Reference_Seq = D:\\PhD-Studying\\Informatics\\Project\\HIV_project\\PoolHapX_testing\\SLiM\\input\\HIV_HXB2.fa
+Is_Perfect = false
 Error_Rate_Per_Base = 0.0 
 Coverage = 100
-Read_Len = 150
+Read_Len = 100
 Outer_Dist = 400
-##########            
+##########   
  */
 
-// For generating VEFs directly.
 public class PoolSimulator_SLiM {
 	
     String input_dir;
@@ -139,7 +138,7 @@ public class PoolSimulator_SLiM {
 	}
 	
 	/**
-	 * // Step 1A: Processing slim outcome
+	 * // Step 1A: Processing slim standard outcome
 	 * Figure out:
 	 * i) the number of types of haplotypes and 
 	 * ii) the non-degenerate variant positions.
@@ -147,6 +146,8 @@ public class PoolSimulator_SLiM {
 	 * @throws IOException
 	 */
 	public void processing_standard_outcome(Boolean is_single_population) throws IOException{
+		System.out.println("Step 1A: Figure out i) the number of types of haplotypes and ii) "
+				    + "the non-degenerate variant positions.\n");
 		BufferedReader br = new BufferedReader(new FileReader(gs_dir + project_name + "_"+slim_model+".out")); 
 		ArrayList<String> index2varpos = new ArrayList<String>();
 		String currLine = br.readLine(); // header
@@ -180,14 +181,30 @@ public class PoolSimulator_SLiM {
 			currLine = br.readLine();
 			tmpcurrpos = currLine.split(" ");
 		}
-		System.out.println(index2varpos);
-		ArrayList<Integer> var_pos_list = new ArrayList<Integer>();
+		System.out.println("Index to variants positions: "+ index2varpos);
 		this.num_var_pos=index2varpos.size();
 		this.sim_var_pos=new int[num_var_pos];
-		for(int p=0;p<index2varpos.size();p++) {
+		int[] sim_var_index=new int[num_var_pos];
+		for(int p=0;p<num_var_pos;p++) {
 			String[] index2varposarray = index2varpos.get(p).split("_");
-			sim_var_pos[Integer.parseInt(index2varposarray[0])]=Integer.parseInt(index2varposarray[1]);
+			sim_var_index[p]=Integer.parseInt(index2varposarray[0]);
+			sim_var_pos[p]=Integer.parseInt(index2varposarray[1]);
+
 		}
+		// sort both sim_var_index[] and sim_var_pos[] at the same time according to the sim_var_pos[]
+		for(int i = 0; i < sim_var_pos.length - 1;i++) {
+			for(int j = 0; j < sim_var_pos.length - 1 - i; j++) {
+				if(sim_var_pos[j] >sim_var_pos[j+1]) {
+					int temp_pos = sim_var_pos[j];
+					sim_var_pos[j] = sim_var_pos[j+1];
+					sim_var_pos[j+1] = temp_pos;
+					int temp_index = sim_var_index[j];
+					sim_var_index[j] = sim_var_index[j+1];
+					sim_var_index[j+1] = temp_index;
+				}
+			}
+		}
+
 		if(!tmpcurrpos[0].equals("Genomes:")) {
 			while(!tmpcurrpos[0].equals("Genomes:")) {
 				 currLine = br.readLine();
@@ -195,10 +212,6 @@ public class PoolSimulator_SLiM {
 			}
 		}
 		currLine = br.readLine();
-		for(int v=0;v<sim_var_pos.length;v++) {
-			System.out.println(sim_var_pos[v]);
-		}
-		System.out.println(sim_var_pos.length);
 		// pool2allhapList: haplotypes and their corresponding number within each pool
 		// hapsHS:all the haplotypes and their corresponding number cross all pools
 		// For single_population, the pool2allhapList and hapsHS will be the same,
@@ -217,7 +230,8 @@ public class PoolSimulator_SLiM {
 					currvarpos.add(Integer.parseInt(tmpcurrpos[p]));
 				}
 				for(int p=0;p<num_var_pos;p++) {
-					if(currvarpos.contains(p)) {
+					int curr_var_index=sim_var_index[p];
+					if(currvarpos.contains(curr_var_index)) {
 						curr_hap=curr_hap+1;
 					}else {
 						curr_hap=curr_hap+0;
@@ -265,12 +279,14 @@ public class PoolSimulator_SLiM {
             hap2cts[hap] = hapsHS.get(h);
             hap++; 
         }
-		System.out.println(pool2allhapList);
-		System.out.println(hapsHS);
+		System.out.println("Haplotypes per pools list: " + pool2allhapList);
         this.actual_num_vars = SimpleMath.sum(true_var_pos); 
         this.var_burden_avg = var_burden_ct / (double) actual_num_haps; 
 	}
 	
+	/**
+	 * Step 1A: Processing slim msoutcome
+	 */
 	public void processing_ms_outcome() throws IOException{
 	  System.out.println("Step 1A: Figure out i) the number of types of haplotypes and ii) "
 		    + "the non-degenerate variant positions.\n");
@@ -339,12 +355,12 @@ public class PoolSimulator_SLiM {
 
 	
 	/**
-	 * Step 2A: Report properties of the simulated haplotypes to the user 
+	 * Step 1B: Report properties of the simulated haplotypes to the user 
 	 * to check if they're acceptable.
 	 * @param prefix
 	 */
 	public void ms_reports() throws IOException {
-        System.out.println("Step 2A: Report properties of the simulated haplotypes to the user "
+        System.out.println("Step 1B: Report properties of the simulated haplotypes to the user "
             + "to check if they're acceptable.");
         
         int[] pwDifference = new int[actual_num_haps * (actual_num_haps - 1) / 2];
@@ -383,7 +399,12 @@ public class PoolSimulator_SLiM {
         System.out.println("The minimum all-pool count is " + sortedCts[0] 
             + " and the maximum is " + sortedCts[sortedCts.length - 1] + "."); 
         PrintWriter pw = new PrintWriter(new FileWriter(gs_dir 
-            + "PD.simulation_summary.txt", true));   // gs_dir/c.simulation_summary.txt
+            + "PD.simulation_summary.txt", false));   // gs_dir/c.simulation_summary.txt
+        pw.append("Project_Name"+"\t"+"Total_Hap_Count"+"\t"+"Num_Var_Pos"+"\t"
+            +"Ave_Mutation_Burden_Per_Hap"+"\t"+"Ave_Pairwise_Diff"+"\t"+"Std"
+        		+"\t"+"Min_Pairwise_Diff"+"\t"+"Max_Pairwise_Diff"+"\t"
+            +"Ave_Count_Per_Hap"+"\t"+"Std_Per_Hap"+"\t"+"Min_Count_Per_Hap"
+        		+"\t"+"Max_Count_Per_Hap"+"\n");
         pw.append(project_name + "\t" + actual_num_haps + "\t" + actual_num_vars 
             + "\t" + var_burden_avg + "\t" + meanPWDiff + "\t" + stdPWDiff + "\t" 
             + pwDifference[0] + "\t" + pwDifference[pwDifference.length - 1] + "\t" + meanCts  
@@ -396,23 +417,21 @@ public class PoolSimulator_SLiM {
 	}
             
     /**
-     * Step 3A: Assign each haplotype individual to a patient, 
+     * Step 2: Assign each haplotype individual to a patient, 
      * and write all of the gold standard files for PoolHapX.
      * @param prefix
      * @throws IOException
      * @throws InterruptedException
      */
 	public void assign_haps_to_pools(Boolean is_single_population) throws IOException {                          
-        System.out.println("\nStep 3A: Assign each haplotype individual to a patient, "
+        System.out.println("\nStep 2: Assign each haplotype individual to a patient, "
             + "and write all of the gold standard files.\n");
         
         this.hap2infreqs = new double[actual_num_haps][num_pools];
         int[][] var2incts = new int[actual_num_vars][num_pools];
     	double[][] var2infreqs = new double[actual_num_vars][num_pools];
-    	System.out.println(all_pool_haps);
         if(is_single_population==true) {
         	this.haps_per_pool = all_pool_haps/this.num_pools;
-        	System.out.println(haps_per_pool);
         	int[][] hap2incts = new int[actual_num_haps][num_pools];
             boolean[] poolFull = new boolean[num_pools]; 
             for (int h = 0; h < actual_num_haps; h++) {
@@ -433,7 +452,6 @@ public class PoolSimulator_SLiM {
             for(int p = 0; p < num_pools; p++)
                 for(int v = 0; v < actual_num_vars; v++)
                     var2infreqs[v][p] = (double) var2incts[v][p] / haps_per_pool;
-            System.out.println(var2infreqs);
 
         }else if(is_single_population==false) {
         	if(this.num_pools!=pool2allhapList.size()) {
@@ -446,12 +464,8 @@ public class PoolSimulator_SLiM {
         			curr_num_hap=curr_num_hap+pool2allhapList.get(p).get(h);
         		}
         		haps_per_pop_arr[p]=curr_num_hap;
-        		System.out.println(haps_per_pop_arr[p]);
         	}
-        	System.out.println(haps_per_pop_arr[0]);
         	// Generate hap2infreqs according to the pool2allhapList
-        	System.out.println(actual_hap_list);
-        	System.out.println(actual_hap_list.get(9));
         	for(int h=0;h<actual_num_haps;h++) {
         		String curr_hap = actual_hap_list.get(h);
         		for(int p=0;p<num_pools;p++) {
@@ -464,7 +478,6 @@ public class PoolSimulator_SLiM {
         			}
         		}
         	}
-        	System.out.println(hap2infreqs[9][0]);
         	// Generate var2infreqs according to the pool2allhapList
         	for(int p=0;p<num_pools;p++) {
         		for(String h:pool2allhapList.get(p).keySet()) {
@@ -530,17 +543,15 @@ public class PoolSimulator_SLiM {
 	
 
 	/**
-	 * Step 3B: Make all of the patient FASTA files, and simulate reads for them. 
-     * Step 4A: Generate FASTQ files  
+	 * Step 3: Make all of the patient FASTA files, and simulate reads for them.Generate FASTQ files  
      * 
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
         // 
 	public void generate_fastq(Boolean is_single_population)  throws IOException, InterruptedException {
-        System.out.println("Step 3B: Make all of the patient FASTA files.");
-        System.out.println("Concurrently, Step 4: Convert each patient's FASTQ file(s) to a VEF file. \n");
-
+        System.out.println("Step 3: Make all of the patient FASTA files.");
+        
         BufferedReader br = new BufferedReader(new FileReader(ref_seq_file_path));
         String[] refSequence = new String[ref_seq_len];
         String currLine = br.readLine();
@@ -559,8 +570,9 @@ public class PoolSimulator_SLiM {
         br.close();
         // Step 5a) Simulate single nucleotide polymorphisms on the reference sequence.
         System.out.println(
-            "\nStep 5a) Simulate single nucleotide polymorphisms on the reference sequence.\n");
+            "\nStep 3A Simulate single nucleotide polymorphisms on the reference sequence.\n");
         BufferedWriter bw = new BufferedWriter(new FileWriter(gs_dir + project_name + "_mutations.txt"));
+        bw.append("Variants"+"\t"+"Positions"+"\t"+"Ref_Allele"+"\t"+"Alt_Allele"+"\n");
         String[] allAltAlleles = new String[actual_num_vars];
         for (int v = 0; v < actual_num_vars; v++) {
             allAltAlleles[v] = simVariant(refSequence[sim_var_pos[v] - 1]);
@@ -571,7 +583,7 @@ public class PoolSimulator_SLiM {
         
      // Step 5b) Add simulated mutations to finish the full-length simulated haplotypes.
         System.out.println(
-            "\nStep 5b) Add simulated mutations to finish the full-length simulated haplotypes.\n");
+            "\nStep 3B Add simulated mutations to finish the full-length simulated haplotypes.\n");
 
         String[][] allSimHaps = new String[actual_num_haps][ref_seq_len];
         for (int h = 0; h < actual_num_haps; h++) {
@@ -589,9 +601,9 @@ public class PoolSimulator_SLiM {
             }
         }
         
-        // Step 6) Simulate all of the pool FastA and FastQ files, given the distribution of haplotypes in step 3.
+        // Simulate all of the pool FastA and FastQ files, given the distribution of haplotypes in step 3.
         // HashMap<Integer, ArrayList<Integer>> pool2hapcomp = new HashMap<Integer, ArrayList<Integer>>(); // pool id -> [hap_ids]
-        System.out.println("\nStep 6) Simulate all of the pool FastA files, given the distribution"
+        System.out.println("\nStep 3C: Simulate all of the pool FastA files, given the distribution"
             + " of haplotypes in step 3.\n");
         
         if(is_single_population==true) {
@@ -622,37 +634,39 @@ public class PoolSimulator_SLiM {
         	}
         }
         
-//        for (int p = 0; p < num_pools; p++) {
-//            ProcessBuilder CMDLine = new ProcessBuilder(dwgsimCMDLine,
-//                fasta_folder + project_name + "_p" + p + ".fa", 
-//                fastq_folder + project_name + "_p" + p, 
-//                "-e", Double.toString(error_rate),
-//                "-E", Double.toString(error_rate), "-C", Integer.toString(coverage),
-//                "-1", Integer.toString(read_len),
-//                "-2", Integer.toString(read_len),
-//                "-r", "0",
-//                "-F", "0",
-//                "-H",
-//                "-d", Integer.toString(outer_dist),
-//                "-o", "1",
-//                "-s", "0",
-//                "-y", "0");
-//            
-//            // System.out.println(String.join(" ", CMDLine.command()));  // TODO: LEFTOVER
-//            Process CMDProcess = CMDLine.start();
-//            CMDProcess.waitFor();
-//            System.out.println("Finished simulating reads for pool " + p + ".");
-//        }
+        System.out.println("\nStep 3D: Simulate all of the pool FastQ files, given the distribution"
+                + " of haplotypes in step 3.\n");
+        for (int p = 0; p < num_pools; p++) {
+            ProcessBuilder CMDLine = new ProcessBuilder(dwgsimCMDLine,
+                fasta_folder + project_name + "_p" + p + ".fa", 
+                fastq_folder + project_name + "_p" + p, 
+                "-e", Double.toString(error_rate),
+                "-E", Double.toString(error_rate), "-C", Integer.toString(coverage),
+                "-1", Integer.toString(read_len),
+                "-2", Integer.toString(read_len),
+                "-r", "0",
+                "-F", "0",
+                "-H",
+                "-d", Integer.toString(outer_dist),
+                "-o", "1",
+                "-s", "0",
+                "-y", "0");
+            
+            Process CMDProcess = CMDLine.start();
+            CMDProcess.waitFor();
+            System.out.println("Finished simulating reads for pool " + p + ".");
+        }
     
 	}
 	
 	/**
-	 * Step 4B: Convert each patient's FASTQ file(s) to a VEF file. 
+	 * Step 4: Convert each patient's FASTQ file(s) to a VEF file. 
 	 * @param 
 	 * @return
 	 */
 	
 	public void generate_VEF() throws IOException, InterruptedException {
+        System.out.println("Concurrently, Step 4: Convert each patient's FASTQ file(s) to a VEF file. \n");
 	    int startOne = 0, startTwo = 0, endOne = 0, endTwo = 0; 
 	    for(int p=0;p<num_pools;p++) {
 	        ProcessBuilder CMDLine = new ProcessBuilder("gunzip", fastq_folder + project_name 
@@ -734,15 +748,19 @@ public class PoolSimulator_SLiM {
         prop.load(is);
         Boolean is_perfect = Boolean.parseBoolean(prop.getProperty("Is_Perfect"));
         Boolean is_single_population = Boolean.parseBoolean(prop.getProperty("Is_Single_Population"));
+        Boolean is_ms_output = Boolean.parseBoolean("Is_Ms_Output");
         is.close();
-        //1st step: Read the property file
+        //1st: Read the property file
 		PoolSimulator_SLiM ps=new PoolSimulator_SLiM(parameter);
-		ps.processing_standard_outcome(is_single_population);
-//	    //2nd step: Simulate all pool haplotypes using ms, and write outcome
-//	    ps.processing_ms_outcome();
-	    //3rd step: Report the properties of the simulated haplotypes
-	    ps.ms_reports();
-	    //4th step: Assign haplotypes to individuals
+		//2nd:Processing SLiM output
+		if(is_ms_output==false) {
+			ps.processing_standard_outcome(is_single_population);
+		}else {
+			ps.processing_ms_outcome();
+		}
+		//3rd: Report the properties of the simulated haplotypes
+		ps.ms_reports();
+	    //4th: Assign haplotypes to individuals
 	    ps.assign_haps_to_pools(is_single_population);
 	    //5th step: Generate FASTA and FASTQ files
 	    ps.generate_fastq(is_single_population);
