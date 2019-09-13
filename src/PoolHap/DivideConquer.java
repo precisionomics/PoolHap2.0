@@ -1179,7 +1179,7 @@ public class DivideConquer {
             		count++;
             	}
             }
-            
+            double power2_min= 0.0001; 
             int fix_count= count;
             String[][] global_haps_string = new String[count][num_site_regional];
             String[] hap_IDs = new String[count];
@@ -1194,7 +1194,7 @@ public class DivideConquer {
 	           		hap_IDs[count]= hap_IDs_tmp[i];
 	           		global_haps_freq[count]= global_haps_freq_tmp[i]/ total_freq;
 	           		if (Is2Power(i, num_site_regional)) {
-	           			global_haps_freq[count]= (global_haps_freq_tmp[i]+0.0001)/ total_freq;
+	           			global_haps_freq[count]= (global_haps_freq_tmp[i]+power2_min )/ total_freq;
 	           		}
 //            		}else  {
 //            			for (int j=0; j < global_haps_string[count].length;j++) {

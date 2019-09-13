@@ -153,7 +153,8 @@ public class Entrance {
         /*
          * Input arguments.
          */
-    	String[] supported_functions_array = {"format", "gc", "aem", "lasso", "split", "gcaem"};
+    	String[] supported_functions_array = {"format", "gc", "aem", "lasso", 
+    			"split", "gcaem" ,"clustering"};
     	HashSet<String> supported_functions = new HashSet<String>();
         for (int k = 0; k < supported_functions_array.length; k++) {
              supported_functions.add(supported_functions_array[k]);
@@ -298,24 +299,29 @@ public class Entrance {
              * Final intra pool haplotype configuration via LASSO selection. TODO: [Question]:: are
              * these global intra pool haplotypes?
              */
-            new File(gp.inter_dir + "/lasso/").mkdir();
-            Entrance.get_filepaths(name_file, gp.inter_dir + "/gcf/", "gcf", false);
-            HapConfig final_global_haps =
-                new HapConfig(gp.out_dir + gp.project_name + "_gc.inter_freq_haps.txt", null);
-
-            SiteInPoolFreqAnno siteInPoolFreqAnno = new SiteInPoolFreqAnno(gs_var_pos);
-            final_global_haps.inpool_site_freqs = siteInPoolFreqAnno.inpool_freqs;
-            final_global_haps.num_pools = Entrance.num_pools;
-            final_global_haps.pool_IDs = siteInPoolFreqAnno.pool_IDs;
-            final_global_haps.in_pool_haps_freq =
-                new double[final_global_haps.num_global_hap][final_global_haps.num_pools];
-
-            HapConfig[] final_inpool_haps = new HapConfig[num_pools]; // final intra pool HapConfigs
-
-            // Apply LASSO for each pool from final global haplotypes to estimate frequencies of
-            // each
-            // in each pool.
-            // String prefix=null;
+	            new File(gp.inter_dir + "/lasso/").mkdir();
+	            Entrance.get_filepaths(name_file, gp.inter_dir + "/gcf/", "gcf", false);
+	            
+	            HapConfig final_global_haps =
+	                new HapConfig(gp.out_dir + gp.project_name + "_gc.inter_freq_haps.txt", null);
+	            
+	
+	            SiteInPoolFreqAnno siteInPoolFreqAnno = new SiteInPoolFreqAnno(gs_var_pos);
+	            
+	            final_global_haps.inpool_site_freqs = siteInPoolFreqAnno.inpool_freqs;
+	            final_global_haps.num_pools = Entrance.num_pools;
+	            final_global_haps.pool_IDs = siteInPoolFreqAnno.pool_IDs;
+	            final_global_haps.in_pool_haps_freq =
+	                new double[final_global_haps.num_global_hap][final_global_haps.num_pools];
+	
+	            HapConfig[] final_inpool_haps = new HapConfig[num_pools]; // final intra pool HapConfigs
+	            
+	
+	            // Apply LASSO for each pool from final global haplotypes to estimate frequencies of
+	            // each
+	            // in each pool.
+	            // String prefix=null;
+        	
             for (int pool_index = 0; pool_index < num_pools; pool_index++) {
                 HapLASSO inpool_lasso = new HapLASSO(pool_index,
                     Entrance.names_array[pool_index],
@@ -355,21 +361,25 @@ public class Entrance {
         	eva.LassoEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
  			"/home/chencao/Desktop/sim001/output/sim001.inter_freq_haps.txt");
         	
-        } else if (function.equals("split")) { //split the vef file into several files (N variants one file)
-            String[] vef_files =
-                Entrance.get_filepaths(name_file, gp.inter_dir + "vef", "vef", false);     
-            	new File(gp.inter_dir + "/split_vef/").mkdir();
-                FileSplit split_file = new FileSplit (vef_files,gs_var_pos,  gp.num_pos_job );        
-            System.out
-                .println("\nFile Split Finished.\n");
-            
+        }else if (function.equals("clustering")) {
+            /*
+             * Chen: cluster the potential haplotypes using  hierarchical clustering
+             * 
+             */
+	           	HapConfig clustering_global_haps =
+	                new HapConfig(gp.out_dir + gp.project_name + "_gc.inter_freq_haps.txt", null);
+	           	HierarchicalClustering hc= new HierarchicalClustering(clustering_global_haps.hap_IDs, 
+	           			clustering_global_haps.global_haps_string, clustering_global_haps.hapID2index, 
+	           			gp.out_dir + gp.project_name + "_hc.haps.txt", 0.94);
+	           	
         
-        //Using Exhaustive search to find all possible regional haplotypes based on the vef file
+       
         }else if (function.equals("gcaem")) {
-        	eva.GcAemEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
-        			"/home/chencao/Desktop/sim001/output/sim001_gc.inter_freq_haps.txt");
         	
-        	System.exit(0);
+//        	eva.GcAemEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+//        			"/home/chencao/Desktop/sim001/output/sim001_gc.inter_freq_haps.txt");
+//        	
+//        	System.exit(0);
         	
             String dc_out_file = gp.inter_dir + gp.project_name + "_dc_plan.txt"; // dc output
             
@@ -446,11 +456,8 @@ public class Entrance {
             dc_maker.level_IV_config= level_IV_config;
             System.out.println("Level 4 AEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
             
-
                 
 //                String gold_hap_file = gp.inter_dir + gp.project_name + "_dc_plan.txt";
-                
-                
                 
             eva.AemEvaluate(gp.project_name, dc_out_file, 
                "/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
@@ -468,11 +475,6 @@ public class Entrance {
                     		gs_var_pos, dc_maker.regions_level_III,
                     		dc_maker.regions_level_IV);
             
-          
-       
-                
-
-
 
                 // Link regions by applying Breadth-First-Search across the level 1 and level 2 regional
                 // haplotype configurations (Pruning strategy, Chen).
@@ -504,6 +506,8 @@ public class Entrance {
                 final_global_haps.recode_HapIDs_to_base16();
                 final_global_haps.write_global_file_string( // write to output
                     gp.out_dir + gp.project_name + "_gc.inter_freq_haps.txt");
+                eva.GcAemEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+            			"/home/chencao/Desktop/sim001/output/sim001_gc.inter_freq_haps.txt");
             
             System.out
                 .println("\nGCAEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");

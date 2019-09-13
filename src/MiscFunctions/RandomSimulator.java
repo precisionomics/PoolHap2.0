@@ -42,6 +42,7 @@ public class RandomSimulator {
 			return 0;
 		}
 	}
+	
 	public void GenomeSimulator() throws IOException {
 		this.sim_genome = new int [this.num_total_haps][this.num_vars];
 		
@@ -196,6 +197,7 @@ public class RandomSimulator {
 		for (int i = 0; i < this.num_pools; i++) { 
 			String file_path= this.folder_path+"/"+ this.project_name+"/"+
 					"intermediate/vef/"+ this.project_name+ "_p"+Integer.toString(i)+".vef" ;
+			
 			FileWriter mydata = new FileWriter(file_path,false);
 			PrintWriter pw = new PrintWriter(mydata); 
 			String pw_line ="";
@@ -298,6 +300,162 @@ public class RandomSimulator {
         pw.close();
 	}
 	
+	public void LassoSimulator() throws IOException {
+//		ArrayList<String >  random_haps = new ArrayList<String>();
+//		HashSet<Integer> haps_set = new HashSet<Integer>();
+		int[][] random_genome = new int [this.num_total_haps* (this.num_vars-1)]
+				[this.num_vars];
+		int index =0;
+		for (int i = 0; i < this.num_total_haps; i++) { 
+			int [] tmp_genome2 = new int [this.num_vars];
+			for (int k=0;k<this.sim_genome[i].length;k++ ) {
+				tmp_genome2[k]= this.sim_genome[i][k];
+			}
+			for (int k=0;k<tmp_genome2.length;k++ ) {
+				random_genome[index][k] = tmp_genome2[k];
+			}
+			index ++;
+			for (int j = 0; j < (this.num_vars-2); j++) {
+				int [] tmp_genome = new int [this.num_vars];
+				for (int k=0;k<this.sim_genome[i].length;k++ ) {
+					tmp_genome[k]= this.sim_genome[i][k];
+				}
+				tmp_genome[j] =this.mut(this.sim_genome[i][j]); 
+				tmp_genome[j+1] =this.mut(this.sim_genome[i][j+1]); 
+				tmp_genome[j+2] =this.mut(this.sim_genome[i][j+1]); 
+				
+//				for (int k=0;k<this.sim_genome[i].length;k++ ) {
+//					Random random = new Random(); 
+//					int genotype  = random.nextInt(2);
+//					tmp_genome[k]= genotype;
+//				}
+				for (int k=0;k<tmp_genome.length;k++ ) {
+					random_genome[index][k] = tmp_genome[k];
+				}
+				index ++;
+			}
+		}
+		
+		
+		String file_path2= this.folder_path+"/"+ this.project_name+"/"+
+				"output/"+ this.project_name+ "_randome_genomes.txt" ;
+		FileWriter mydata2 = new FileWriter(file_path2,false);
+		PrintWriter pw2 = new PrintWriter(mydata2); 
+		String pw2_line ="";
+		for (int i = 0; i < random_genome.length; i++) { 
+			pw2_line="";
+			for (int j = 0; j < random_genome[i].length; j++) { 
+				pw2_line=pw2_line +random_genome[i][j];  
+			}
+			pw2.write(pw2_line+"\n");
+		}
+		
+		
+		pw2.flush();
+        pw2.close();
+        
+		
+		new File(this.folder_path + "/"+this.project_name + "/intermediate/lasso/").mkdir();
+		for (int i = 0; i < this.num_pools; i++) { 
+//		for (int i = 4; i < 5; i++) { 
+			String file_path= this.folder_path+"/"+ this.project_name+"/"+
+					"intermediate/lasso/"+ this.project_name+ "_p"+Integer.toString(i)+".lasso_in" ;
+			FileWriter mydata = new FileWriter(file_path,false);
+			PrintWriter pw = new PrintWriter(mydata); 
+			String pw_line ="1.0";
+			for (int j = 0; j < random_genome.length; j++) { 
+				pw_line=pw_line +" "+ Integer.toString(j+1)+":1.0";
+			}
+			pw.write( pw_line + "\n");  
+			pw_line="";
+			
+			
+			
+//			for (int j = 0; j < this.num_vars; j++) { 
+//				System.out.print(this.sim_genome[0][j]); 
+//			}
+//			System.out.println();
+			for (int j = 0; j < this.num_vars; j++) { 
+				double freq =0;
+				for (int k=0; k< this.hap_freq_inpool[i].length; k++ ) {
+					if (this.hap_freq_inpool[i][k]> 0.001) {
+						freq+= this.hap_freq_inpool[i][k]* this.sim_genome[k][j];
+					}
+				}
+				pw_line= Double.toString(freq);
+				for (int k=0; k< random_genome.length; k++ ) {
+					if (random_genome[k][j]==1) {
+						pw_line=pw_line+" "+ Integer.toString(k+1)+":1.0";
+					}else {
+						pw_line=pw_line+" "+ Integer.toString(k+1)+":0.0";
+					}
+				}
+				pw.write( pw_line + "\n"); 
+			}
+			
+			
+			for (int j = 0; j < (this.num_vars-1 ); j++) { 
+				for (int k = j+1; k < this.num_vars; k++) { 
+					double freq =0; 
+					for (int h=0; h< this.hap_freq_inpool[i].length; h++ ) {
+						if (this.hap_freq_inpool[i][h]> 0.001) {
+							freq+= this.hap_freq_inpool[i][h]* this.sim_genome[h][j]
+									*this.sim_genome[h][k] ;
+						}
+					}
+					if (freq >-0.0001) {
+						pw_line= Integer.toString(j)+"\t"+ Integer.toString(k)+"\t"+
+								Double.toString(freq);
+						pw_line= Double.toString(freq);
+						for (int g=0; g< random_genome.length; g++ ) {
+							if( (random_genome[g][j]==1) &&  (random_genome[g][k]==1) ){
+								pw_line=pw_line+" "+ Integer.toString(g+1)+":1.0";
+							}else {
+								pw_line=pw_line+" "+ Integer.toString(g+1)+":0.0";
+							}
+						}
+						pw.write( pw_line + "\n"); 
+					}
+				}
+			}
+			
+			pw.flush();
+	        pw.close();
+			
+		}
+		String file_path= this.folder_path+"/"+ this.project_name+"/"+
+				"output/"+ this.project_name+ "_gc.inter_freq_haps.txt" ;
+		FileWriter mydata = new FileWriter(file_path,false);
+		PrintWriter pw = new PrintWriter(mydata); 
+		String pw_line ="Hap_ID";
+		for (int j = 0; j < random_genome.length; j++) { 
+			pw_line=pw_line+"\t"+"h"+ Integer.toHexString(j);  ;
+		}
+		pw.write(pw_line+"\n"); 
+		pw_line ="Freq";
+		for (int j = 0; j < random_genome.length; j++) { 
+			pw_line=pw_line+"\t"+ Double.toString(1/(double)random_genome.length );
+		}
+		pw.write(pw_line+"\n"); 
+		for (int j = 0; j < this.num_vars; j++) { 
+			pw_line= "0;"+ Integer.toString(this.var_pos[j])+";"+ Integer.toString(this.var_pos[j])+
+					";0:1";
+			for (int i=0;i<random_genome.length; i++ ) {
+				pw_line =pw_line+"\t"+ Integer.toString(random_genome[i][j]); 
+			}
+			pw.write(pw_line+"\n"); 
+			
+		}
+//		0;737;737;0:1
+		
+//		pw.write(pw_line+"\n"); 
+		pw.flush();
+        pw.close();
+		
+		
+		
+	}
+	
 	public RandomSimulator(String[] args) throws IOException {
 		this.folder_path= args[0];
 		this.project_name= args[1];
@@ -323,6 +481,8 @@ public class RandomSimulator {
 		System.out.println(" Variants Frequency for Each Haplotype Simulation Finished!");
 		VefSimulator();
 		System.out.println(" Vef File Simulation Finished!");
+		LassoSimulator();
+		System.out.println(" Lasso Input File Simulation Finished!");
 	}
 	
 

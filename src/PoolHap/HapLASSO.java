@@ -178,7 +178,6 @@ public class HapLASSO {
         }
     }
 
-
     /**
      *  The three functions will calculate ld_matrix differently:
      * 	  (1) calcualte_LD_matrix_single_pool()
@@ -261,7 +260,6 @@ public class HapLASSO {
                                 * this.potential_haps.global_haps[h][loc2]);
 
                         }
-
                         bw.write("\n");
                     }
                 }
