@@ -67,6 +67,7 @@ public class GraphColoring {
      * The output is used as the initial matrix for AEM 
      * 
      */  
+    
     public GraphColoring(String vef, String gs_var_pos, String out_file, int[][] regions_level_I
     		) throws IOException {
     	this.gc_solver(gs_var_pos, false);
@@ -537,16 +538,13 @@ public class GraphColoring {
         		hap_list.add(bfs_haps.get(i)); 
         	}
         }
-        
-        
-//        this.output_ref_arr.put("0110101001111110101", 1);
+
 
         for (int i = 0; i  < hap_list.size(); i++) {
         	this.output_ref_arr.put(hap_list.get(i) , 1); 
         }
 //        
-        
-        
+          
         this.gc_solver(gs_var_pos, false);
 //    	System.exit(0);
     }

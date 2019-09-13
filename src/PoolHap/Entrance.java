@@ -303,7 +303,7 @@ public class Entrance {
 	            Entrance.get_filepaths(name_file, gp.inter_dir + "/gcf/", "gcf", false);
 	            
 	            HapConfig final_global_haps =
-	                new HapConfig(gp.out_dir + gp.project_name + "_gc.inter_freq_haps.txt", null);
+	                new HapConfig(gp.out_dir + gp.project_name + "_hc.inter_freq_haps.txt", null);
 	            
 	
 	            SiteInPoolFreqAnno siteInPoolFreqAnno = new SiteInPoolFreqAnno(gs_var_pos);
@@ -370,10 +370,16 @@ public class Entrance {
 	                new HapConfig(gp.out_dir + gp.project_name + "_gc.inter_freq_haps.txt", null);
 	           	HierarchicalClustering hc= new HierarchicalClustering(clustering_global_haps.hap_IDs, 
 	           			clustering_global_haps.global_haps_string, clustering_global_haps.hapID2index, 
-	           			gp.out_dir + gp.project_name + "_hc.haps.txt", 0.94);
+	           			gp.out_dir + gp.project_name + "_hc.haps.txt", 0.95);
+	           	hc.gc_solver(gs_var_pos);
+	           	Entrance.get_filepaths(name_file, gp.inter_dir + "/gcf/", "gcf", false);
 	           	
-        
-       
+	           	HapConfig hc_global_haps; // final global haplotype configuration object
+	           	hc_global_haps = hc.hapOut(Entrance.names_array); // HapConfig from Hierarchical Clustering                                                           
+	           	hc_global_haps.recode_HapIDs_to_base16();
+	           	hc_global_haps.write_global_file_string( // write to output
+                    gp.out_dir + gp.project_name + "_hc.inter_freq_haps.txt");
+
         }else if (function.equals("gcaem")) {
         	
 //        	eva.GcAemEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
@@ -406,9 +412,6 @@ public class Entrance {
                 System.out.println("Graph colouring for pool " + p + ":" + Entrance.names_array[p]
                     + " is finished.");
             }
-            
-            
-            
             
 //          new File(gp.inter_dir + "/gcaem/").mkdir();
             
@@ -501,6 +504,7 @@ public class Entrance {
 
                 // Write final global haplotype configurations (inter pool) to output.
                 HapConfig final_global_haps; // final global haplotype configuration object
+                
                 final_global_haps = region_linker.hapOut(Entrance.names_array); // HapConfig from
                                                                                 // GC-linked regions
                 final_global_haps.recode_HapIDs_to_base16();

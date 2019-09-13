@@ -236,6 +236,5 @@
 	<classpathentry kind="lib" path="external_jars/commons-math3-3.6.1-tools.jar"/>
 	<classpathentry kind="lib" path="external_jars/commons-lang3-3.6.jar"/>
 	<classpathentry kind="lib" path="external_jars/slf4j-simple-1.7.25.jar"/>
-	<classpathentry kind="lib" path="/home/chencao/Workspace2/PoolHapDev/external_jars/weka.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
