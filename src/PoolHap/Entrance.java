@@ -30,7 +30,7 @@ public class Entrance {
     public static String[] suffixes = {
         "sam", "vcf", "vef", "gcf"
     };
-
+    
     public static int num_pools = -1;
     public static HashMap<String, Integer> name2index = new HashMap<String, Integer>();
     public static String[] names_array;
