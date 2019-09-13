@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
@@ -141,9 +142,28 @@ public class RegionEMSolver {
 //            System.out.println( svd.getS());
             
             RealMatrix svd_inv = svd.getSolver().getInverse();
-
-//            System.out.println(svd.getSolver().isNonSingular());            
-//            System.out.println( svd_inv);
+//            System.out.print("A:\t");
+//            for (int i=0;i< this.initial_Haps.sigma.length;i++) {
+//            	for (int j=0;j< this.initial_Haps.sigma[i].length;j++) {
+//            		System.out.print(this.initial_Haps.sigma[i][j]+",");
+//            	}
+//            }
+//            System.out.println();
+            
+//            RealMatrix S=svd.getS();
+//            for (int i=0;i< S.getColumnDimension();i++) {
+//            	if ((S.getEntry(i, i)>  0.001) ||  (S.getEntry(i, i)<  -0.001)){
+//            			double value = 1/ (double) S.getEntry(i, i);
+//            		S.addToEntry(i, i, value); 
+//            	}else {
+//            		S.addToEntry(i, i, 0.0); 
+//            	}
+//            }
+//            RealMatrix svd_inv = svd.getV().multiply( S) .multiply(svd.getU());
+//            System.out.println( "B:\t"+S);
+//            System.out.println( "C:\t"+svd.getV());
+//            System.out.println( "D:\t"+svd.getU());
+//            System.out.println( "F:\t"+svd_inv);
 //            if (Double.isNaN(svd_inv.getColumn(0)[0])){
 //            	System.exit(0);
 //            }
@@ -211,11 +231,29 @@ public class RegionEMSolver {
                 break;
             }
             freq = p_new.clone();
+            
+            for (double f : freq) {
+                if (Double.isNaN(f)) {
+                	int[] r_f=new int [freq.length] ;
+                	int total_r= 0;
+                	for (int j = 0; j < freq.length; j++) {
+                		Random random = new Random(iter);
+    	        	    int s = random.nextInt(5)+ 1;
+    	        	    r_f[j]=s;
+    	        	    total_r +=s;
+                	}
+                	for (int j = 0; j < freq.length; j++) {
+                		freq[j]=(double) r_f[j]/ (double) total_r;
+                	}
+                }
+            }
+            
             this.initial_Haps.global_haps_freq = freq.clone();
             
 // Chen: Ensure a non-singular matrix   
             double total_freq=1.0; 
             double min_freq_cufoff=0.0002; 
+            
             
             for (int j = 0; j < this.initial_Haps.global_haps_freq.length; j++) {
             	if (num_of_alternate ( this.initial_Haps.global_haps_string[j]) ==1) {
@@ -229,11 +267,8 @@ public class RegionEMSolver {
             	this.initial_Haps.global_haps_freq[j] = this.initial_Haps.global_haps_freq[j]
             			/total_freq;
             }
-//            System.out.println("**");
-//            for (int j = 0; j < this.initial_Haps.global_haps_freq.length; j++) {
-//            	System.out.print(this.initial_Haps.global_haps_freq[j]);
-//            }
-//            System.out.println("");
+           
+            
             this.initial_Haps.update_sigma_mu_logL();
             
 //            for (int j = 0; j < this.initial_Haps.sigma.length; j++) {

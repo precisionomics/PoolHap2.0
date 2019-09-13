@@ -521,7 +521,8 @@ public class Evaluate {
         	for (int i = 0; i < geno_2D.size(); i++) {
         		tmp_str=tmp_str+ geno_2D.get(i).get(j);
         	}
-        	if (this.compare_haps.size()<722) {
+//        	this.compare_haps.add(tmp_str);
+        	if ((j%1) ==0) {
         		this.compare_haps.add(tmp_str);
         	}
         }
