@@ -34,7 +34,6 @@ public class Entrance {
     public static int num_pools = -1;
     public static HashMap<String, Integer> name2index = new HashMap<String, Integer>();
     public static String[] names_array;
-
     /**
      * @author Quan Long 2019-07
      * 
@@ -154,7 +153,7 @@ public class Entrance {
          * Input arguments.
          */
     	String[] supported_functions_array = {"format", "gc", "aem", "lasso", 
-    			"split", "gcaem" ,"clustering"};
+    			"split" ,"clustering"};
     	HashSet<String> supported_functions = new HashSet<String>();
         for (int k = 0; k < supported_functions_array.length; k++) {
              supported_functions.add(supported_functions_array[k]);
@@ -228,7 +227,7 @@ public class Entrance {
             }
             System.out
                 .println("\nGraph-Coloring Finished: " + dtf.format(LocalDateTime.now()) + "\n");
-        } else if (function.equals("aem")) { // Note: aem includes DC and AEM
+        } else if (function.equals("aem_previous")) { // Note: aem includes DC and AEM
             // Apply divide and conquer across all pools.
         	
 
@@ -329,7 +328,9 @@ public class Entrance {
                     final_global_haps,
                     gp.lasso_full_hap_freq_cutoff,
                     gp.lasso_global_memory,
-                    gp.inter_dir + "/lasso/" + Entrance.names_array[pool_index]);
+                    gp.inter_dir + "/lasso/" + Entrance.names_array[pool_index],
+                	gp.lasso_coverage_weight,
+                	gp.lasso_distance_max_weight);
 
                 inpool_lasso.estimate_frequencies_lasso(gp.inter_dir + "/vef/"
                     + Entrance.names_array[pool_index] + ".vef", null, gp.lasso_weights);
@@ -344,8 +345,6 @@ public class Entrance {
                 System.out.println(final_inpool_haps[pool_index].num_global_hap
                     + " haplotypes were generated for pool " + pool_index + ":"
                     + Entrance.names_array[pool_index] + ".");
-                
-
             }
 
             System.out.println("\nGlobal LASSO Finished: " + dtf.format(LocalDateTime.now()) + "\n");
@@ -358,8 +357,8 @@ public class Entrance {
             final_reconstruction.write2files(gp.out_dir + gp.project_name + ".inter_freq_haps.txt",
                 gp.out_dir + gp.project_name + ".intra_freq_haps.txt",
                 "string");
-        	eva.LassoEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
- 			"/home/chencao/Desktop/sim001/output/sim001.inter_freq_haps.txt");
+//        	eva.LassoEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+// 			"/home/chencao/Desktop/sim001/output/sim001.inter_freq_haps.txt");
         	
         }else if (function.equals("clustering")) {
             /*
@@ -370,9 +369,9 @@ public class Entrance {
 	                new HapConfig(gp.out_dir + gp.project_name + "_gc.inter_freq_haps.txt", null);
 	           	HierarchicalClustering hc= new HierarchicalClustering(clustering_global_haps.hap_IDs, 
 	           			clustering_global_haps.global_haps_string, clustering_global_haps.hapID2index, 
-	           			gp.out_dir + gp.project_name + "_hc.haps.txt", 0.95);
+	           			gp.out_dir + gp.project_name + "_hc.haps.txt", gp.hc_similarity_cutoff);
 	           	hc.gc_solver(gs_var_pos);
-	           	Entrance.get_filepaths(name_file, gp.inter_dir + "/gcf/", "gcf", false);
+	           	Entrance.get_filepaths(name_file, gp.inter_dir + "/vef/", "vef", false);
 	           	
 	           	HapConfig hc_global_haps; // final global haplotype configuration object
 	           	hc_global_haps = hc.hapOut(Entrance.names_array); // HapConfig from Hierarchical Clustering                                                           
@@ -380,7 +379,7 @@ public class Entrance {
 	           	hc_global_haps.write_global_file_string( // write to output
                     gp.out_dir + gp.project_name + "_hc.inter_freq_haps.txt");
 
-        }else if (function.equals("gcaem")) {
+        }else if (function.equals("aem")) {
         	
 //        	eva.GcAemEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
 //        			"/home/chencao/Desktop/sim001/output/sim001_gc.inter_freq_haps.txt");
@@ -415,6 +414,8 @@ public class Entrance {
             
 //          new File(gp.inter_dir + "/gcaem/").mkdir();
             
+            boolean has_run_bfs= false;
+            
             HapConfig[] level_I_config = dc_maker.regional_AEM(
                     Entrance.names_array,
                     vef_files,
@@ -437,59 +438,126 @@ public class Entrance {
             dc_maker.level_II_config= level_II_config;
             System.out.println("Level 2 AEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
             
-            HapConfig[] level_III_config = dc_maker.level_III_regional_AEM( 
-            		Entrance.names_array,
-                    vef_files,
-                    dc_maker.regions_level_III,
-                    parameter_file,
-                    gp.inter_dir + "/aem/" + gp.project_name,
-                    gp.inter_dir + "/aem_fail_regional_lasso/",
-                    3,  Entrance.name2index);
-            dc_maker.level_III_config= level_III_config;
-            System.out.println("Level 3 AEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
-            
-            HapConfig[] level_IV_config = dc_maker.level_IV_regional_AEM( 
-            		Entrance.names_array,
-                    vef_files,
-                    dc_maker.regions_level_IV,
-                    parameter_file,
-                    gp.inter_dir + "/aem/" + gp.project_name,
-                    gp.inter_dir + "/aem_fail_regional_lasso/",
-                    4,  Entrance.name2index);
-            dc_maker.level_IV_config= level_IV_config;
-            System.out.println("Level 4 AEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
-            
+            if ((dc_maker.regions_level_III.length==0) || (dc_maker.regions_level_IV.length==0)) {
+            	has_run_bfs= true;
+            	GraphColoring region_linker =
+                        new GraphColoring(level_I_config, level_II_config, 
+                        		gs_var_pos, dc_maker.regions_level_I,
+                        		dc_maker.regions_level_II, gp.bfs_mismatch_tolerance);
+            	HapConfig final_global_haps; // final global haplotype configuration object
                 
-//                String gold_hap_file = gp.inter_dir + gp.project_name + "_dc_plan.txt";
-                
-            eva.AemEvaluate(gp.project_name, dc_out_file, 
-               "/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
-            		"/home/chencao/Desktop/sim001/intermediate/aem/");
-            eva.Level_III_AemEvaluate(gp.project_name, dc_out_file, 
-                    "/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
-                 		"/home/chencao/Desktop/sim001/intermediate/aem/"); 
-            eva.Level_IV_AemEvaluate(gp.project_name, dc_out_file, 
-                    "/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
-                 		"/home/chencao/Desktop/sim001/intermediate/aem/");
-           
-            
-            GraphColoring region_linker =
-                    new GraphColoring(level_III_config, level_IV_config, 
-                    		gs_var_pos, dc_maker.regions_level_III,
-                    		dc_maker.regions_level_IV);
-            
+                final_global_haps = region_linker.hapOut(Entrance.names_array); // HapConfig from
+                                                                                // GC-linked regions
+                final_global_haps.recode_HapIDs_to_base16();
+                final_global_haps.write_global_file_string(
+                		gp.out_dir + gp.project_name + "_gc.inter_freq_haps.txt");
+            }
+            if (!has_run_bfs) {
+	            HapConfig[] level_III_config = dc_maker.level_III_regional_AEM( 
+	            		Entrance.names_array,
+	                    vef_files,
+	                    dc_maker.regions_level_III,
+	                    parameter_file,
+	                    gp.inter_dir + "/aem/" + gp.project_name,
+	                    gp.inter_dir + "/aem_fail_regional_lasso/",
+	                    3,  Entrance.name2index,
+	                    gp.level_III_IV_region_mismatch_tolerance);
+	            dc_maker.level_III_config= level_III_config;
+	            System.out.println("Level 3 AEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
+	            
+	            HapConfig[] level_IV_config = dc_maker.level_IV_regional_AEM( 
+	            		Entrance.names_array,
+	                    vef_files,
+	                    dc_maker.regions_level_IV,
+	                    parameter_file,
+	                    gp.inter_dir + "/aem/" + gp.project_name,
+	                    gp.inter_dir + "/aem_fail_regional_lasso/",
+	                    4,  Entrance.name2index,
+	                    gp.level_III_IV_region_mismatch_tolerance);
+	            dc_maker.level_IV_config= level_IV_config;
+	            System.out.println("Level 4 AEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
+	            if ((dc_maker.regions_level_V.length==0) || (dc_maker.regions_level_VI.length==0)) {
+	            	has_run_bfs= true;
+	            	GraphColoring region_linker =
+	                        new GraphColoring(level_III_config, level_IV_config, 
+	                        		gs_var_pos, dc_maker.regions_level_III,
+	                        		dc_maker.regions_level_IV, gp.bfs_mismatch_tolerance);
+	            	HapConfig final_global_haps; // final global haplotype configuration object
+	                
+	                final_global_haps = region_linker.hapOut(Entrance.names_array); // HapConfig from
+	                                                                                // GC-linked regions
+	                final_global_haps.recode_HapIDs_to_base16();
+	                final_global_haps.write_global_file_string( // write to output
+	                		
+	                		
+	                gp.out_dir + gp.project_name + "_gc.inter_freq_haps.txt");
+	            }
+	            
+            }
 
+                
+//            eva.AemEvaluate(gp.project_name, dc_out_file, 
+//               "/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+//            		"/home/chencao/Desktop/sim001/intermediate/aem/");
+//            eva.Level_III_AemEvaluate(gp.project_name, dc_out_file, 
+//                    "/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+//                 		"/home/chencao/Desktop/sim001/intermediate/aem/"); 
+//            eva.Level_IV_AemEvaluate(gp.project_name, dc_out_file, 
+//                    "/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+//                 		"/home/chencao/Desktop/sim001/intermediate/aem/");
+            if (!has_run_bfs) {
+	            HapConfig[] level_V_config = dc_maker.level_V_regional_AEM( 
+	            		Entrance.names_array,
+	                    vef_files,
+	                    dc_maker.regions_level_V,
+	                    parameter_file,
+	                    gp.inter_dir + "/aem/" + gp.project_name,
+	                    gp.inter_dir + "/aem_fail_regional_lasso/",
+	                    5,  Entrance.name2index,
+	                    gp.level_V_VI_region_mismatch_tolerance);
+	            dc_maker.level_V_config= level_V_config;
+	            System.out.println("Level 5 AEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
+	           
+	//            eva.Level_V_AemEvaluate(gp.project_name, dc_out_file, 
+	//                    "/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+	//                 		"/home/chencao/Desktop/sim001/intermediate/aem/");
+	            
+	            HapConfig[] level_VI_config = dc_maker.level_VI_regional_AEM( 
+	            		Entrance.names_array,
+	                    vef_files,
+	                    dc_maker.regions_level_VI,
+	                    parameter_file,
+	                    gp.inter_dir + "/aem/" + gp.project_name,
+	                    gp.inter_dir + "/aem_fail_regional_lasso/",
+	                    6,  Entrance.name2index,
+	                    gp.level_V_VI_region_mismatch_tolerance);
+	            dc_maker.level_VI_config= level_VI_config;
+	            System.out.println("Level 6 AEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
+	            
+	//            eva.Level_VI_AemEvaluate(gp.project_name, dc_out_file, 
+	//                    "/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+	//                 		"/home/chencao/Desktop/sim001/intermediate/aem/");
+	            
+	            GraphColoring region_linker =
+	                    new GraphColoring(level_V_config, level_VI_config, 
+	                    		gs_var_pos, dc_maker.regions_level_V,
+	                    		dc_maker.regions_level_VI, gp.bfs_mismatch_tolerance);
+	            HapConfig final_global_haps; // final global haplotype configuration object
+                
+                final_global_haps = region_linker.hapOut(Entrance.names_array); // HapConfig from
+                                                                                // GC-linked regions
+                final_global_haps.recode_HapIDs_to_base16();
+                final_global_haps.write_global_file_string( 
+                		gp.out_dir + gp.project_name + "_gc.inter_freq_haps.txt");
+            }
+            
+            
                 // Link regions by applying Breadth-First-Search across the level 1 and level 2 regional
                 // haplotype configurations (Pruning strategy, Chen).
 //                
 //            GraphColoring region_linker =
 //                    new GraphColoring(level_I_config, level_II_config, gs_var_pos, dc_maker.regions_level_I,
 //                    		dc_maker.regions_level_II);
-                
-                
-                
-                
-                
                 
 //                eva.StringEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
 //                		"/home/chencao/Desktop/ccc.txt");
@@ -503,18 +571,13 @@ public class Entrance {
 //                        new GraphColoring(level_I_config, level_II_config, gs_var_pos, gp.virtual_cov_link_gc);
 
                 // Write final global haplotype configurations (inter pool) to output.
-                HapConfig final_global_haps; // final global haplotype configuration object
                 
-                final_global_haps = region_linker.hapOut(Entrance.names_array); // HapConfig from
-                                                                                // GC-linked regions
-                final_global_haps.recode_HapIDs_to_base16();
-                final_global_haps.write_global_file_string( // write to output
-                    gp.out_dir + gp.project_name + "_gc.inter_freq_haps.txt");
-                eva.GcAemEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
-            			"/home/chencao/Desktop/sim001/output/sim001_gc.inter_freq_haps.txt");
+                
+//                eva.GcAemEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
+//            			"/home/chencao/Desktop/sim001/output/sim001_gc.inter_freq_haps.txt");
             
             System.out
-                .println("\nGCAEM Finished: " + dtf.format(LocalDateTime.now()) + "\n");
+                .println("\nAEM+BFS Finished: " + dtf.format(LocalDateTime.now()) + "\n");
             
         }    
     }

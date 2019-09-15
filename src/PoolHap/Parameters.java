@@ -64,6 +64,14 @@ public class Parameters {
     public double lasso_regional_cross_pool_cutoff;
     public int lasso_hapset_size_max;
     public int lasso_hapset_size_min;
+    	
+    public int bfs_mismatch_tolerance;
+    public int level_III_IV_region_mismatch_tolerance;
+    public int level_V_VI_region_mismatch_tolerance;
+    public double lasso_coverage_weight;
+    public double lasso_distance_max_weight;
+    public double hc_similarity_cutoff;
+    
     //public double hapset_size_rand;
     //public int min_num_hap_regiobal_lasso;
     
@@ -108,8 +116,17 @@ public class Parameters {
             prop.getProperty("Level_2_Region_Size_Max"));
         this.est_ind_pool = Integer.parseInt(prop.getProperty("Est_Ind_PerPool"));
         
+        this.level_III_IV_region_mismatch_tolerance = Integer.parseInt(
+                prop.getProperty("Level_3_4_Region_Mismatch_Tolerance"));
+        this.level_V_VI_region_mismatch_tolerance = Integer.parseInt(
+                prop.getProperty("Level_5_6_Region_Mismatch_Tolerance"));
+        this.bfs_mismatch_tolerance = Integer.parseInt(
+                prop.getProperty("BFS_Mismatch_Tolerance"));
+        
         // GC Link regions:
         this.virtual_cov_link_gc = Integer.parseInt(prop.getProperty("Virtual_Coverage_Link_GC"));
+        this.hc_similarity_cutoff = Double.parseDouble(
+                prop.getProperty("Hc_Similarity_Cutoff"));
         
         // LASSO
         this.lasso_global_lambda = Double.parseDouble(prop.getProperty("LASSO_Global_Lambda_Penalty"));
@@ -120,6 +137,11 @@ public class Parameters {
             Double.parseDouble(prop.getProperty("LASSO_One_Vector_Weight")),
             Double.parseDouble(prop.getProperty("LASSO_Hap_VC_Weight")),
             Double.parseDouble(prop.getProperty("LASSO_Hap_11_Weight"))};
+        
+        this.lasso_coverage_weight = Double.parseDouble(
+                prop.getProperty("Lasso_Coverage_Weight"));
+        this.lasso_distance_max_weight = Double.parseDouble(
+                prop.getProperty("Lasso_Distance_Max_Weight"));
 
 //        this.min_r2 = Double.parseDouble(prop.getProperty("Minimum_R2_Fit"));
 //        this.lasso_penalty_step = Double.parseDouble(prop.getProperty("Penalty_Step_Size"));
@@ -152,6 +174,12 @@ public class Parameters {
             prop.getProperty("AEM_Regional_HapSetSize_Max"));
         this.aem_hapset_size_min = Integer.parseInt(
             prop.getProperty("AEM_Regional_HapSetSize_Min"));
+
+        
+        
+        
+        
+        
  //      this.aem_hapset_size_rand = Integer.parseInt(prop.getProperty("AEM_HapSetSize_Rand"));
 
  //      this.adhoc_freq_cutoff = Integer.parseInt(prop.getProperty("Adhoc_Freq_Cutoff"));

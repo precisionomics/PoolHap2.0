@@ -42,6 +42,7 @@ public class GraphColoring {
     public double[][] loci_link_count; // (num_loci-1) x 4 (4:	0/0; 0/1/; 1/0; 1/1)
     public double[][] loci_link_freq; // (num_loci-1) x 4 (4:	0/0; 0/1/; 1/0; 1/1) 
     public HashMap<Integer, Integer> loci_index_dict;
+    public int bfs_mismatch_tolerance;
     
 
     // TODO: [LEFTOVER]
@@ -373,9 +374,9 @@ public class GraphColoring {
      */
 
     public GraphColoring(HapConfig[] level_1,  HapConfig[] level_2,  String gs_var_pos, 
-    		int [][] level_1_region , int [][] level_2_region
+    		int [][] level_1_region , int [][] level_2_region , int mismatch_tolerance
             ) throws IOException {
-    	
+    	this.bfs_mismatch_tolerance= mismatch_tolerance;
     	ArrayList<String >  bfs_haps= new ArrayList<String>();
     	ArrayList<Double >  haps_min_freq= new ArrayList<Double>();
     	ArrayList<Integer >  haps_end_pos= new ArrayList<Integer>();
@@ -400,13 +401,12 @@ public class GraphColoring {
     	}
     	
     	boolean  one_one_search= true;
-    	int num_mismatch_cutoff=0;
 //Chen:     Breadth-First-Search
     	//Search Strategy: Level I 1 -> Level I 2 -> Level I 3 -> Level I 4...
     	if (one_one_search) {
 	    	for (int i = 0; i  < (level_1_region.length -1); i++) {   
-	    		System.out.println( i );
-	    		System.out.println( end_index-start_index  ); 
+//	    		System.out.println( i );
+//	    		System.out.println( end_index-start_index  ); 
 	    		ArrayList<String  >  seg_haps= new ArrayList<String >();
 	    		ArrayList<Double  >  seg_freq= new ArrayList<Double >();
 	    		int end_pos= haps_end_pos.get(end_index-1);
@@ -436,7 +436,7 @@ public class GraphColoring {
 	    			for (int k = 0; k  < seg_haps.size(); k++) {
 	    				for (int l = 0; l  < stick_haps.size(); l++) {
 	    					String [] com_str = strmatch(bfs_haps.get(j), seg_haps.get(k) ,stick_haps.get(l), 
-		    						end_pos- start_pos+1, num_mismatch_cutoff);
+		    						end_pos- start_pos+1, this.bfs_mismatch_tolerance);
 		    				if ((com_str.length!= 0)  && (haps_score.get(j)> -2)){
 		    					for (int h = 0; h  < com_str.length; h++) {
 			    					bfs_haps.add( com_str[h]);
@@ -534,7 +534,6 @@ public class GraphColoring {
         
         for (int i = start_index; i  < end_index; i++) {
         	if ( (i%1)==0) {
-        		
         		hap_list.add(bfs_haps.get(i)); 
         	}
         }

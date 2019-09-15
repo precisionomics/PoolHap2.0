@@ -431,6 +431,230 @@ public class Evaluate {
 		
 	}
 	
+	
+	public void Level_V_AemEvaluate(String pj_name, String dc_file, String gold_file, 
+			String aem_folder)  throws IOException {
+		this.proj_name= pj_name;
+		this.gold_haps.clear();
+        this.compare_haps.clear();
+//		int num_match = 0;
+		int num_mismatch = 0;
+		ArrayList<Integer > level_III_start = new ArrayList<Integer>();
+		ArrayList<Integer > level_III_end = new ArrayList<Integer>();
+		ArrayList<Integer > level_II_start = new ArrayList<Integer>();
+		ArrayList<Integer > level_II_end = new ArrayList<Integer>();
+		int count = 0;
+		BufferedReader bufferedreader = new BufferedReader(new FileReader(dc_file));
+        String line = "";
+        while ((line = bufferedreader.readLine()) != null) {
+        	line =line.replace("\n", "").replace("\r", "");
+//        	System.out.println(line);
+        	if (count== 9) {
+        		String[] tmp = line.split("\t");
+        		for (int i = 0; i < tmp.length; i++) {
+        			String[] tmp2= tmp[i].split(":");
+        			level_III_start.add(Integer.parseInt(tmp2[0] )) ;
+        			level_III_end.add(Integer.parseInt(tmp2[1] )) ;
+        		}
+        	}else if (count== 3) {
+        		String[] tmp = line.split("\t");
+        		for (int i = 0; i < tmp.length; i++) {
+        			String[] tmp2= tmp[i].split(":");
+        			level_II_start.add(Integer.parseInt(tmp2[0] )) ;
+        			level_II_end.add(Integer.parseInt(tmp2[1] )) ;
+        		}
+        	}
+        	count ++;
+        }
+        bufferedreader.close();
+        
+        BufferedReader bufferedreader2 = new BufferedReader(new FileReader(gold_file));
+        line = "";
+        while ((line = bufferedreader2.readLine()) != null) {
+        	line =line.replace("\n", "").replace("\r", "");
+//        	System.out.println(line);
+        	if (!line.startsWith("@")){
+        		this.gold_haps.add(line );
+        	}
+        }
+        bufferedreader2.close();
+        
+        
+        
+        
+        for (int i = 0; i < level_III_start.size(); i++) {
+        	String aem_file= aem_folder+ this.proj_name+"_level_5_region_"+Integer.toString(i)
+        	+".inter_freq_haps.txt";
+        	ArrayList<ArrayList<String >>  geno_2D = new ArrayList<ArrayList<String>>();
+        	BufferedReader br = new BufferedReader(new FileReader(aem_file));
+        	while ((line = br.readLine()) != null) {
+            	line =line.replace("\n", "").replace("\r", "");
+            	if ((!line.startsWith("Hap_ID")) &&  (!line.startsWith("Freq") )){
+            		String[] tmp = line.split("\t");
+            		ArrayList<String> tmp_arr = new ArrayList<String>();
+            		for (int j = 1; j < tmp.length; j++) {
+            			tmp_arr.add(tmp[j]);
+            		}
+            		geno_2D.add(tmp_arr);
+            	}
+            }
+        	br.close();
+        	
+        	for (int j = 0; j < geno_2D.get(0).size(); j++) {
+            	String tmp_str="";
+            	for (int k = 0; k < geno_2D.size(); k++) {
+            		tmp_str=tmp_str+ geno_2D.get(k).get(j);
+            	}
+            	this.compare_haps.add(tmp_str);
+            }
+        	
+//        	for (int j = 0; j < this.compare_haps.size(); j++) {
+//        		System.out.println(this.compare_haps.get(j));
+//        		
+//        	}
+        	for (int j = 0; j < this.gold_haps.size(); j++) {
+            	int  max_mismatch=  level_III_end.get(i)- level_III_start.get(i)+1;
+            	for (int k = 0; k < this.compare_haps.size(); k++) {
+            		if( NumofMismatch (this.gold_haps.get(j).substring(level_III_start.get(i), level_III_end.get(i)+1)
+            				, this.compare_haps.get(k)) <  max_mismatch) {
+            			max_mismatch= NumofMismatch(this.gold_haps.get(j).substring(level_III_start.get(i), 
+            					level_III_end.get(i)+1), this.compare_haps.get(k));
+            		}
+            	}
+            	System.out.println(this.gold_haps.get(j).substring(level_III_start.get(i), level_III_end.get(i)+1)
+            			+"\tFor Level V: Region "+ Integer.toString(i)+": Mismatch: "
+            			+Integer.toString(max_mismatch));
+            	if (max_mismatch!=0 ) {
+            		num_mismatch++;
+            	}
+            }
+        	
+        	this.compare_haps.clear();	
+        }
+        
+        
+
+        System.out.println("****The total number of disagree haplotypes is:\t"+ 
+        		Integer.toString(num_mismatch)) ;
+        
+        
+       
+		return;
+		
+	}
+	
+	
+	public void Level_VI_AemEvaluate(String pj_name, String dc_file, String gold_file, 
+			String aem_folder)  throws IOException {
+		this.proj_name= pj_name;
+		this.gold_haps.clear();
+        this.compare_haps.clear();
+//		int num_match = 0;
+		int num_mismatch = 0;
+		ArrayList<Integer > level_III_start = new ArrayList<Integer>();
+		ArrayList<Integer > level_III_end = new ArrayList<Integer>();
+		ArrayList<Integer > level_II_start = new ArrayList<Integer>();
+		ArrayList<Integer > level_II_end = new ArrayList<Integer>();
+		int count = 0;
+		BufferedReader bufferedreader = new BufferedReader(new FileReader(dc_file));
+        String line = "";
+        while ((line = bufferedreader.readLine()) != null) {
+        	line =line.replace("\n", "").replace("\r", "");
+//        	System.out.println(line);
+        	if (count== 11) {
+        		String[] tmp = line.split("\t");
+        		for (int i = 0; i < tmp.length; i++) {
+        			String[] tmp2= tmp[i].split(":");
+        			level_III_start.add(Integer.parseInt(tmp2[0] )) ;
+        			level_III_end.add(Integer.parseInt(tmp2[1] )) ;
+        		}
+        	}else if (count== 3) {
+        		String[] tmp = line.split("\t");
+        		for (int i = 0; i < tmp.length; i++) {
+        			String[] tmp2= tmp[i].split(":");
+        			level_II_start.add(Integer.parseInt(tmp2[0] )) ;
+        			level_II_end.add(Integer.parseInt(tmp2[1] )) ;
+        		}
+        	}
+        	count ++;
+        }
+        bufferedreader.close();
+        
+        BufferedReader bufferedreader2 = new BufferedReader(new FileReader(gold_file));
+        line = "";
+        while ((line = bufferedreader2.readLine()) != null) {
+        	line =line.replace("\n", "").replace("\r", "");
+//        	System.out.println(line);
+        	if (!line.startsWith("@")){
+        		this.gold_haps.add(line );
+        	}
+        }
+        bufferedreader2.close();
+        
+        
+        
+        
+        for (int i = 0; i < level_III_start.size(); i++) {
+        	String aem_file= aem_folder+ this.proj_name+"_level_6_region_"+Integer.toString(i)
+        	+".inter_freq_haps.txt";
+        	ArrayList<ArrayList<String >>  geno_2D = new ArrayList<ArrayList<String>>();
+        	BufferedReader br = new BufferedReader(new FileReader(aem_file));
+        	while ((line = br.readLine()) != null) {
+            	line =line.replace("\n", "").replace("\r", "");
+            	if ((!line.startsWith("Hap_ID")) &&  (!line.startsWith("Freq") )){
+            		String[] tmp = line.split("\t");
+            		ArrayList<String> tmp_arr = new ArrayList<String>();
+            		for (int j = 1; j < tmp.length; j++) {
+            			tmp_arr.add(tmp[j]);
+            		}
+            		geno_2D.add(tmp_arr);
+            	}
+            }
+        	br.close();
+        	
+        	for (int j = 0; j < geno_2D.get(0).size(); j++) {
+            	String tmp_str="";
+            	for (int k = 0; k < geno_2D.size(); k++) {
+            		tmp_str=tmp_str+ geno_2D.get(k).get(j);
+            	}
+            	this.compare_haps.add(tmp_str);
+            }
+        	
+//        	for (int j = 0; j < this.compare_haps.size(); j++) {
+//        		System.out.println(this.compare_haps.get(j));
+//        		
+//        	}
+        	for (int j = 0; j < this.gold_haps.size(); j++) {
+            	int  max_mismatch=  level_III_end.get(i)- level_III_start.get(i)+1;
+            	for (int k = 0; k < this.compare_haps.size(); k++) {
+            		if( NumofMismatch (this.gold_haps.get(j).substring(level_III_start.get(i), level_III_end.get(i)+1)
+            				, this.compare_haps.get(k)) <  max_mismatch) {
+            			max_mismatch= NumofMismatch(this.gold_haps.get(j).substring(level_III_start.get(i), 
+            					level_III_end.get(i)+1), this.compare_haps.get(k));
+            		}
+            	}
+            	System.out.println(this.gold_haps.get(j).substring(level_III_start.get(i), level_III_end.get(i)+1)
+            			+"\tFor Level VI: Region "+ Integer.toString(i)+": Mismatch: "
+            			+Integer.toString(max_mismatch));
+            	if (max_mismatch!=0 ) {
+            		num_mismatch++;
+            	}
+            }
+        	
+        	this.compare_haps.clear();	
+        }
+        
+        
+
+        System.out.println("****The total number of disagree haplotypes is:\t"+ 
+        		Integer.toString(num_mismatch)) ;
+        
+        
+       
+		return;
+		
+	}
+	
 	public void LassoEvaluate(String gold_file, String aem_file) throws IOException {
 		this.gold_haps.clear();
         this.compare_haps.clear();
