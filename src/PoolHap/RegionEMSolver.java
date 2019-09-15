@@ -92,7 +92,8 @@ public class RegionEMSolver {
          *  frequencies.
          */
         // For each AEM iteration...
-        for (int iter = 0; iter < aem_parameters.aem_max_iteration; iter++) {
+//        for (int iter = 0; iter < aem_parameters.aem_max_iteration; iter++) {
+        for (int iter = 0; iter < this.num_loci*150; iter++) {
 //        for (int iter = 0; iter < 2; iter++) {
         	
 //    		String file_path= "/home/chencao/Desktop/test.txt";
@@ -116,6 +117,9 @@ public class RegionEMSolver {
 
             // Calculate the inverse singular value decomposition of the haplotype set's sigma
             // (covariance) matrix.
+//        	if (( iter%200)==0) {
+//        		System.out.println("iter:\t" + iter);
+//        	}
         	double total_sigma =0;
         	for (int j = 0; j < this.initial_Haps.sigma.length; j++) {
         		for (int k = 0; k < this.initial_Haps.sigma[j].length; k++) {

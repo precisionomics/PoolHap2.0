@@ -481,8 +481,8 @@ public class RandomSimulator {
 		System.out.println(" Variants Frequency for Each Haplotype Simulation Finished!");
 		VefSimulator();
 		System.out.println(" Vef File Simulation Finished!");
-		LassoSimulator();
-		System.out.println(" Lasso Input File Simulation Finished!");
+//		LassoSimulator();
+//		System.out.println(" Lasso Input File Simulation Finished!");
 	}
 	
 
