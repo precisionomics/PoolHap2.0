@@ -551,6 +551,12 @@ public class Entrance {
                 		gp.out_dir + gp.project_name + "_gc.inter_freq_haps.txt");
             }
             
+            if (!has_run_bfs) {
+            	System.out
+                .println("\nCan Not find the dv_plan file.: " + dtf.format(LocalDateTime.now()) + "\n");
+            	System.exit(0);
+            }
+            
             
                 // Link regions by applying Breadth-First-Search across the level 1 and level 2 regional
                 // haplotype configurations (Pruning strategy, Chen).
