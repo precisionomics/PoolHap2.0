@@ -89,7 +89,6 @@ public class HapLASSO {
     double total_ld_covered_reads_counts;
     double total_ld_covered_paired_alleles;
     int[][] total_counts;
-    
     double lasso_coverage_weight;
     double lasso_distance_max_weight;
 
@@ -250,7 +249,6 @@ public class HapLASSO {
                 bw.write("\n");
             }
 
-
             // Write the block of LD and H^H.
             for (int loc1 = 0; loc1 < this.num_loci; loc1++) {
                 for (int loc2 = loc1 + 1; loc2 < this.num_loci; loc2++) {
@@ -302,6 +300,7 @@ public class HapLASSO {
     /**
      *  copy the MAF from this.potential_haps.inpool_site_freqs
      */
+    
     public void get_MAF_single_pool() {
         if (pool_index == -1) {
             System.out.println("ERROR: pool_index==-1; should not calculate single_pool MAF.");
@@ -312,7 +311,7 @@ public class HapLASSO {
             this.maf[loc] = this.potential_haps.inpool_site_freqs[loc][this.pool_index];
         }
     }
-
+    
     /**
      *  Calculate global MAF, which is the average of all in-pool MAF at the same site.
      */

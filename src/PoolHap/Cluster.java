@@ -9,6 +9,7 @@ import java.util.List;
  * Hierarchical Clustering
  */ 
 
+
 public class Cluster {  
     private List<Integer> dataPoints = new ArrayList<>(); 
     private String clusterName;  

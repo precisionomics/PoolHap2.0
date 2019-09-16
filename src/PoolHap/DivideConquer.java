@@ -911,13 +911,13 @@ public class DivideConquer {
                 HapConfig hap_config = generate_hapconfig_gc_exhaustive(regions, r_index,
                 		pool_IDs, name2index);
                 
-        		String file_path= "/home/chencao/Desktop/cc.txt";
-        		FileWriter mydata = new FileWriter(file_path,false);
-                PrintWriter pw = new PrintWriter(mydata);
-                String pw_line ="";
-               
-                pw.flush();
-                pw.close();
+//        		String file_path= "/home/chencao/Desktop/cc.txt";
+//        		FileWriter mydata = new FileWriter(file_path,false);
+//                PrintWriter pw = new PrintWriter(mydata);
+//                String pw_line ="";
+//               
+//                pw.flush();
+//                pw.close();
                 
                 RegionEMSolver hap_solver = new RegionEMSolver(hap_config, parameter_file);
                 if (hap_solver.failure) {
