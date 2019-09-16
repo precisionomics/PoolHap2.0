@@ -426,28 +426,44 @@ public class PoolSimulator_SLiM {
         int[][] var2incts = new int[actual_num_vars][num_pools];
     	double[][] var2infreqs = new double[actual_num_vars][num_pools];
         if(is_single_population==true) {
-        	this.haps_per_pool = all_pool_haps/this.num_pools;
         	int[][] hap2incts = new int[actual_num_haps][num_pools];
-            boolean[] poolFull = new boolean[num_pools]; 
             for (int h = 0; h < actual_num_haps; h++) {
                 while (hap2cts[h] != 0) {
                     int currPool = ThreadLocalRandom.current().nextInt(0, num_pools);
-                    if (!this.pool2hapcomp.containsKey(currPool)) this.pool2hapcomp.put(currPool, new ArrayList<Integer>());
-                    if (poolFull[currPool]) continue; 
-                    this.pool2hapcomp.get(currPool).add(h);
-                    hap2incts[h][currPool]++; 
+                    if (!this.pool2hapcomp.containsKey(currPool)) {
+                    	this.pool2hapcomp.put(currPool, new ArrayList<Integer>());
+                    	this.pool2hapcomp.get(currPool).add(h);
+                    	hap2incts[h][currPool]++; 
+                    }
+                    //if (poolFull[currPool]) continue; 
+                    
+                    
                     for (int v = 0; v < num_var_pos; v++) var2incts[v][currPool] += hap2varcomp[h][v];
                     hap2cts[h]--; 
-                    if (this.pool2hapcomp.get(currPool).size() == haps_per_pool) poolFull[currPool] = true;
+                    //if (this.pool2hapcomp.get(currPool).size() == haps_per_pool) poolFull[currPool] = true;
+                    System.out.println(pool2hapcomp.get(currPool).size());
                 }
-                for(int p = 0; p < num_pools; p++)
-                    hap2infreqs[h][p] = (double) hap2incts[h][p] / haps_per_pool;
+                
+                for(int p = 0; p < num_pools; p++) {
+                	
+                	int haps_this_pool = pool2hapcomp.get(p).size();
+                    hap2infreqs[h][p] = (double) hap2incts[h][p] /haps_this_pool;
+                	System.out.println(hap2infreqs[h][p]);
+                }
+                System.out.println("hap"+h);
+            }
+            System.out.println(num_pools);
+            for(int p = 0; p < num_pools; p++) {
+            	int haps_this_pool = pool2hapcomp.get(p).size();
+            	System.out.println(p);
+                for(int v = 0; v < actual_num_vars; v++) {
+                	System.out.println(v);
+                    var2infreqs[v][p] = (double) var2incts[v][p] / haps_this_pool;
+                	System.out.println(var2infreqs[v][p]);
+                }
             }
             
-            for(int p = 0; p < num_pools; p++)
-                for(int v = 0; v < actual_num_vars; v++)
-                    var2infreqs[v][p] = (double) var2incts[v][p] / haps_per_pool;
-
+            
         }else if(is_single_population==false) {
         	if(this.num_pools!=pool2allhapList.size()) {
         		System.out.println("Number of pools in property file is not consistent with the SLiM output");
@@ -604,7 +620,8 @@ public class PoolSimulator_SLiM {
         if(is_single_population==true) {
         	for (int p = 0; p < num_pools; p++) {
             PrintWriter pw = new PrintWriter(fasta_folder + project_name + "_p" + p + ".fa");
-            	for (int h = 0; h < haps_per_pool; h++) {
+            int haps_this_pool = pool2hapcomp.get(p).size();
+            	for (int h = 0; h < haps_this_pool; h++) {
             		int currHap = this.pool2hapcomp.get(p).get(h);
             		pw.append(">Haplotype_" + currHap + " \n");
             		for (String s : allSimHaps[currHap]) pw.append(s);
@@ -631,12 +648,14 @@ public class PoolSimulator_SLiM {
         
         System.out.println("\nStep 3D: Simulate all of the pool FastQ files, given the distribution"
                 + " of haplotypes in step 3.\n");
+//        int average_hap_per_pool = all_pool_haps/actual_num_haps;
+//        int coverage_set = coverage/average_hap_per_pool;
 //        for (int p = 0; p < num_pools; p++) {
 //            ProcessBuilder CMDLine = new ProcessBuilder(dwgsimCMDLine,
 //                fasta_folder + project_name + "_p" + p + ".fa", 
 //                fastq_folder + project_name + "_p" + p, 
 //                "-e", Double.toString(error_rate),
-//                "-E", Double.toString(error_rate), "-C", Integer.toString(coverage),
+//                "-E", Double.toString(error_rate), "-C", Integer.toString(coverage_set),
 //                "-1", Integer.toString(read_len),
 //                "-2", Integer.toString(read_len),
 //                "-r", "0",
@@ -651,7 +670,6 @@ public class PoolSimulator_SLiM {
 //            CMDProcess.waitFor();
 //            System.out.println("Finished simulating reads for pool " + p + ".");
 //        }
-    
 	}
 	
 	/**
