@@ -161,7 +161,7 @@ public class DivideConquer {
      */  
     public void generate_dividing_plan_level_III() {
     
-	    	this.num_regions_level_III= (this.num_regions_level_I +1)/2;
+	    	this.num_regions_level_III= (this.num_regions_level_I +1)/2;   
 	    	this.regions_level_III = new int[num_regions_level_III][2];
 	    	for (int i=0; i< this.num_regions_level_I /2;i++) {
 	    		this.regions_level_III[i][0]= regions_level_I[2*i] [0];
@@ -175,7 +175,7 @@ public class DivideConquer {
 	    	}
     }
     
-    public void generate_dividing_plan_level_IV() {
+    public void generate_dividing_plan_level_IV() { 
     	if (this.num_regions_level_I> 1){
     	
 	    	this.num_regions_level_IV= (this.num_regions_level_I )/2;
