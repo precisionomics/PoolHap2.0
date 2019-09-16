@@ -160,65 +160,70 @@ public class DivideConquer {
      * 
      */  
     public void generate_dividing_plan_level_III() {
-    	this.num_regions_level_III= (this.num_regions_level_I +1)/2;
-    	this.regions_level_III = new int[num_regions_level_III][2];
-    	for (int i=0; i< this.num_regions_level_I /2;i++) {
-    		this.regions_level_III[i][0]= regions_level_I[2*i] [0];
-    		this.regions_level_III[i][1]= regions_level_I[2*i+1] [1];
-    	}
-    	if (this.num_regions_level_I %2 ==1) {
-    		this.regions_level_III[ this.num_regions_level_III-1][0]= 
-    				regions_level_I[this.num_regions_level_I-1] [0];
-    		this.regions_level_III[ this.num_regions_level_III-1][1]= 
-    				regions_level_I[this.num_regions_level_I-1] [1];
-    	}
+    
+	    	this.num_regions_level_III= (this.num_regions_level_I +1)/2;
+	    	this.regions_level_III = new int[num_regions_level_III][2];
+	    	for (int i=0; i< this.num_regions_level_I /2;i++) {
+	    		this.regions_level_III[i][0]= regions_level_I[2*i] [0];
+	    		this.regions_level_III[i][1]= regions_level_I[2*i+1] [1];
+	    	}
+	    	if (this.num_regions_level_I %2 ==1) {
+	    		this.regions_level_III[ this.num_regions_level_III-1][0]= 
+	    				regions_level_I[this.num_regions_level_I-1] [0];
+	    		this.regions_level_III[ this.num_regions_level_III-1][1]= 
+	    				regions_level_I[this.num_regions_level_I-1] [1];
+	    	}
     }
     
     public void generate_dividing_plan_level_IV() {
+    	if (this.num_regions_level_I> 1){
     	
-    	this.num_regions_level_IV= (this.num_regions_level_I )/2;
-    	this.regions_level_IV = new int[num_regions_level_IV][2];
-    	for (int i=0; i< (this.num_regions_level_I-1 )/2;i++) {
-    		this.regions_level_IV[i][0]= regions_level_I[2*i+1] [0];
-    		this.regions_level_IV[i][1]= regions_level_I[2*i+2] [1];
-    	}
-    	if ((this.num_regions_level_I) %2 ==0) {
-    		this.regions_level_IV[ this.num_regions_level_IV-1][0]= 
-    				regions_level_I[this.num_regions_level_I-1] [0];
-    		this.regions_level_IV[ this.num_regions_level_IV-1][1]= 
-    				regions_level_I[this.num_regions_level_I-1] [1];
+	    	this.num_regions_level_IV= (this.num_regions_level_I )/2;
+	    	this.regions_level_IV = new int[num_regions_level_IV][2];
+	    	for (int i=0; i< (this.num_regions_level_I-1 )/2;i++) {
+	    		this.regions_level_IV[i][0]= regions_level_I[2*i+1] [0];
+	    		this.regions_level_IV[i][1]= regions_level_I[2*i+2] [1];
+	    	}
+	    	if ((this.num_regions_level_I) %2 ==0) {
+	    		this.regions_level_IV[ this.num_regions_level_IV-1][0]= 
+	    				regions_level_I[this.num_regions_level_I-1] [0];
+	    		this.regions_level_IV[ this.num_regions_level_IV-1][1]= 
+	    				regions_level_I[this.num_regions_level_I-1] [1];
+	    	}
     	}
     }
     
     public void generate_dividing_plan_level_V() {
-    	this.num_regions_level_V= (this.num_regions_level_III +1)/2;
-    	this.regions_level_V = new int[num_regions_level_V][2];
-    	for (int i=0; i< this.num_regions_level_III /2;i++) {
-    		this.regions_level_V[i][0]= regions_level_III[2*i] [0];
-    		this.regions_level_V[i][1]= regions_level_III[2*i+1] [1];
-    	}
-    	if (this.num_regions_level_III %2 ==1) {
-    		this.regions_level_V[ this.num_regions_level_V-1][0]= 
-    				regions_level_III[this.num_regions_level_III-1] [0];
-    		this.regions_level_V[ this.num_regions_level_V-1][1]= 
-    				regions_level_III[this.num_regions_level_III-1] [1];
-    	}
+    	
+	    	this.num_regions_level_V= (this.num_regions_level_III +1)/2;
+	    	this.regions_level_V = new int[num_regions_level_V][2];
+	    	for (int i=0; i< this.num_regions_level_III /2;i++) {
+	    		this.regions_level_V[i][0]= regions_level_III[2*i] [0];
+	    		this.regions_level_V[i][1]= regions_level_III[2*i+1] [1];
+	    	}
+	    	if (this.num_regions_level_III %2 ==1) {
+	    		this.regions_level_V[ this.num_regions_level_V-1][0]= 
+	    				regions_level_III[this.num_regions_level_III-1] [0];
+	    		this.regions_level_V[ this.num_regions_level_V-1][1]= 
+	    				regions_level_III[this.num_regions_level_III-1] [1];
+	    	}
     }
     
     public void generate_dividing_plan_level_VI() {
-    	
-    	this.num_regions_level_VI= (this.num_regions_level_III )/2;
-    	this.regions_level_VI = new int[num_regions_level_VI][2];
-    	for (int i=0; i< (this.num_regions_level_III-1 )/2;i++) {
-    		this.regions_level_VI[i][0]= regions_level_III[2*i+1] [0];
-    		this.regions_level_VI[i][1]= regions_level_III[2*i+2] [1];
-    	}
-    	
-    	if ((this.num_regions_level_III) %2 ==0) {
-    		this.regions_level_VI[ this.num_regions_level_IV-1][0]= 
-    				regions_level_III[this.num_regions_level_III-1] [0];
-    		this.regions_level_VI[ this.num_regions_level_IV-1][1]= 
-    				regions_level_III[this.num_regions_level_III-1] [1];
+    	if (this.num_regions_level_III> 1){
+	    	this.num_regions_level_VI= (this.num_regions_level_III )/2;
+	    	this.regions_level_VI = new int[num_regions_level_VI][2];
+	    	for (int i=0; i< (this.num_regions_level_III-1 )/2;i++) {
+	    		this.regions_level_VI[i][0]= regions_level_III[2*i+1] [0];
+	    		this.regions_level_VI[i][1]= regions_level_III[2*i+2] [1];
+	    	}
+	    	
+	    	if ((this.num_regions_level_III) %2 ==0) {
+	    		this.regions_level_VI[ this.num_regions_level_VI-1][0]= 
+	    				regions_level_III[this.num_regions_level_III-1] [0];
+	    		this.regions_level_VI[ this.num_regions_level_VI-1][1]= 
+	    				regions_level_III[this.num_regions_level_III-1] [1];
+	    	}
     	}
     }
     
