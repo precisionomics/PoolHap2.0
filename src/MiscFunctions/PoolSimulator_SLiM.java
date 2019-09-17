@@ -394,7 +394,7 @@ public class PoolSimulator_SLiM {
         System.out.println("The minimum all-pool count is " + sortedCts[0] 
             + " and the maximum is " + sortedCts[sortedCts.length - 1] + "."); 
         PrintWriter pw = new PrintWriter(new FileWriter(gs_dir 
-            + "PD.simulation_summary.txt", false));   // gs_dir/c.simulation_summary.txt
+            + project_name +"_PD.simulation_summary.txt", false));   // gs_dir/c.simulation_summary.txt
         pw.append("Project_Name"+"\t"+"Total_Hap_Count"+"\t"+"Num_Var_Pos"+"\t"
             +"Ave_Mutation_Burden_Per_Hap"+"\t"+"Ave_Pairwise_Diff"+"\t"+"Std"
         		+"\t"+"Min_Pairwise_Diff"+"\t"+"Max_Pairwise_Diff"+"\t"
@@ -543,9 +543,6 @@ public class PoolSimulator_SLiM {
                     bw.write("\t" + var2infreqs[v][p]);
                 bw.write("\n");
             } bw.close();
-            
-            int average_hap_per_pool = all_pool_haps/num_pools;
-            int coverage_set = coverage/average_hap_per_pool;
 	}
 	
 
@@ -614,8 +611,8 @@ public class PoolSimulator_SLiM {
         
         if(is_single_population==true) {
         	for (int p = 0; p < num_pools; p++) {
+        	int haps_this_pool = pool2hapcomp.get(p).size();
             PrintWriter pw = new PrintWriter(fasta_folder + project_name + "_p" + p + ".fa");
-            int haps_this_pool = pool2hapcomp.get(p).size();
             	for (int h = 0; h < haps_this_pool; h++) {
             		int currHap = this.pool2hapcomp.get(p).get(h);
             		pw.append(">Haplotype_" + currHap + " \n");
@@ -644,14 +641,20 @@ public class PoolSimulator_SLiM {
         System.out.println("\nStep 3D: Simulate all of the pool FastQ files, given the distribution"
                 + " of haplotypes in step 3.\n");
         
-        int average_hap_per_pool = all_pool_haps/num_pools;
-        int coverage_set = coverage/average_hap_per_pool;
         for (int p = 0; p < num_pools; p++) {
+        	int haps_this_pool;
+        	if(is_single_population==true) {
+        		haps_this_pool = pool2hapcomp.get(p).size();
+        	}else {
+        		haps_this_pool=haps_per_pop_arr[p];
+        	}
+        	System.out.println("Haplotypes within this pool:" + haps_this_pool);
+            double coverage_set = (double)coverage/(double)haps_this_pool;
             ProcessBuilder CMDLine = new ProcessBuilder(dwgsimCMDLine,
                 fasta_folder + project_name + "_p" + p + ".fa", 
                 fastq_folder + project_name + "_p" + p, 
                 "-e", Double.toString(error_rate),
-                "-E", Double.toString(error_rate), "-C", Integer.toString(coverage_set),
+                "-E", Double.toString(error_rate), "-C", Double.toString(coverage_set),
                 "-1", Integer.toString(read_len),
                 "-2", Integer.toString(read_len),
                 "-r", "0",
