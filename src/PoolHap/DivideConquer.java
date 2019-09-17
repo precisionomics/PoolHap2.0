@@ -215,9 +215,9 @@ public class DivideConquer {
     	}
     	
     	if ((this.num_regions_level_III) %2 ==0) {
-    		this.regions_level_VI[ this.num_regions_level_IV-1][0]= 
+    		this.regions_level_VI[ this.num_regions_level_VI-1][0]= 
     				regions_level_III[this.num_regions_level_III-1] [0];
-    		this.regions_level_VI[ this.num_regions_level_IV-1][1]= 
+    		this.regions_level_VI[ this.num_regions_level_VI-1][1]= 
     				regions_level_III[this.num_regions_level_III-1] [1];
     	}
     }
