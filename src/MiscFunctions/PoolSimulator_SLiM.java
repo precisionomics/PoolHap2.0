@@ -543,6 +543,9 @@ public class PoolSimulator_SLiM {
                     bw.write("\t" + var2infreqs[v][p]);
                 bw.write("\n");
             } bw.close();
+            
+            int average_hap_per_pool = all_pool_haps/num_pools;
+            int coverage_set = coverage/average_hap_per_pool;
 	}
 	
 
@@ -555,7 +558,6 @@ public class PoolSimulator_SLiM {
         // 
 	public void generate_fastq(Boolean is_single_population)  throws IOException, InterruptedException {
         System.out.println("Step 3: Make all of the patient FASTA files.");
-        
         BufferedReader br = new BufferedReader(new FileReader(ref_seq_file_path));
         String[] refSequence = new String[ref_seq_len];
         String currLine = br.readLine();
@@ -641,7 +643,8 @@ public class PoolSimulator_SLiM {
         
         System.out.println("\nStep 3D: Simulate all of the pool FastQ files, given the distribution"
                 + " of haplotypes in step 3.\n");
-        int average_hap_per_pool = all_pool_haps/actual_num_haps;
+        
+        int average_hap_per_pool = all_pool_haps/num_pools;
         int coverage_set = coverage/average_hap_per_pool;
         for (int p = 0; p < num_pools; p++) {
             ProcessBuilder CMDLine = new ProcessBuilder(dwgsimCMDLine,
