@@ -6,6 +6,8 @@ import java.util.*;
 public class Evaluate {
 	public ArrayList<String> gold_haps= new ArrayList<String>();
 	public ArrayList<String> compare_haps= new ArrayList<String>();
+	public ArrayList<Double> gold_haps_freq= new ArrayList<Double>();
+	public ArrayList<Double> compare_haps_freq= new ArrayList<Double>();
 	public String proj_name; 
 	
 	public double mcc(String A_hap, String B_hap) {
@@ -653,6 +655,101 @@ public class Evaluate {
        
 		return;
 		
+	}
+	
+	public void MCCEvaluate(String gold_file, String lasso_file, double mcc_freq_cutoff) throws IOException {
+		this.gold_haps.clear();
+        this.compare_haps.clear();
+        this.gold_haps_freq.clear();
+        this.compare_haps_freq.clear();
+        
+		String line="";
+        ArrayList<ArrayList<String >>  geno0_2D = new ArrayList<ArrayList<String>>();
+        BufferedReader bufferedreader = new BufferedReader(new FileReader(gold_file));
+        while ((line = bufferedreader.readLine()) != null) {
+        	line =line.replace("\n", "").replace("\r", "");
+        	if (line.startsWith("Freq")) {
+        		String[] tmp = line.split("\t");
+        		for (int i = 1; i < tmp.length; i++) {
+        			this.gold_haps_freq.add(Double.parseDouble(tmp[i]));
+        		}
+        	}
+        			
+        	if ((!line.startsWith("Hap_ID")) &&  (!line.startsWith("Freq") )){
+        		String[] tmp = line.split("\t");
+        		ArrayList<String> tmp_arr = new ArrayList<String>();
+        		for (int i = 1; i < tmp.length; i++) {
+        			tmp_arr.add(tmp[i]);
+        		}
+        		geno0_2D.add(tmp_arr);
+        	}
+        }
+        for (int j = 0; j < geno0_2D.get(0).size(); j++) {
+        	String tmp_str="";
+        	for (int i = 0; i < geno0_2D.size(); i++) {
+        		tmp_str=tmp_str+ geno0_2D.get(i).get(j);
+        	}
+        	this.gold_haps.add(tmp_str);
+        }
+        bufferedreader.close();
+        
+        
+        ArrayList<ArrayList<String >>  geno_2D = new ArrayList<ArrayList<String>>();
+        BufferedReader bufferedreader2 = new BufferedReader(new FileReader(lasso_file));
+        while ((line = bufferedreader2.readLine()) != null) {
+        	line =line.replace("\n", "").replace("\r", "");
+        	if (line.startsWith("Freq")) {
+        		String[] tmp = line.split("\t");
+        		for (int i = 1; i < tmp.length; i++) {
+        			this.compare_haps_freq.add(Double.parseDouble(tmp[i]));
+        		}
+        	}
+        	if ((!line.startsWith("Hap_ID")) &&  (!line.startsWith("Freq") )){
+        		String[] tmp = line.split("\t");
+        		ArrayList<String> tmp_arr = new ArrayList<String>();
+        		for (int i = 1; i < tmp.length; i++) {
+        			tmp_arr.add(tmp[i]);
+        		}
+        		geno_2D.add(tmp_arr);
+        	}
+        }
+        for (int j = 0; j < geno_2D.get(0).size(); j++) {
+        	String tmp_str="";
+        	for (int i = 0; i < geno_2D.size(); i++) {
+        		tmp_str=tmp_str+ geno_2D.get(i).get(j);
+        	}
+        	this.compare_haps.add(tmp_str);
+        }
+        bufferedreader2.close();
+        
+//        for (int i = 0; i < this.compare_haps.size(); i++) {
+//        	System.out.println(this.compare_haps.get(i));
+//        }
+        double total_mcc=0;
+        double count=0.0001;
+        
+        for (int j = 0; j < this.compare_haps.size(); j++) {
+        	double max_mcc= -1;
+        	String nearest_hap="";
+        	if (this.compare_haps_freq.get(j)> mcc_freq_cutoff) {
+	        	for (int i = 0; i < this.gold_haps.size(); i++) {
+	        		if( mcc(this.gold_haps.get(i), this.compare_haps.get(j)) >  max_mcc) {
+	        			nearest_hap= this.gold_haps.get(i);
+	        			max_mcc= mcc(this.gold_haps.get(i), this.compare_haps.get(j));
+	        		}
+	        	}
+	        	total_mcc += max_mcc;
+	        	count=count+1;
+	        	System.out.println(this.compare_haps.get(j)+"\t"+"MaxMCC:\t"+ Double.toString(max_mcc) 
+	        	+"\t"+ nearest_hap);
+        	}
+        	
+        }
+        System.out.println( "Average MCC:\t" + total_mcc/ count );
+        return ;
+        
+        
+        
 	}
 	
 	public void LassoEvaluate(String gold_file, String aem_file) throws IOException {

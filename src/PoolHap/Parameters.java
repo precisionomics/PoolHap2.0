@@ -71,6 +71,7 @@ public class Parameters {
     public double lasso_coverage_weight;
     public double lasso_distance_max_weight;
     public double hc_similarity_cutoff;
+    public double mcc_freq_cutoff;
     
     //public double hapset_size_rand;
     //public int min_num_hap_regiobal_lasso;
@@ -174,10 +175,9 @@ public class Parameters {
             prop.getProperty("AEM_Regional_HapSetSize_Max"));
         this.aem_hapset_size_min = Integer.parseInt(
             prop.getProperty("AEM_Regional_HapSetSize_Min"));
+        this.mcc_freq_cutoff =Double.parseDouble
+        		(prop.getProperty("MCC_Freq_Cutoff"));
 
-        
-        
-        
         
         
  //      this.aem_hapset_size_rand = Integer.parseInt(prop.getProperty("AEM_HapSetSize_Rand"));

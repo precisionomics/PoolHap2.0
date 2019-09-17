@@ -357,8 +357,10 @@ public class Entrance {
             final_reconstruction.write2files(gp.out_dir + gp.project_name + ".inter_freq_haps.txt",
                 gp.out_dir + gp.project_name + ".intra_freq_haps.txt",
                 "string");
-//        	eva.LassoEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
-// 			"/home/chencao/Desktop/sim001/output/sim001.inter_freq_haps.txt");
+            
+        	eva.MCCEvaluate(gp.inter_dir +"/../gold_standard/"+ gp.project_name+"_haps.inter_freq_haps.txt",
+        			gp.out_dir+"/"+gp.project_name+".inter_freq_haps.txt", gp.mcc_freq_cutoff);
+        	
         	
         }else if (function.equals("clustering")) {
             /*
