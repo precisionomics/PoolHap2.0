@@ -6,9 +6,33 @@ import java.util.*;
 public class Evaluate {
 	public ArrayList<String> gold_haps= new ArrayList<String>();
 	public ArrayList<String> compare_haps= new ArrayList<String>();
+	public ArrayList<String> gold_haps_id= new ArrayList<String>();
+	
 	public ArrayList<Double> gold_haps_freq= new ArrayList<Double>();
 	public ArrayList<Double> compare_haps_freq= new ArrayList<Double>();
+	public ArrayList<ArrayList<Double>>  gold_inpool_freq= 
+			new ArrayList<ArrayList<Double>>();
+	public ArrayList<ArrayList<Double>>  compare_inpool_freq= 
+			new ArrayList<ArrayList<Double>>();
+			
+	public ArrayList<String> pool_id= new ArrayList<String>();
+	
 	public String proj_name; 
+	int num_pools;
+	
+	public   double log2 = Math.log(2);
+	
+	public   double klDivergence(double[] p1, double[] p2) {
+		double klDiv = 0.0;
+	      for (int i = 0; i < p1.length; ++i) {
+	        if (p1[i] == 0) { continue; }
+	        if (p2[i] == 0.0) { continue; } // Limin
+
+	      klDiv += p1[i] * (Math.log( p1[i] / p2[i] )  /log2)    ; 
+	      }
+	      return klDiv ;
+	}
+	
 	
 	public double mcc(String A_hap, String B_hap) {
 //		MCC=(TP×TN−FP×FN)/ sqrt((TP+FP)*(TP+FN)*(TN+FP)* (TN+FN))
@@ -657,17 +681,29 @@ public class Evaluate {
 		
 	}
 	
-	public void MCCEvaluate(String gold_file, String lasso_file, double mcc_freq_cutoff) throws IOException {
+	public void MCCEvaluate(String gold_file, String gold_inpool_freq_file,  
+			String lasso_file,String lasso_inpool_freq_file, String output_file,
+			double mcc_freq_cutoff) throws IOException {
+		
 		this.gold_haps.clear();
         this.compare_haps.clear();
         this.gold_haps_freq.clear();
         this.compare_haps_freq.clear();
+        this.gold_haps_id.clear();
+        this.gold_inpool_freq.clear();
+        this.pool_id.clear();
         
 		String line="";
         ArrayList<ArrayList<String >>  geno0_2D = new ArrayList<ArrayList<String>>();
         BufferedReader bufferedreader = new BufferedReader(new FileReader(gold_file));
         while ((line = bufferedreader.readLine()) != null) {
         	line =line.replace("\n", "").replace("\r", "");
+        	if (line.startsWith("Hap_ID")) {
+        		String[] tmp = line.split("\t");
+        		for (int i = 1; i < tmp.length; i++) {
+        			this.gold_haps_id.add(tmp[i]);
+        		}
+        	}
         	if (line.startsWith("Freq")) {
         		String[] tmp = line.split("\t");
         		for (int i = 1; i < tmp.length; i++) {
@@ -677,6 +713,7 @@ public class Evaluate {
         			
         	if ((!line.startsWith("Hap_ID")) &&  (!line.startsWith("Freq") )){
         		String[] tmp = line.split("\t");
+        		
         		ArrayList<String> tmp_arr = new ArrayList<String>();
         		for (int i = 1; i < tmp.length; i++) {
         			tmp_arr.add(tmp[i]);
@@ -684,6 +721,7 @@ public class Evaluate {
         		geno0_2D.add(tmp_arr);
         	}
         }
+        
         for (int j = 0; j < geno0_2D.get(0).size(); j++) {
         	String tmp_str="";
         	for (int i = 0; i < geno0_2D.size(); i++) {
@@ -692,6 +730,44 @@ public class Evaluate {
         	this.gold_haps.add(tmp_str);
         }
         bufferedreader.close();
+        
+        BufferedReader bufferedreader1 = new 
+        		BufferedReader(new FileReader(gold_inpool_freq_file));
+        while ((line = bufferedreader1.readLine()) != null) {
+        	line =line.replace("\n", "").replace("\r", "");
+        	if (!line.startsWith("Hap_ID")) {
+        		String[] tmp = line.split("\t");
+        		this.pool_id.add(tmp[0]);
+        		ArrayList<Double> tmp_arr = new ArrayList<Double>();
+        		for (int i = 1; i < tmp.length; i++) {
+        			tmp_arr.add(Double.parseDouble(tmp[i]));
+        		}
+        		this.gold_inpool_freq.add(tmp_arr);
+        	}
+        }
+        
+        bufferedreader1.close();
+        
+        BufferedReader bufferedreader3 = new 
+        		BufferedReader(new FileReader(lasso_inpool_freq_file));
+        while ((line = bufferedreader3.readLine()) != null) {
+        	line =line.replace("\n", "").replace("\r", "");
+        	if (!line.startsWith("Hap_ID")) {
+        		String[] tmp = line.split("\t");
+        		ArrayList<Double> tmp_arr = new ArrayList<Double>();
+        		for (int i = 1; i < tmp.length; i++) {
+        			double freq= Double.parseDouble(tmp[i]);
+        			
+        			tmp_arr.add(freq);
+        			
+        		}
+        		this.compare_inpool_freq.add(tmp_arr);
+        	}
+        }
+        
+        bufferedreader3.close();
+        
+        
         
         
         ArrayList<ArrayList<String >>  geno_2D = new ArrayList<ArrayList<String>>();
@@ -722,35 +798,239 @@ public class Evaluate {
         }
         bufferedreader2.close();
         
-//        for (int i = 0; i < this.compare_haps.size(); i++) {
-//        	System.out.println(this.compare_haps.get(i));
-//        }
-        double total_mcc=0;
-        double count=0.0001;
-        
-        for (int j = 0; j < this.compare_haps.size(); j++) {
-        	double max_mcc= -1;
-        	String nearest_hap="";
-        	if (this.compare_haps_freq.get(j)> mcc_freq_cutoff) {
-	        	for (int i = 0; i < this.gold_haps.size(); i++) {
-	        		if( mcc(this.gold_haps.get(i), this.compare_haps.get(j)) >  max_mcc) {
-	        			nearest_hap= this.gold_haps.get(i);
-	        			max_mcc= mcc(this.gold_haps.get(i), this.compare_haps.get(j));
-	        		}
+        BufferedWriter bw = new BufferedWriter(new FileWriter(output_file));
+        String bw_line= "PoolID\tPredicted_hap\tFreq\tMCC\tGold_standard_hap\n";
+        bw.write(bw_line);
+        for (int p=0; p< this.pool_id.size();p++) {
+	        double total_mcc=0;
+	        double count=0.0;
+	        for (int j = 0; j < this.compare_inpool_freq.get(p).size(); j++) {
+	        	if (this.compare_inpool_freq.get(p).get(j)>0){
+		        	double max_mcc= -1;
+		        	String nearest_hap="";
+		        	if (this.compare_haps_freq.get(j)> mcc_freq_cutoff) {
+			        	for (int i = 0; i < this.gold_haps.size(); i++) {
+			        		if (this.gold_inpool_freq.get(p).get(i)>0) {
+				        		if( mcc(this.gold_haps.get(i), this.compare_haps.get(j)) >  max_mcc) {
+				        			nearest_hap= this.gold_haps.get(i);
+				        			max_mcc= mcc(this.gold_haps.get(i), this.compare_haps.get(j));
+				        		}
+			        		}
+			        	}
+			        	total_mcc += max_mcc;
+			        	count=count+1;
+			        	bw_line= this.pool_id.get(p)+"\t"+ this.compare_haps.get(j)+"\t"+
+			        			Double.toString(this.compare_haps_freq.get(j))+"\t"+Double.toString(max_mcc)
+			        			+ "\t"+nearest_hap+"\n";
+			        	bw.write(bw_line);
+		        	}
 	        	}
-	        	total_mcc += max_mcc;
-	        	count=count+1;
-	        	System.out.println(this.compare_haps.get(j)+"\t"+"MaxMCC:\t"+ Double.toString(max_mcc) 
-	        	+"\t"+ nearest_hap);
-        	}
-        	
+	        	
+	        }
+	        bw_line= "Average MCC for :" +this.pool_id.get(p) + "is:\t" + Double.toString(total_mcc/ count )+"\n";
+	        bw.write(bw_line);
+	        
         }
-        System.out.println( "Average MCC:\t" + total_mcc/ count );
+        bw.close();
         return ;
-        
-        
-        
 	}
+	
+	
+	public void JSDEvaluate(String gold_file, String gold_inpool_freq_file,  
+			String lasso_file,String lasso_inpool_freq_file, String output_file
+			) throws IOException {
+		
+		this.gold_haps.clear();
+        this.compare_haps.clear();
+        this.gold_haps_freq.clear();
+        this.compare_haps_freq.clear();
+        this.gold_haps_id.clear();
+        this.gold_inpool_freq.clear();
+        this.pool_id.clear();
+        
+		String line="";
+        ArrayList<ArrayList<String >>  geno0_2D = new ArrayList<ArrayList<String>>();
+        BufferedReader bufferedreader = new BufferedReader(new FileReader(gold_file));
+        while ((line = bufferedreader.readLine()) != null) {
+        	line =line.replace("\n", "").replace("\r", "");
+        	if (line.startsWith("Hap_ID")) {
+        		String[] tmp = line.split("\t");
+        		for (int i = 1; i < tmp.length; i++) {
+        			this.gold_haps_id.add(tmp[i]);
+        		}
+        	}
+        	if (line.startsWith("Freq")) {
+        		String[] tmp = line.split("\t");
+        		for (int i = 1; i < tmp.length; i++) {
+        			this.gold_haps_freq.add(Double.parseDouble(tmp[i]));
+        		}
+        	}
+        			
+        	if ((!line.startsWith("Hap_ID")) &&  (!line.startsWith("Freq") )){
+        		String[] tmp = line.split("\t");
+        		
+        		ArrayList<String> tmp_arr = new ArrayList<String>();
+        		for (int i = 1; i < tmp.length; i++) {
+        			tmp_arr.add(tmp[i]);
+        		}
+        		geno0_2D.add(tmp_arr);
+        	}
+        }
+        
+        for (int j = 0; j < geno0_2D.get(0).size(); j++) {
+        	String tmp_str="";
+        	for (int i = 0; i < geno0_2D.size(); i++) {
+        		tmp_str=tmp_str+ geno0_2D.get(i).get(j);
+        	}
+        	this.gold_haps.add(tmp_str);
+        }
+        bufferedreader.close();
+        
+        BufferedReader bufferedreader1 = new 
+        		BufferedReader(new FileReader(gold_inpool_freq_file));
+        while ((line = bufferedreader1.readLine()) != null) {
+        	line =line.replace("\n", "").replace("\r", "");
+        	if (!line.startsWith("Hap_ID")) {
+        		String[] tmp = line.split("\t");
+        		this.pool_id.add(tmp[0]);
+        		ArrayList<Double> tmp_arr = new ArrayList<Double>();
+        		for (int i = 1; i < tmp.length; i++) {
+        			tmp_arr.add(Double.parseDouble(tmp[i]));
+        		}
+        		this.gold_inpool_freq.add(tmp_arr);
+        	}
+        }
+        
+        bufferedreader1.close();
+        
+        BufferedReader bufferedreader3 = new 
+        		BufferedReader(new FileReader(lasso_inpool_freq_file));
+        while ((line = bufferedreader3.readLine()) != null) {
+        	line =line.replace("\n", "").replace("\r", "");
+        	if (!line.startsWith("Hap_ID")) {
+        		String[] tmp = line.split("\t");
+        		ArrayList<Double> tmp_arr = new ArrayList<Double>();
+        		for (int i = 1; i < tmp.length; i++) {
+        			double freq= Double.parseDouble(tmp[i]);
+        			
+        			tmp_arr.add(freq);
+        			
+        		}
+        		this.compare_inpool_freq.add(tmp_arr);
+        	}
+        }
+        
+        bufferedreader3.close();
+        
+        
+        
+        
+        ArrayList<ArrayList<String >>  geno_2D = new ArrayList<ArrayList<String>>();
+        BufferedReader bufferedreader2 = new BufferedReader(new FileReader(lasso_file));
+        while ((line = bufferedreader2.readLine()) != null) {
+        	line =line.replace("\n", "").replace("\r", "");
+        	if (line.startsWith("Freq")) {
+        		String[] tmp = line.split("\t");
+        		for (int i = 1; i < tmp.length; i++) {
+        			this.compare_haps_freq.add(Double.parseDouble(tmp[i]));
+        		}
+        	}
+        	if ((!line.startsWith("Hap_ID")) &&  (!line.startsWith("Freq") )){
+        		String[] tmp = line.split("\t");
+        		ArrayList<String> tmp_arr = new ArrayList<String>();
+        		for (int i = 1; i < tmp.length; i++) {
+        			tmp_arr.add(tmp[i]);
+        		}
+        		geno_2D.add(tmp_arr);
+        	}
+        }
+        for (int j = 0; j < geno_2D.get(0).size(); j++) {
+        	String tmp_str="";
+        	for (int i = 0; i < geno_2D.size(); i++) {
+        		tmp_str=tmp_str+ geno_2D.get(i).get(j);
+        	}
+        	this.compare_haps.add(tmp_str);
+        }
+        bufferedreader2.close();
+        
+        BufferedWriter bw = new BufferedWriter(new FileWriter(output_file));
+        String bw_line= "PoolID\tGold_standard_hap\tGold_standard_Freq\tPredicted_Freq\n";
+        bw.write(bw_line);
+        for (int p=0; p< this.pool_id.size();p++) {
+        	ArrayList<String> hap_id = new ArrayList<String>();
+        	ArrayList<String> hap_seq = new ArrayList<String>();
+        	ArrayList<Double> hap_freq = new ArrayList<Double>();
+        	ArrayList<Double> predicted_freq = new ArrayList<Double>();
+        	for (int i=0; i< this.gold_inpool_freq.get(p).size();i++) {
+        		if (this.gold_inpool_freq.get(p).get(i)>0.00001) {
+        			hap_id.add(this.gold_haps_id.get(i));
+        			hap_seq.add(this.gold_haps.get(i));
+        			hap_freq.add(this.gold_inpool_freq.get(p).get(i));
+        			predicted_freq.add(0.0);
+        		}
+        	}
+        	ArrayList<String> x_hap_seq = new ArrayList<String>();
+        	ArrayList<Double> x_hap_freq = new ArrayList<Double>();
+        	for (int i=0; i< this.compare_inpool_freq.get(p).size();i++) {
+        		if (this.compare_inpool_freq.get(p).get(i)>0.00001) {
+        			x_hap_seq.add(this.compare_haps.get(i));
+        			x_hap_freq.add(this.compare_inpool_freq.get(p).get(i));
+        		}
+        	}
+        	for (int i=0;i < x_hap_seq.size();i++) {
+        		int min_mismatch=x_hap_seq.get(i).length() ;
+        		double num_maps= 0.0;
+        		for (int j=0;j < hap_seq.size();j++) {
+        			if (NumofMismatch(x_hap_seq.get(i), hap_seq.get(j)) == min_mismatch) {
+        				num_maps=num_maps+1;
+        			}
+        			if (NumofMismatch(x_hap_seq.get(i), hap_seq.get(j)) < min_mismatch) {
+        				min_mismatch = NumofMismatch(x_hap_seq.get(i), hap_seq.get(j));
+        				num_maps=1.0;
+        			}
+        		}
+        		for (int j=0;j < hap_seq.size();j++) {
+        			if (NumofMismatch(x_hap_seq.get(i), hap_seq.get(j)) == min_mismatch) {
+        				predicted_freq.set(j, predicted_freq.get(j)+ x_hap_freq.get(i)/ num_maps) ;
+        			}
+        		}
+        		
+        	}	
+        	for (int i=0;i < hap_seq.size();i++) {
+        		bw_line= this.pool_id.get(p)+"\t"+ hap_seq.get(i)+"\t"+ Double.toString(hap_freq.get(i))+
+        				"\t"+Double.toString(predicted_freq.get(i))+"\n";
+        		bw.write(bw_line);
+        	}
+        	double[] p1= new double [hap_freq.size() ];
+    		double[] p2= new double [hap_freq.size()];
+    		double p1_total=0.0;
+    		double p2_total=0.0;
+    		for (int i=0;i < hap_freq.size();i++) {
+    			p1[i]= hap_freq.get(i);
+    			p2[i]= predicted_freq.get(i);
+    			p1_total+=hap_freq.get(i);
+    			p2_total+=predicted_freq.get(i);
+    		}
+    		
+    		for (int i=0;i < hap_freq.size();i++) {
+    			p1[i]=p1[i]/ p1_total;
+    			p2[i]=p2[i]/ p2_total;
+    		}
+    		assert(p1.length == p2.length);
+    		double[] average = new double[p1.length];
+    		for (int i = 0; i < p1.length; ++i) {
+    			average[i] += (p1[i] + p2[i])/2;
+    	    }
+    		double jsd= (klDivergence(p1, average) + klDivergence(p2, average))/2;
+    		bw_line= "JSD for " +this.pool_id.get(p) + "is:\t" + Double.toString(jsd )+"\n";
+    		bw.write(bw_line);
+        }
+        
+        bw.close();
+        
+        return ;
+	}
+	
 	
 	public void LassoEvaluate(String gold_file, String aem_file) throws IOException {
 		this.gold_haps.clear();

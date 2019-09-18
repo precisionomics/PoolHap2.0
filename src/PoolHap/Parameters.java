@@ -21,6 +21,7 @@ public class Parameters {
     public String input_dir;
     public String inter_dir; // intermediate directory, including the following files:
     public String out_dir; // output directory
+    public String gold_dir;
     public int num_pos_window;
     public int num_gap_window; 
     public int num_pos_job;
@@ -92,10 +93,12 @@ public class Parameters {
 //            System.out.println("Function "+this.function+" is not supported. A typo?");
 //            System.exit(0);
 //        }
+        
         this.project_name= prop.getProperty("Proj_Name");
         this.input_dir= prop.getProperty("Input_Dir")+"/";
         this.inter_dir = prop.getProperty("Intermediate_Dir")+"/";
         this.out_dir = prop.getProperty("Output_Dir")+"/";
+        this.gold_dir= prop.getProperty("Gold_Dir")+"/";
         this.num_pos_window = Integer.parseInt(prop.getProperty("Num_Pos_Window"));
         this.num_gap_window = Integer.parseInt(prop.getProperty("Num_Gap_Window"));
         this.num_pos_job= Integer.parseInt(prop.getProperty("Num_Pos_Job")); 

@@ -485,9 +485,50 @@ public class RandomSimulator {
 //		System.out.println(" Lasso Input File Simulation Finished!");
 	}
 	
+	public static final double log2 = Math.log(2);
+	
+	public  static double klDivergence(double[] p1, double[] p2) {
+		double e= 2.718281828;
+		double klDiv = 0.0;
+	      for (int i = 0; i < p1.length; ++i) {
+	        if (p1[i] == 0) { continue; }
+	        if (p2[i] == 0.0) { continue; } // Limin
+
+	      klDiv += p1[i] * (Math.log( p1[i] / p2[i] )  /log2)    ; 
+	      }
+	      System.out.println( log2 );
+	      return klDiv ;
+	}
 
 	
 	public static  void main(String[] args) throws IOException {
+		double[] p1= new double [2];
+		double[] p2= new double [2];
+//		p1[0]=p1[1]=p1[2]=p1[3]=p1[4]=0.2;
+		p1[0] =0.0;
+		p1[1] =1.0;
+//		p1[2] =0.0;
+		p2[0] =1.0;
+		p2[1] =0.0;
+//		p2[2] =0.2;
+//		p2[0]=p2[1]=p2[2]=p2[3]=p2[4]=0.3;
+//		p1[0] =0.0;
+//		p1[1] =0.286;
+//		p1[2] =0.077;
+//		p1[3] =0.826;
+//		p2[0] =0.2866;
+//		p2[1] =0.0;
+//		p2[2] =0.157;
+//		p2[3] =0.082;
+		assert(p1.length == p2.length);
+		double[] average = new double[p1.length];
+		for (int i = 0; i < p1.length; ++i) {
+			average[i] += (p1[i] + p2[i])/2;
+	    }
+			
+		System.out.println( (klDivergence(p1, average) + klDivergence(p2, average))/2);
+//		System.exit(0);
+		
 		// /home/chencao/Desktop  sim001	10	20	15	5000	50	150	50	100		5
 		//parameter 0: folder path
 		//parameter 1: project name
@@ -500,7 +541,6 @@ public class RandomSimulator {
 		//parameter 8: outer distance between the two ends for pairs
 		//parameter 9: average coverage
 		//parameter 10: number of mutations each generation
-		
 		RandomSimulator rs = new RandomSimulator(args);
 	}
 	

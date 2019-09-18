@@ -153,7 +153,7 @@ public class Entrance {
          * Input arguments.
          */
     	String[] supported_functions_array = {"format", "gc", "aem", "lasso", 
-    			"split" ,"clustering"};
+    			"split" ,"clustering", "evaluate"};
     	HashSet<String> supported_functions = new HashSet<String>();
         for (int k = 0; k < supported_functions_array.length; k++) {
              supported_functions.add(supported_functions_array[k]);
@@ -358,8 +358,7 @@ public class Entrance {
                 gp.out_dir + gp.project_name + ".intra_freq_haps.txt",
                 "string");
             
-        	eva.MCCEvaluate(gp.inter_dir +"/../gold_standard/"+ gp.project_name+"_haps.inter_freq_haps.txt",
-        			gp.out_dir+"/"+gp.project_name+".inter_freq_haps.txt", gp.mcc_freq_cutoff);
+        	
         	
         	
         }else if (function.equals("clustering")) {
@@ -581,6 +580,23 @@ public class Entrance {
             System.out
                 .println("\nAEM+BFS Finished: " + dtf.format(LocalDateTime.now()) + "\n");
             
-        }    
+        }    else if (function.equals("evaluate")) {
+        	// Chen:	MCC
+        		eva.MCCEvaluate(gp.gold_dir +"/"+ gp.project_name+"_haps.inter_freq_haps.txt",
+        				gp.gold_dir +"/"+ gp.project_name+"_haps.intra_freq.txt",
+        			gp.out_dir+"/"+gp.project_name+".inter_freq_haps.txt",
+        			gp.out_dir+"/"+gp.project_name+".intra_freq_haps.txt",
+        			gp.out_dir+"/"+gp.project_name+".MCC.txt",
+        			gp.mcc_freq_cutoff);
+        	// Chen:	JSD
+        		eva.JSDEvaluate(gp.gold_dir +"/"+ gp.project_name+"_haps.inter_freq_haps.txt",
+        				gp.gold_dir +"/"+ gp.project_name+"_haps.intra_freq.txt",
+        			gp.out_dir+"/"+gp.project_name+".inter_freq_haps.txt",
+        			gp.out_dir+"/"+gp.project_name+".intra_freq_haps.txt",
+        			gp.out_dir+"/"+gp.project_name+".JSD.txt");
+        		System.out
+                .println("\nEvaluation Finished: " + dtf.format(LocalDateTime.now()) + "\n");
+
+        }
     }
 }
