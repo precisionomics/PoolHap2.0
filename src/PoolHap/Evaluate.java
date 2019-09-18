@@ -827,7 +827,7 @@ public class Evaluate {
 	        	}
 	        	
 	        }
-	        bw_line= "Average MCC for :" +this.pool_id.get(p) + "is:\t" + Double.toString(total_mcc/ count )+"\n";
+	        bw_line= "Average MCC for " +this.pool_id.get(p) + " is:\t" + Double.toString(total_mcc/ count )+"\n";
 	        bw.write(bw_line);
 	        
         }
@@ -1022,7 +1022,7 @@ public class Evaluate {
     			average[i] += (p1[i] + p2[i])/2;
     	    }
     		double jsd= (klDivergence(p1, average) + klDivergence(p2, average))/2;
-    		bw_line= "JSD for " +this.pool_id.get(p) + "is:\t" + Double.toString(jsd )+"\n";
+    		bw_line= "JSD for " +this.pool_id.get(p) + " is:\t" + Double.toString(jsd )+"\n";
     		bw.write(bw_line);
         }
         
