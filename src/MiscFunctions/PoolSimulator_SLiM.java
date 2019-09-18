@@ -393,8 +393,9 @@ public class PoolSimulator_SLiM {
             + meanCts + " and the standard deviation is " + stdCts + ".");
         System.out.println("The minimum all-pool count is " + sortedCts[0] 
             + " and the maximum is " + sortedCts[sortedCts.length - 1] + "."); 
+        
         PrintWriter pw = new PrintWriter(new FileWriter(gs_dir 
-            + project_name +"_PD.simulation_summary.txt", false));   // gs_dir/c.simulation_summary.txt
+            + "PD.simulation_summary.txt", true));   // gs_dir/c.simulation_summary.txt
         pw.append("Project_Name"+"\t"+"Total_Hap_Count"+"\t"+"Num_Var_Pos"+"\t"
             +"Ave_Mutation_Burden_Per_Hap"+"\t"+"Ave_Pairwise_Diff"+"\t"+"Std"
         		+"\t"+"Min_Pairwise_Diff"+"\t"+"Max_Pairwise_Diff"+"\t"
@@ -403,7 +404,7 @@ public class PoolSimulator_SLiM {
         pw.append(project_name + "\t" + actual_num_haps + "\t" + actual_num_vars 
             + "\t" + var_burden_avg + "\t" + meanPWDiff + "\t" + stdPWDiff + "\t" 
             + pwDifference[0] + "\t" + pwDifference[pwDifference.length - 1] + "\t" + meanCts  
-            + "\t" + stdCts + "\t" + sortedCts[0] + "\t" + sortedCts[sortedCts.length - 1] + "\n");
+            + "\t" + stdCts + "\t" + sortedCts[0] + "\t" + sortedCts[sortedCts.length - 1] + "\n"+"\n");
         pw.close();
         // System.out.print("Is this acceptable? ");
         // answer = reader.next();
