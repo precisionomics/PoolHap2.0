@@ -60,7 +60,48 @@ public class RegionEMSolver {
     	}
     	return count;
     }
+    
+    
+    
+    public double freq_dist (double [] x, double [] y) {
+    	double n =(double) x.length;
+    	double value=0;
+    	for (int i=0;i< x.length;i++) {
+    		value += Math.abs(x[i]-y[i]);
+    	}
+    	return value/ n;
+    }
+    
+    public double [] var_freq_cal (String [][] hap, double [] hap_freq ) throws IOException {
+    	double [] var_freq =new double [hap[0].length ];
+    	for (int i=0;i< var_freq.length; i++) {
+    		double value =0;
+    		for (int j=0; j< hap.length; j++) {
+    			if (hap[j][i].equals("1")) {
+    				value =value+ hap_freq[j];
+    			}
+    		}
+    		var_freq[i]=value;
+    	}
+    	return var_freq;
+    }
+    
+    public double [] var_freq_cal2 ( double [][] site_freq ) throws IOException {
+    	double [] var_freq =new double [site_freq.length ];
+    	for (int i=0;i< var_freq.length; i++) {
+    		double value =0;
+    		for (int j=0; j< site_freq[i].length; j++) {
+    			value =value+ site_freq[i][j];
+
+    		}
+    		var_freq[i]=value/ (double)site_freq[i].length ;
+    	}
+    	return var_freq;
+    }
+    
+    
     public void analyze_a_region_aem(String parameter_file) throws IOException {
+    	
         Parameters aem_parameters = new Parameters(parameter_file);
 
         // The current estimate of global haplotype frequencies.
@@ -78,60 +119,21 @@ public class RegionEMSolver {
         // global frequency.
         double[] Rh = freq.clone();
         this.initial_Haps.update_sigma_mu_logL();
-//        for (int i = 0; i  < this.initial_Haps.mu.length ;i++) {    	
-//        	System.out.println( this.initial_Haps.mu[i]+"\t");
-//        	
-//        	for (int j = 0; j  < this.initial_Haps.sigma[i].length; j++) { 
-//        		System.out.print( this.initial_Haps.sigma[i][j]+ "\t" );
-//        	}
-//        	System.out.println();
-//        }
-        /*
-         *  Step 1: Find the (approximate) maximum likelihood global frequency of each haplotype by
-         *  applying i) linear constraints on allele frequencies and ii) pairwise haplotype
-         *  frequencies.
-         */
-        // For each AEM iteration...
-//        for (int iter = 0; iter < aem_parameters.aem_max_iteration; iter++) {
-        for (int iter = 0; iter < this.num_loci*150; iter++) {
-//        for (int iter = 0; iter < 2; iter++) {
-        	
-//    		String file_path= "/home/chencao/Desktop/test.txt";
-//    		FileWriter mydata = new FileWriter(file_path,true);
-//            PrintWriter pw = new PrintWriter(mydata);
-//            pw.write(  Integer.toString(iter)+"\n");
-//        	for (int i = 0; i  < freq.length; i++) {    		
-//        		pw.write(Double.toString(freq[i])  );
-//        		pw.write("\t" );
-//            	for (int j = 0; j  < this.initial_Haps.global_haps_string[i].length; j++) { 
-//            		pw.write(this.initial_Haps.global_haps_string[i][j]  );
-//            	}
-//            	pw.write("\n" );
-//            }
-//            pw.flush();
-//            pw.close();
-        	
-            // Step 1a) Calculate ii) using the sigma matrix, which represents linkage between the
-            // alleles at different sites.
-            // TODO: [ReconEP]:: maybe each of these steps should be a helper.
 
-            // Calculate the inverse singular value decomposition of the haplotype set's sigma
-            // (covariance) matrix.
-//        	if (( iter%200)==0) {
-//        		System.out.println("iter:\t" + iter);
-//        	}
+        int iter=0;
+        int diagonal_matrix_freq_index =0;
+        double[] diagonal_matrix_freq =new double [] {0.0001, 0.001, 0.01, 0.1, 1.0, 2.0, 5.0};
+//        for (iter = 0; iter < this.num_loci*100; iter++) {
+        while ((iter< this.num_loci*100)  &&
+        		(diagonal_matrix_freq_index < diagonal_matrix_freq.length ) )  {
+
         	double total_sigma =0;
         	for (int j = 0; j < this.initial_Haps.sigma.length; j++) {
         		for (int k = 0; k < this.initial_Haps.sigma[j].length; k++) {
-//        			System.out.print(this.initial_Haps.sigma[j][k]  );
         			total_sigma+= this.initial_Haps.sigma[j][k];
         		}
-//        		System.out.println( );
         	}
-        	
         	double total_sigma_cufoff= 0.02* (double)this.num_loci* (double)this.num_loci;
-//        	total_sigma_cufoff =0;
-//        	System.out.println(Double.toString(check)+"---" );
         	if (total_sigma< total_sigma_cufoff) {
         		double multiple = total_sigma_cufoff/ total_sigma;
         		for (int j = 0; j < this.initial_Haps.sigma.length; j++) {
@@ -142,36 +144,9 @@ public class RegionEMSolver {
         	}
             SingularValueDecomposition svd = new SingularValueDecomposition(
                 MatrixUtils.createRealMatrix(this.initial_Haps.sigma));
-//            System.out.println( "**************************");
-//            System.out.println( svd.getS());
+
             
             RealMatrix svd_inv = svd.getSolver().getInverse();
-//            System.out.print("A:\t");
-//            for (int i=0;i< this.initial_Haps.sigma.length;i++) {
-//            	for (int j=0;j< this.initial_Haps.sigma[i].length;j++) {
-//            		System.out.print(this.initial_Haps.sigma[i][j]+",");
-//            	}
-//            }
-//            System.out.println();
-            
-//            RealMatrix S=svd.getS();
-//            for (int i=0;i< S.getColumnDimension();i++) {
-//            	if ((S.getEntry(i, i)>  0.001) ||  (S.getEntry(i, i)<  -0.001)){
-//            			double value = 1/ (double) S.getEntry(i, i);
-//            		S.addToEntry(i, i, value); 
-//            	}else {
-//            		S.addToEntry(i, i, 0.0); 
-//            	}
-//            }
-//            RealMatrix svd_inv = svd.getV().multiply( S) .multiply(svd.getU());
-//            System.out.println( "B:\t"+S);
-//            System.out.println( "C:\t"+svd.getV());
-//            System.out.println( "D:\t"+svd.getU());
-//            System.out.println( "F:\t"+svd_inv);
-//            if (Double.isNaN(svd_inv.getColumn(0)[0])){
-//            	System.exit(0);
-//            }
-
             // Step 1b) Calculate i) by taking the distance of alternate alleles from the average
             // haplotype of each pool.
             // TODO: [ReconEP]:: extract to helper?
@@ -182,9 +157,7 @@ public class RegionEMSolver {
                     dist_to_mu[u][v] = this.initial_Haps.inpool_site_freqs[v][u]
                         - this.initial_Haps.mu[v];
                 }
-            }
-
-            
+            }          
             double[] IF = new double[this.initial_Haps.num_global_hap];
             for (int j = 0; j < this.initial_Haps.num_global_hap; j++) {
                 double[] hh = this.initial_Haps.global_haps[j];
@@ -195,7 +168,6 @@ public class RegionEMSolver {
                     * Algebra.quadratic_form(
                         Algebra.minus(this.initial_Haps.mu, hh),
                         svd_inv.getData()));
-//                System.out.println("XXX");
                 
                 // QUESTION: is this.aem_parameters.est_ind_pool making rh1 a lot smaller than it
                 // has to be?
@@ -203,13 +175,6 @@ public class RegionEMSolver {
                 // rh2 = exp(-dist_to_mu %*% svd_inv %*% (omega-h)
                 //     - diag(dist_to_mu %*% svd_inv %*% t(dist_to_mu) / 2))
 
-                
-//                System.out.println(Double.toString( svd_inv.preMultiply(dist_mtx)
-//                        .operate(Algebra.minus(hh, this.initial_Haps.mu))[0])+" @@"
-//                		+Double.toString(Algebra.diag(dist_mtx.multiply(svd_inv)
-//                        .multiply(dist_mtx.transpose())
-//                        .scalarMultiply(0.5)
-//                        .getData())[0])+" !!");
                 
                 double[] rh2 = Algebra.exp(
                     Algebra.minus(svd_inv.preMultiply(dist_mtx)
@@ -231,18 +196,15 @@ public class RegionEMSolver {
 
             Algebra.normalize_ditribution(p_new);
             Algebra.rmlow_and_normalize(p_new, aem_parameters.aem_zero_cutoff);
-            if (delta < aem_parameters.aem_epsilon || delta1 < aem_parameters.aem_epsilon) {
-                break;
-            }
+            
             freq = p_new.clone();
             
             for (double f : freq) {
                 if (Double.isNaN(f)) {
-                	int[] r_f=new int [freq.length] ;
-                	int total_r= 0;
+                	double[] r_f=new double [freq.length] ;
+                	double total_r= 0;
                 	for (int j = 0; j < freq.length; j++) {
-                		Random random = new Random(iter);
-    	        	    int s = random.nextInt(5)+ 1;
+    	        	    double s = 1.0;
     	        	    r_f[j]=s;
     	        	    total_r +=s;
                 	}
@@ -251,14 +213,57 @@ public class RegionEMSolver {
                 	}
                 }
             }
+            if (delta < aem_parameters.aem_epsilon || delta1 < aem_parameters.aem_epsilon) {
+            	double [] predicted_var_freq =new double [ this.initial_Haps.num_loci];
+            	double [] real_var_freq =new double [ this.initial_Haps.num_loci];
+            	predicted_var_freq= var_freq_cal(this.initial_Haps.global_haps_string,freq);
+            	real_var_freq =var_freq_cal2(this.initial_Haps.inpool_site_freqs);
+            	if (freq_dist( predicted_var_freq,real_var_freq )< 0.12) {
+            		break;
+            	}
+            }
+            
+            
+            iter++;
+            double total_freq=0;
+//            if (iter< -10) {
+            if (iter== this.num_loci*100) {
+            	iter=0;
+            	double [] predicted_var_freq =new double [ this.initial_Haps.num_loci];
+            	double [] real_var_freq =new double [ this.initial_Haps.num_loci];
+            	predicted_var_freq= var_freq_cal(this.initial_Haps.global_haps_string,freq);
+            	real_var_freq =var_freq_cal2(this.initial_Haps.inpool_site_freqs);
+//            	for (int j=0;j<predicted_var_freq.length;j++ ) {
+//            		System.out.print(predicted_var_freq[j]+" " );
+//            	}
+//            	System.out.println();
+//            	System.out.println(freq_dist( predicted_var_freq,real_var_freq )+"***");
+            	if (freq_dist( predicted_var_freq,real_var_freq ) < 0.12) {
+            		this.initial_Haps.global_haps_freq = freq.clone();
+            		break;
+            	}
+            	else {
+            		for (int j=0;j<freq.length;j++ ) {
+            			if (num_of_alternate(this.initial_Haps.global_haps_string[j])==1) {
+            				freq[j]= diagonal_matrix_freq[diagonal_matrix_freq_index];
+            				total_freq+= diagonal_matrix_freq[diagonal_matrix_freq_index];
+            			}else {
+            				freq[j]= 1.0;
+            				total_freq+=1.0;
+            			}
+            		}
+            		diagonal_matrix_freq_index++;
+            		for (int j = 0; j < freq.length; j++) {
+                    	freq[j] = freq[j]/ total_freq;
+                    }
+            	}
+            }
             
             this.initial_Haps.global_haps_freq = freq.clone();
             
 // Chen: Ensure a non-singular matrix   
-            double total_freq=1.0; 
-            double min_freq_cufoff=0.0002; 
-            
-            
+            total_freq=1.0; 
+            double min_freq_cufoff=0.0002;  
             for (int j = 0; j < this.initial_Haps.global_haps_freq.length; j++) {
             	if (num_of_alternate ( this.initial_Haps.global_haps_string[j]) ==1) {
             		if (this.initial_Haps.global_haps_freq[j]< min_freq_cufoff) {
@@ -271,28 +276,29 @@ public class RegionEMSolver {
             	this.initial_Haps.global_haps_freq[j] = this.initial_Haps.global_haps_freq[j]
             			/total_freq;
             }
-           
-            
             this.initial_Haps.update_sigma_mu_logL();
             
-//            for (int j = 0; j < this.initial_Haps.sigma.length; j++) {
-//        		for (int k = 0; k < this.initial_Haps.sigma[j].length; k++) {
-//        			
-//        			System.out.print(this.initial_Haps.sigma[j][k]);
-//        		}
-//        		System.out.println();
-//        	}
         }
+        
+        
+        
 
+        
+        
         for (double f : freq) {
             if (Double.isNaN(f)) {
                 failure = true;
-//                System.exit(0);
             }
         }
-
         // TODO: [ReconEP]:: the below shoudl be split into multiple helpers?
         if (!failure) {
+//        	for (int j = 0; j < this.initial_Haps.global_haps_string.length; j++) {
+//        		String tmp="";
+//        		for (int k = 0; k < this.initial_Haps.global_haps_string[j].length; k++) {
+//        			tmp=tmp+ this.initial_Haps.global_haps_string[j][k];
+//        		}
+//        		System.out.println( tmp+" "+ this.initial_Haps.global_haps_freq[j]);
+//        	}
             boolean[] list_remove_haps = new boolean[freq.length];
             int num_remove_hap = 0;
             for (int h = 0; h < freq.length; h++) {

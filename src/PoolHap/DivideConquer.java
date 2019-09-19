@@ -1201,6 +1201,9 @@ public class DivideConquer {
     
     
     public boolean Is2Power(int x, int n) {
+    	if (x==0) {
+    		return true;
+    	}
     	for (int i = 0; i < n; i++) {
     		if (x== Math.pow(2, i)){
     			return true;
