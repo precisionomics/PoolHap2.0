@@ -451,10 +451,65 @@ public class RandomSimulator {
 //		pw.write(pw_line+"\n"); 
 		pw.flush();
         pw.close();
-		
-		
-		
 	}
+	
+	
+	public void FastaSimulator() throws IOException {
+
+		String fasta_file= this.folder_path+"/"+ this.project_name+"/fasta/"+"bac.fa";
+		String genome="";
+		BufferedReader bufferedreader = new BufferedReader(new FileReader(fasta_file));
+        String line = "";
+        while ((line = bufferedreader.readLine()) != null) {
+        	line=line.replace("\n", "").replace("\r", "");
+        	if (!line.startsWith(">")) {
+        		genome=genome+ line;
+        	}
+        }
+        bufferedreader.close();
+        for (int i=0;i< this.num_total_haps;i++) {
+        	BufferedWriter bw = new BufferedWriter(new FileWriter(this.folder_path+"/"+ 
+        			this.project_name+"/fasta/"+"bac."+ Integer.toString(i)+".fa"));
+        	bw.write(">>NC_014932.1_h"+Integer.toString(i)+ " Bartonella clarridgeiae strain 73, complete genome\n");
+        	String tmp_genome =genome;
+        	for (int j=0;j< sim_genome[i].length;j++) {
+        		if (sim_genome[i][j]==1) {
+        			int pos= var_pos[j];
+        			pos=pos-1;
+        			if (tmp_genome.substring(pos,pos+1).equals("A") ) {
+        				tmp_genome= tmp_genome.substring(0, pos)+"T"+ tmp_genome.substring(pos+1);
+        			}else {
+        				tmp_genome= tmp_genome.substring(0, pos)+"A"+ tmp_genome.substring(pos+1);
+        			}
+        		}
+        	}
+        	bw.write(tmp_genome);
+        	bw.close();
+        	
+        }
+        
+        for (int i=0;i< this.num_pools;i++) {
+        	System.out.println("mkdir /home/chencao/Desktop/bac/fastq/bac_p"+Integer.toString(i));
+        	System.out.println("cd /home/chencao/Desktop/bac/fastq/bac_p"+Integer.toString(i));
+//        	hap_freq_inpool
+        	for (int j=0; j<hap_freq_inpool[i].length; j++ ) {
+        		if (hap_freq_inpool[i][j]>0.001 ) {
+        			String tmp = "dwgsim /home/chencao/Desktop/bac/fasta/bac."+Integer.toString(j) +".fa"+
+        					" -e 0.01 -E 0.01 -C "+ Double.toString( hap_freq_inpool[i][j]*100) + " -1 150 -2 150 -r 0 "
+        							+ " bac.h"+ Integer.toString(j);
+        			System.out.println(tmp);
+        		}
+        	}
+        }
+        
+        
+        
+        
+        
+	}
+	
+	
+	
 	
 	public RandomSimulator(String[] args) throws IOException {
 		this.folder_path= args[0];
@@ -481,54 +536,26 @@ public class RandomSimulator {
 		System.out.println(" Variants Frequency for Each Haplotype Simulation Finished!");
 		VefSimulator();
 		System.out.println(" Vef File Simulation Finished!");
+		
+//		FastaSimulator();
+//		System.out.println(" Fasta Simulation Finished!");
 //		LassoSimulator();
 //		System.out.println(" Lasso Input File Simulation Finished!");
+		
+		
+		
+		
+		
+		
 	}
 	
-	public static final double log2 = Math.log(2);
 	
-	public  static double klDivergence(double[] p1, double[] p2) {
-		double e= 2.718281828;
-		double klDiv = 0.0;
-	      for (int i = 0; i < p1.length; ++i) {
-	        if (p1[i] == 0) { continue; }
-	        if (p2[i] == 0.0) { continue; } // Limin
-
-	      klDiv += p1[i] * (Math.log( p1[i] / p2[i] )  /log2)    ; 
-	      }
-	      System.out.println( log2 );
-	      return klDiv ;
-	}
 
 	
 	public static  void main(String[] args) throws IOException {
-		double[] p1= new double [2];
-		double[] p2= new double [2];
-//		p1[0]=p1[1]=p1[2]=p1[3]=p1[4]=0.2;
-		p1[0] =0.0;
-		p1[1] =1.0;
-//		p1[2] =0.0;
-		p2[0] =1.0;
-		p2[1] =0.0;
-//		p2[2] =0.2;
-//		p2[0]=p2[1]=p2[2]=p2[3]=p2[4]=0.3;
-//		p1[0] =0.0;
-//		p1[1] =0.286;
-//		p1[2] =0.077;
-//		p1[3] =0.826;
-//		p2[0] =0.2866;
-//		p2[1] =0.0;
-//		p2[2] =0.157;
-//		p2[3] =0.082;
-		assert(p1.length == p2.length);
-		double[] average = new double[p1.length];
-		for (int i = 0; i < p1.length; ++i) {
-			average[i] += (p1[i] + p2[i])/2;
-	    }
-			
-		System.out.println( (klDivergence(p1, average) + klDivergence(p2, average))/2);
+		String ss="0123456";
+		System.out.println(ss.substring(0,2)+ss.substring(3));
 //		System.exit(0);
-		
 		// /home/chencao/Desktop  sim001	10	20	15	5000	50	150	50	100		5
 		//parameter 0: folder path
 		//parameter 1: project name
