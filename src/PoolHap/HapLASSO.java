@@ -9,6 +9,7 @@ import java.io.FileWriter;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import org.apache.spark.ml.regression.LinearRegression;
 import org.apache.spark.ml.regression.LinearRegressionModel;
@@ -85,6 +86,11 @@ public class HapLASSO {
     // will be used (the rest of the entries are 0).
     double[][] ld_weights;
     int num_loci;
+    double total_ld_covered_reads_counts;
+    double total_ld_covered_paired_alleles;
+    int[][] total_counts;
+    double lasso_coverage_weight;
+    double lasso_distance_max_weight;
 
     /*
      *  Output and intermediate data.
@@ -94,6 +100,7 @@ public class HapLASSO {
     double[] maf; // will be calculated differently for in-pool MAF and population MAF
     double[][] ld_matrix; // will be calculated differently for in-pool LD and population LD
     String prefix;
+    
 
     // TODO: [LEFTOVER]
     // // The indices (in Hapconfig potential_haps) of haps that enter LASSO
@@ -127,8 +134,12 @@ public class HapLASSO {
         HapConfig potential_haps,
         double raw_hap_freq_cutoff,
         String memory_usage,
-        String prefix) {
-
+        String prefix,
+        double weight,
+        double max_weight) {
+    	
+    	this.lasso_coverage_weight= weight;
+    	this.lasso_distance_max_weight= max_weight;
         this.pool_index = pool_index; // note: if pool_index==-1, then work on global frequencies
         this.pool_name=pool_name;
         this.lambda = lambda;
@@ -139,6 +150,8 @@ public class HapLASSO {
 
         this.memory_usage = memory_usage;
         this.prefix = prefix;
+        
+        
         // this.potential_haps.num_global_hap and this.quanlified_hap_index will be set up in the
         // function write_H_and_1_to_file();
     }
@@ -177,7 +190,6 @@ public class HapLASSO {
             this.site_locations2index.put(this.potential_haps.locusInfo[loc].start_loc, loc);
         }
     }
-
 
     /**
      *  The three functions will calculate ld_matrix differently:
@@ -243,7 +255,15 @@ public class HapLASSO {
                     // In cases where there is zero sequencing coverage of two sites, there is no
                     // information i.e.: NaN in the 'LD' matrix.
                     if (!Double.isNaN(this.ld_matrix[loc1][loc2])) {
-                        bw.write(this.ld_weights[loc1][loc2] * this.ld_matrix[loc1][loc2] + "");
+                    	double coverage_coefficient= this.lasso_coverage_weight* 
+                    			(double)this.total_counts[loc1][loc2]* 
+                    			this.total_ld_covered_paired_alleles/ this.total_ld_covered_reads_counts;
+                    	double dist_coefficient= 1+ ((double) (loc2-loc1)/ (double)this.num_loci)*
+                    			(this.lasso_distance_max_weight-1);
+//                    	coverage_coefficient=1;
+//                    	dist_coefficient=1;
+                        bw.write(this.ld_weights[loc1][loc2] * this.ld_matrix[loc1][loc2]* 
+                        		coverage_coefficient*dist_coefficient + "");
                         for (int h = 0; h < this.potential_haps.num_global_hap; h++) {
 
                             // TODO: [LEFTOVER]
@@ -253,15 +273,17 @@ public class HapLASSO {
                             // below is correct!!!!
                             // Below is the correlation, or co-occurrence of alternate alleles at
                             // loci 1 and 2 on the same haplotype.
+                        	
                             bw.write(" "
                                 + (h + 1)
                                 + ":"
                                 + this.ld_weights[loc1][loc2]
+                                * dist_coefficient
+                                * coverage_coefficient
                                 * this.potential_haps.global_haps[h][loc1]
                                 * this.potential_haps.global_haps[h][loc2]);
 
                         }
-
                         bw.write("\n");
                     }
                 }
@@ -278,6 +300,7 @@ public class HapLASSO {
     /**
      *  copy the MAF from this.potential_haps.inpool_site_freqs
      */
+    
     public void get_MAF_single_pool() {
         if (pool_index == -1) {
             System.out.println("ERROR: pool_index==-1; should not calculate single_pool MAF.");
@@ -288,7 +311,7 @@ public class HapLASSO {
             this.maf[loc] = this.potential_haps.inpool_site_freqs[loc][this.pool_index];
         }
     }
-
+    
     /**
      *  Calculate global MAF, which is the average of all in-pool MAF at the same site.
      */
@@ -337,8 +360,12 @@ public class HapLASSO {
         // this.setup_site_locations2index_map();
 
         // this.num_loci is already synced up with the input HapConfig object.
+    	
+    	
         double[][] local_matrix = new double[this.num_loci][this.num_loci];
-        int[][] total_counts = new int[this.num_loci][this.num_loci];
+        HashSet<String> pos_pairs_set = new HashSet<String>();
+        this.total_ld_covered_paired_alleles=0;
+        this.total_counts = new int[this.num_loci][this.num_loci];
         try {
             BufferedReader br = new BufferedReader(new FileReader(vef_file));
             String line = br.readLine();
@@ -376,12 +403,19 @@ public class HapLASSO {
                             index1 = index2;
                             index2 = tmp;
                         }
-
-                        total_counts[index1][index2]++;
-
+                        //Chen:
+                        this.total_counts[index1][index2]++;
+                        this.total_ld_covered_reads_counts =
+                        		this.total_ld_covered_reads_counts+1;
+                        String tmp = Integer.toString(index1)+":"+ Integer.toString(index2);
+                        if (!pos_pairs_set.contains(tmp)) {
+                        	pos_pairs_set.add(tmp);
+                        	this.total_ld_covered_paired_alleles= 
+                        			this.total_ld_covered_paired_alleles+1;
+                        }
                         // Both are "1".
                         if (alleles.get(site1).equals("1") && alleles.get(site2).equals("1")) {
-                            local_matrix[index1][index2]++;
+                            local_matrix[index1][index2]++;  
                         }
                     }
                 }
@@ -394,10 +428,10 @@ public class HapLASSO {
             // Divide by the total number of reads covering both sites.
             for (int loc1 = 0; loc1 < this.num_loci; loc1++) {
                 for (int loc2 = 0; loc2 < this.num_loci; loc2++) {
-                    if (total_counts[loc1][loc2] != 0) {
+                    if (this.total_counts[loc1][loc2] != 0) {
                         local_matrix[loc1][loc2] = local_matrix[loc1][loc2]
-                            / total_counts[loc1][loc2];
-
+                            / this.total_counts[loc1][loc2];
+                        
                     } else {
                         local_matrix[loc1][loc2] = Double.NaN;
                     }
@@ -596,11 +630,12 @@ public class HapLASSO {
      *  @param weights
      *  @throws FileNotFoundException
      */
+    
     public void estimate_frequencies_lasso(
         String vef_file,
         String[] vef_files,
         double[] weights) throws FileNotFoundException {
-
+    	
         // First calculate Ys (MAF and LD) from pooled data.
         if (vef_file != null && vef_files == null) { // there is a vef_file, indicating single pool
             if (this.pool_index == -1) {
@@ -609,14 +644,11 @@ public class HapLASSO {
             this.get_MAF_single_pool();
             this.setup_site_locations2index_map();
             this.ld_matrix = calcualte_LD_matrix_single_pool(vef_file);
-
         } else if (vef_file == null) { // multiple pools.
             if (this.pool_index != -1) {
                 System.out.println("ERROR: pool_index!=-1 but we don't have a VEF file");
             }
-
             this.calculate_MAF_multi_pool();
-
             if(vef_files!=null) { // multiple VEF files supplied, indicating read-based
                 this.calcualte_LD_matrix_multi_pool_reads(vef_files);
 

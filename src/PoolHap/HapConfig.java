@@ -81,6 +81,7 @@ public class HapConfig {
     public double[][] in_pool_haps_freq; // # of global_hap x # of pools
     public LocusAnnotation[] locusInfo; // # of loci; note that a locus can be a SNP or a region
     public double[][] inpool_site_freqs; // # of loci x # of pools; Added by Quan Dec. 2018.
+    boolean Using1asDiagonal;
 
     /*
      *  Summary statistics.
@@ -179,6 +180,73 @@ public class HapConfig {
         this.est_ind_pool = est_ind_pool;
         this.update_sigma_mu_logL();
     }
+    
+    
+    public HapConfig(
+            String[][] global_haps_string,
+            double[] global_haps_freq,
+            double[][] in_pool_haps_freq,
+            double[][] inpool_site_freqs,
+            LocusAnnotation[] locusInput,
+            int num_pools,
+            String[] hap_IDs,
+            String[] pool_IDs,
+            int est_ind_pool,
+            boolean ok ) {
+
+            // Set known variables
+            this.num_global_hap = global_haps_freq.length;
+            this.num_loci = locusInput.length;
+            this.global_haps_freq = global_haps_freq.clone();
+            this.global_haps_string = global_haps_string.clone();
+            for (int k = 0; k < this.num_global_hap; k++) {
+                this.global_haps_string[k]=global_haps_string[k].clone();
+                // TODO: [LEFTOVER] Quan to Michael: I have moved the setID to a function, if this is what you meant.
+                // System.out.println(this.hap_IDs[k]);
+            }
+            if (hap_IDs != null) { // *** Changed from this.hap_IDs (global) to hap_IDs (parameter)
+                this.hap_IDs = hap_IDs.clone();
+            } else { // if no IDs assigned, use its haplotype 0/1 string for the moment. 
+            	this.set_binary_hap_IDs_using_hapString();        	
+            }
+            if (in_pool_haps_freq != null) { // *** Matched format as above
+                this.in_pool_haps_freq = in_pool_haps_freq.clone();
+                for (int j = 0; j < this.num_global_hap; j++) {
+                    for (int k = 0; k < this.num_pools; k++) {
+                        this.in_pool_haps_freq[j][k] = in_pool_haps_freq[j][k];
+                    }
+                }
+            } else { // if no intra-pool frequencies provided, start at 0
+                this.in_pool_haps_freq = new double[this.num_global_hap][this.num_pools];
+            }
+            if (inpool_site_freqs != null) {
+                this.inpool_site_freqs = inpool_site_freqs.clone();
+            }
+            this.Using1asDiagonal= ok;
+
+            // Originally, clone(), which is not a deep-clone. But we assume that the locusInfo won't be
+            // changed in the algorithm.
+            this.locusInfo = locusInput;
+
+            // // Need to specifically copy the mappings over to the new locus storage object.
+            // // Shallow copy alone doesn't work.
+
+            this.construct_hapID2index_map();
+            this.encoding_haps(); // initialize this.global_haps
+            this.num_pools = num_pools;
+            if (pool_IDs != null) { // *** matched format as above
+                this.pool_IDs = pool_IDs.clone();
+            } 
+            else {
+            	System.out.println("ERROR: pool_IDs == null");
+            	System.exit(0);
+            }
+
+            this.est_ind_pool = est_ind_pool;
+            this.update_sigma_mu_logL();
+        }
+    
+    
 
     /**
      * Use haplotype strings to set a binary ID.
@@ -758,6 +826,7 @@ public class HapConfig {
      *  Updates the global variables mu, sigma, and logL respectively for this HapConfig object.
      */
     public void update_sigma_mu_logL() {
+    	
         this.mu = new double[this.num_loci];
         for (int l = 0; l < this.num_loci; l++) {
             for (int h = 0; h < this.num_global_hap; h++) {
