@@ -16,13 +16,12 @@ import java.util.Properties;
 public class Transfer_Output {
 	String output_dir;
 	String outfile_name;
-    String fasta_folder;
+    String fasta_file_name;
     String final_output_dir;
     String gs_dir;
 	String project_name;
 	String referece_seqence;
-	int num_pools;
-//	double cutoff_lowest_freq;
+	double cutoff_lowest_freq;
 	ArrayList<ArrayList<String>> ref_seq_listlist=new ArrayList<ArrayList<String>>();
 	ArrayList<ArrayList<String>> hap_seq_listlist=new ArrayList<ArrayList<String>>();
 	ArrayList<String> hap_string_list=new ArrayList<String>();
@@ -32,23 +31,21 @@ public class Transfer_Output {
 	ArrayList<Integer> potiential_variant_position_list = new ArrayList<Integer>();
 	HashSet<Integer> potential_rc_variant_position_set = new HashSet<>();
 	HashSet<Integer> true_rc_variant_position_set = new HashSet<>();
-	
 	ArrayList<Integer> false_positive_variant_position_list = new ArrayList<Integer>();
 
-	HashMap<String, double[]> hap2poolfre = new HashMap<String, double[]>();
+	HashMap<String, Double> hap2poolfre = new HashMap<String, Double>();
 	public Transfer_Output(String parameter_file) throws IOException {
 		 InputStream is = new FileInputStream(parameter_file);
 	     Properties prop = new Properties();
 	     prop.load(is);
 	     this.output_dir = prop.getProperty("Output_Dir");
 	     this.outfile_name = prop.getProperty("Out_File_Name");
-	     this.fasta_folder=this.output_dir+"fasta/";
-	     this.final_output_dir=prop.getProperty("Final_Output_Dir");;
+	     this.final_output_dir=prop.getProperty("Final_Output_Dir");
+	     this.fasta_file_name=prop.getProperty("Fasta_File_Name");
 	     this.gs_dir = prop.getProperty("Gold-Standard_Dir");
 	     this.project_name=prop.getProperty("Proj_Name");
-	     this.num_pools= Integer.parseInt(prop.getProperty("Num_Pools"));
 	     this.referece_seqence = prop.getProperty("Ref_Seq_Path");
-//	     this.cutoff_lowest_freq = Double.parseDouble(prop.getProperty("Cutoff_Lowest_Freq"));
+	     this.cutoff_lowest_freq = Double.parseDouble(prop.getProperty("Cutoff_Lowest_Freq"));
 	     is.close();
 	     
 	}
@@ -56,45 +53,41 @@ public class Transfer_Output {
 	public void output_to_fasta() throws IOException, InterruptedException{
 		BufferedReader br_ref_file = new BufferedReader(new FileReader(
 				referece_seqence ));
-		for (int p=0; p < num_pools; p++) {
-			String sample_names = project_name + "_p" + p; // 0_1_p0
-			BufferedWriter bw_fasta_file = new BufferedWriter(new FileWriter(
-					final_output_dir + sample_names + ".fasta"));
-			    bw_fasta_file.write(">Reference"+"\n");
-				String ref_line=br_ref_file.readLine();
-				ref_line=br_ref_file.readLine();
-				while(ref_line!=null) {
-					String [] each_position=ref_line.split("");
-					for(int i =0 ;i < each_position.length; i++) {
-						bw_fasta_file.write(each_position[i]);
-					}
-					ref_line=br_ref_file.readLine();
-				}
-				br_ref_file.close();
-			int num_haps_per_pool = 0;
-			BufferedReader br = new BufferedReader(new FileReader(output_dir 
-					+ outfile_name));
-			String currline = br.readLine(); // read the first line
-			while(currline!=null) {
-				String[] each_position = currline.split("");
-				if(each_position[0].equals(">")) {
-					bw_fasta_file.write("\n");
-					String[] strain_fre_line=currline.split("_");
-					bw_fasta_file.write(">"+ "Hap" + num_haps_per_pool
-							+ "_pool"+ p + "_" 
-					+ strain_fre_line[strain_fre_line.length-1] + "\n" );
-					num_haps_per_pool++;
-				}else {
-					for(int i =0; i < each_position.length; i++) {
-						bw_fasta_file.write(each_position[i]);
-					}
-					
-				}
-				currline = br.readLine();
+		BufferedWriter bw_fasta_file = new BufferedWriter(new FileWriter(
+					final_output_dir + fasta_file_name + ".fasta"));
+		bw_fasta_file.write(">Reference"+"\n");
+		String ref_line=br_ref_file.readLine();
+		ref_line=br_ref_file.readLine();
+		while(ref_line!=null) {
+			String [] each_position=ref_line.split("");
+			for(int i =0 ;i < each_position.length; i++) {
+				bw_fasta_file.write(each_position[i]);
 			}
-			br.close();
-		}	
-//		bw_fasta_file.close();
+			ref_line=br_ref_file.readLine();
+		}
+		br_ref_file.close();
+		int num_haps_per_pool = 0;
+		BufferedReader br = new BufferedReader(new FileReader(output_dir 
+				+ outfile_name));
+		String currline = br.readLine(); // read the first line
+		while(currline!=null) {
+			String[] each_position = currline.split("");
+			if(each_position[0].equals(">")) {
+				bw_fasta_file.write("\n");
+				String[] strain_fre_line=currline.split("_");
+				bw_fasta_file.write(">"+ "Hap" + num_haps_per_pool +"_" 
+					+ strain_fre_line[strain_fre_line.length-1] + "\n" );
+				num_haps_per_pool++;
+			}else {
+				for(int i =0; i < each_position.length; i++) {
+					bw_fasta_file.write(each_position[i]);
+				}
+					
+			}
+		currline = br.readLine();
+		}
+		br.close();
+		bw_fasta_file.close();
 	}
 	public void true_var_position() throws IOException, InterruptedException{
 		BufferedReader br = new BufferedReader(new FileReader(
@@ -110,29 +103,12 @@ public class Transfer_Output {
 		}
 		br.close();
 		Collections.sort(gs_variant_position);
+		System.out.println("gs_variant_position"+gs_variant_position);
 	}
-	
-	public void ref_seq_list() throws IOException, InterruptedException{
-		BufferedReader br = new BufferedReader(new FileReader(referece_seqence));
-		String currline = br.readLine();
-		currline = br.readLine();
-		// "-" that occurred in the reference sequence means insertion 
-		while(currline!=null) {
-			String[] each_base=currline.split(""); 
-			ArrayList<String> sequence_row=new ArrayList<String>();
-			for(int i=0;i<each_base.length;i++) {	
-				sequence_row.add(each_base[i]);
-			}
-			this.ref_seq_listlist.add(sequence_row);
-			currline = br.readLine();
-		}
-		br.close();
-	}
-	
 	
 	public void generate_hap2poolfre_hashmap() throws IOException, InterruptedException {
 		BufferedReader br_fa = new BufferedReader(new FileReader(
-				output_dir + outfile_name));
+				final_output_dir + fasta_file_name + ".fasta"));
 		String fa_line = br_fa.readLine();
 		fa_line = br_fa.readLine();  // read the second sequence line
 		String[] each_base=fa_line.split(""); 
@@ -142,27 +118,20 @@ public class Transfer_Output {
 			ArrayList<String> sequence_row=new ArrayList<String>();
 			for(int i=0;i<each_base.length;i++) {	
 				sequence_row.add(each_base[i]);
-				//this.seg_site_number.add(true_seg_site);	// New. 
-				//if (!each_base[i+1].equals("-"))
-				//	true_seg_site++;
-				// New. If the reference sequence does not align with an insertion 
-				//the segregating site index is incremented.
 			}
 			this.ref_seq_listlist.add(sequence_row);
 			fa_line = br_fa.readLine();
 			each_base=fa_line.split("");
 		}
+		System.out.println("ref_seq_listlist"+ref_seq_listlist);
 		// TO DO: When there is an insertion in the reference
 		// The variant position is changed
 		while(fa_line!=null) {
 			if(each_base[0].equals(">")) {
 				String[] fre_position = fa_line.split("_");
-				String curr_pool=fre_position[1].split("l")[1];
 				ArrayList<String> hap_sequence=new ArrayList<String>();
 				hap_sequence.add(fre_position[0]); // add ">Hap0"
-				//fre_position[1] is pool1 to pool19, split by "l"
-				hap_sequence.add(curr_pool); // add the pool ID index
-				hap_sequence.add(fre_position[2]); //add the frequency
+				hap_sequence.add(fre_position[1]); //add the frequency
 				
 				fa_line=br_fa.readLine();//read the next line, the sequence line
 				each_base=fa_line.split("");
@@ -212,6 +181,7 @@ public class Transfer_Output {
 				this.hap_seq_listlist.add(hap_sequence);	
 			}// end of if
 		} // end of while
+
 		br_fa.close();
 		
 		// if the variant positions that shown as "-" 
@@ -219,12 +189,12 @@ public class Transfer_Output {
 		// we need to get rid of this variant position,
 		// and set it as "0"
 		for (int i=0; i< hap_seq_listlist.size(); i++) {
-			for (int j =3;j< hap_seq_listlist.get(i).size();j++ ) {
+			for (int j =2;j< hap_seq_listlist.get(i).size();j++ ) {
 				 if(hap_seq_listlist.get(i).get(j).equals("-")||
 						 hap_seq_listlist.get(i).get(j).equals("1")) {
-					 this.potential_rc_variant_position_set.add(j-2);
+					 this.potential_rc_variant_position_set.add(j-1);
 					for(int pos = 0; pos < gs_variant_position.size(); pos++) {
-						if(j == (gs_variant_position.get(pos)-1+3)) {
+						if(j == (gs_variant_position.get(pos)-1+2)) {
 							this.true_rc_variant_position_set.add(
 									gs_variant_position.get(pos));
 							//hap_seq_listlist.get(i).set(j,"1");
@@ -233,11 +203,6 @@ public class Transfer_Output {
 				}
 			}
 		}
-		System.out.println(gs_variant_position.size());
-		System.out.println(gs_variant_position);
-		
-		System.out.println(true_rc_variant_position_set.size());
-		System.out.println(true_rc_variant_position_set);
 		//Transfer potential_rc_variant_position_set to arraylist
 		this.potiential_variant_position_list= 
 				new ArrayList<Integer>(potential_rc_variant_position_set);
@@ -252,12 +217,12 @@ public class Transfer_Output {
 		
 		// change the false_positive_variant_position to 0
 		for (int i=0; i< hap_seq_listlist.size(); i++) {
-			for (int j =3;j< hap_seq_listlist.get(i).size();j++ ) {
+			for (int j =2;j< hap_seq_listlist.get(i).size();j++ ) {
 				 if(hap_seq_listlist.get(i).get(j).equals("-")||
 						 hap_seq_listlist.get(i).get(j).equals("1")) {
 					 		if(false_positive_variant_position_list.contains(
-					 				(j-2))) {
-					 	         hap_seq_listlist.get(i).set(j,"1");
+					 				(j-1))) {
+					 	         hap_seq_listlist.get(i).set(j,"0");
 					 		}
 				 		}
 					}
@@ -266,36 +231,78 @@ public class Transfer_Output {
 		// Convert listlist to String
 		for (int i=0; i< hap_seq_listlist.size(); i++) {
 			String tmp_hap = "";
-			for (int j =3;j< hap_seq_listlist.get(i).size();j++ ) {
+			for (int j =2;j< hap_seq_listlist.get(i).size();j++ ) {
 				tmp_hap = tmp_hap + hap_seq_listlist.get(i).get(j);
 			}
 			this.hap_string_list.add(tmp_hap);
 		}
 		
 		// Generate hap2poolfre_hashmap
-		// go over all the hapletypes that in the hap_string_list
+		// go over all the haplotypes that in the hap_string_list
 		for(int h =0; h < hap_string_list.size(); h++) {
-			double tmp_fre= Double.parseDouble(hap_seq_listlist.get(h).get(2));
+			double tmp_fre= Double.parseDouble(hap_seq_listlist.get(h).get(1));
 			if(tmp_fre>cutoff_lowest_freq) {
 				if(!hap2poolfre.containsKey(hap_string_list.get(h))) {
-					this.hap2poolfre.put(hap_string_list.get(h), new double[num_pools]);
-					int current_pool = Integer.parseInt(hap_seq_listlist.get(h).get(1));
-					hap2poolfre.get(hap_string_list.get(h))[current_pool] = 
-						Double.parseDouble(hap_seq_listlist.get(h).get(2));
+					this.hap2poolfre.put(hap_string_list.get(h), 
+							Double.parseDouble(hap_seq_listlist.get(h).get(1)));
 				}else if (hap2poolfre.containsKey(hap_string_list.get(h))){
-					int current_pool = Integer.parseInt(hap_seq_listlist.get(h).get(1));
-					hap2poolfre.get(hap_string_list.get(h))[current_pool] = 
-						hap2poolfre.get(hap_string_list.get(h))[current_pool] 
-						+ Double.parseDouble(hap_seq_listlist.get(h).get(2));
+					double update_freq = hap2poolfre.get(hap_string_list.get(h)) 
+							+ Double.parseDouble(hap_seq_listlist.get(h).get(1));
+					hap2poolfre.put(hap_string_list.get(h),update_freq);
 				}
 			}
 		}
 	}
+	
+	public void generate_inter_file() throws IOException, InterruptedException {
+		for ( String key : hap2poolfre.keySet() ) {
+		    //System.out.println( key );
+		    this.final_rc_hap_string_list.add(key);
+		}
+		// final_rc_hap_string_list transfer to final_hap_seq_listlist
+		for (int h=0; h < final_rc_hap_string_list.size(); h++) {
+			ArrayList<String> tmp_hap_string_list=new ArrayList<String>();
+			for(int i=0; i < final_rc_hap_string_list.get(h).split("").length; i++) {
+				tmp_hap_string_list.add(final_rc_hap_string_list.get(h).split("")[i]);
+			}
+			this.final_hap_seq_listlist.add(tmp_hap_string_list);
+		}
+		
+		BufferedWriter bw_inter_file=new BufferedWriter(new FileWriter(
+				final_output_dir + "final_freq_haps.txt"));
+		bw_inter_file.write("Hap_ID");
+		for(int h=0; h<final_rc_hap_string_list.size(); h++) {
+			bw_inter_file.write("\t"+"h"+ h);
+		}
+		 bw_inter_file.write("\n");
+		 bw_inter_file.write("Freq");
+		 for(int h=0; h<final_rc_hap_string_list.size(); h++) {
+			 String current_hap = final_rc_hap_string_list.get(h);
+			 double freq_hap = hap2poolfre.get(current_hap);
+			 bw_inter_file.write("\t" + freq_hap);
+		 }
+		 bw_inter_file.write("\n");
+		 
+		 for (int p=0; p < gs_variant_position.size(); p++) {
+			 int curr_position = gs_variant_position.get(p);
+			 bw_inter_file.write("0;"+curr_position+";"+curr_position+";0:1");
+			 for(int h=0; h<final_rc_hap_string_list.size(); h++) {
+				 String curr_pos_index =
+						 final_hap_seq_listlist.get(h).get(curr_position-1);
+				 bw_inter_file.write("\t"+curr_pos_index);
+			 }
+			 bw_inter_file.write("\n");
+		 }
+		 bw_inter_file.close();
+	}
 
 	public static void main(String[] args)throws IOException, InterruptedException {
-		String parameter = args[0];//"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\Viral_reconstruction\\Other_tools_results\\CliqueSNV\\fasta\\FS3.properties";
+		String parameter = "D:\\PhD-Studying\\Informatics\\Project\\HIV_project\\Viral_reconstruction\\QuasiRecomb\\output\\O2R.properties";//args[0];//"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\Viral_reconstruction\\Other_tools_results\\CliqueSNV\\fasta\\FS3.properties";
 		Transfer_Output gf = new Transfer_Output(parameter);
-
+		gf.output_to_fasta();
+		gf.true_var_position();
+		gf.generate_hap2poolfre_hashmap();
+		gf.generate_inter_file();
 	}
 
 }

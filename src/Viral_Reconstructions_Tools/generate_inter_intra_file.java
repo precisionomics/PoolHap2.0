@@ -196,7 +196,7 @@ public class generate_inter_intra_file {
 						 hap_seq_listlist.get(i).get(j).equals("1")) {
 					 		if(false_positive_variant_position_list.contains(
 					 				(j-2))) {
-					 	         hap_seq_listlist.get(i).set(j,"1");
+					 	         hap_seq_listlist.get(i).set(j,"0");
 					 		}
 				 		}
 					}

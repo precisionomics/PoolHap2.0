@@ -26,6 +26,8 @@ public class test {
 		pool.add(has1HashMap);
 		has2HashMap.put("000", 2);
 		has2HashMap.put("100", 3);
+//		int update = has2HashMap.get("000")+2;
+		System.out.println(has2HashMap);
 		pool.add(has2HashMap);
 		pool.get(0).put("1111", 4);
 		System.out.println(pool);
