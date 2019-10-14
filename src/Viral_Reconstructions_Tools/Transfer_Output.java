@@ -69,7 +69,7 @@ public class Transfer_Output {
 	
 	public void generate_hap2poolfre_hashmap() throws IOException, InterruptedException {
 		BufferedReader br_fa = new BufferedReader(new FileReader(
-				final_output_dir + fasta_file_name + ".fasta"));
+				final_output_dir + fasta_file_name + ".fa"));
 		String fa_line = br_fa.readLine();
 		fa_line = br_fa.readLine();  // read the second sequence line
 		String[] each_base=fa_line.split(""); 
