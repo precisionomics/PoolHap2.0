@@ -50,45 +50,6 @@ public class Transfer_Output {
 	     
 	}
 	
-	public void output_to_fasta() throws IOException, InterruptedException{
-		BufferedReader br_ref_file = new BufferedReader(new FileReader(
-				referece_seqence ));
-		BufferedWriter bw_fasta_file = new BufferedWriter(new FileWriter(
-					final_output_dir + fasta_file_name + ".fasta"));
-		bw_fasta_file.write(">Reference"+"\n");
-		String ref_line=br_ref_file.readLine();
-		ref_line=br_ref_file.readLine();
-		while(ref_line!=null) {
-			String [] each_position=ref_line.split("");
-			for(int i =0 ;i < each_position.length; i++) {
-				bw_fasta_file.write(each_position[i]);
-			}
-			ref_line=br_ref_file.readLine();
-		}
-		br_ref_file.close();
-		int num_haps_per_pool = 0;
-		BufferedReader br = new BufferedReader(new FileReader(output_dir 
-				+ outfile_name));
-		String currline = br.readLine(); // read the first line
-		while(currline!=null) {
-			String[] each_position = currline.split("");
-			if(each_position[0].equals(">")) {
-				bw_fasta_file.write("\n");
-				String[] strain_fre_line=currline.split("_");
-				bw_fasta_file.write(">"+ "Hap" + num_haps_per_pool +"_" 
-					+ strain_fre_line[strain_fre_line.length-1] + "\n" );
-				num_haps_per_pool++;
-			}else {
-				for(int i =0; i < each_position.length; i++) {
-					bw_fasta_file.write(each_position[i]);
-				}
-					
-			}
-		currline = br.readLine();
-		}
-		br.close();
-		bw_fasta_file.close();
-	}
 	public void true_var_position() throws IOException, InterruptedException{
 		BufferedReader br = new BufferedReader(new FileReader(
 				gs_dir+project_name+"_haps.inter_freq_vars.txt"));
@@ -297,9 +258,8 @@ public class Transfer_Output {
 	}
 
 	public static void main(String[] args)throws IOException, InterruptedException {
-		String parameter = "D:\\PhD-Studying\\Informatics\\Project\\HIV_project\\Viral_reconstruction\\QuasiRecomb\\output\\O2R.properties";//args[0];//"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\Viral_reconstruction\\Other_tools_results\\CliqueSNV\\fasta\\FS3.properties";
+		String parameter = args[0];//"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\Viral_reconstruction\\Other_tools_results\\CliqueSNV\\fasta\\FS3.properties";
 		Transfer_Output gf = new Transfer_Output(parameter);
-		gf.output_to_fasta();
 		gf.true_var_position();
 		gf.generate_hap2poolfre_hashmap();
 		gf.generate_inter_file();
