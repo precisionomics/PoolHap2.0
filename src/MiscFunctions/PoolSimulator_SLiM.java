@@ -15,7 +15,6 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.netlib.util.doubleW;
 
 /*
  * The properties_file looks like this:
