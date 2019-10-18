@@ -15,6 +15,8 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.netlib.util.doubleW;
+
 /*
  * The properties_file looks like this:
  * 
@@ -77,7 +79,7 @@ public class PoolSimulator_SLiM {
     int coverage ;
     int read_len ;
     int outer_dist ;
-    
+    double hap_freq_cutoff;
     // intermediate global variables that are needed in the simulation.
     int actual_num_haps = 0; 
     int actual_num_vars = 0; 
@@ -123,7 +125,7 @@ public class PoolSimulator_SLiM {
             new File(input_dir+"vcf/").mkdir();
         }
         this.error_rate = Double.parseDouble(prop.getProperty("Error_Rate_Per_Base"));
-        
+        this.hap_freq_cutoff = Double.parseDouble(prop.getProperty("Hap_Freq_Cutoff"));
         this.coverage = Integer.parseInt(prop.getProperty("Coverage"));
         this.read_len = Integer.parseInt(prop.getProperty("Read_Len"));
         this.outer_dist = Integer.parseInt(prop.getProperty("Outer_Dist"));
@@ -250,7 +252,7 @@ public class PoolSimulator_SLiM {
 		}
 		br.close();
 		this.all_pool_haps=num_hap;
-		double num_hap_cutoff = (double)all_pool_haps*0.005; 
+		double num_hap_cutoff = (double)all_pool_haps*this.hap_freq_cutoff; 
 		ArrayList<String> low_freq_hap = new ArrayList<String>();
 		for (String h : hapsHS.keySet()) {
 			if(hapsHS.get(h)<num_hap_cutoff) {
@@ -258,11 +260,14 @@ public class PoolSimulator_SLiM {
 				
 			}
 		}
+		System.out.println(low_freq_hap);
 		for(int i=0;i<low_freq_hap.size();i++) {
 			all_pool_haps=all_pool_haps-hapsHS.get(low_freq_hap.get(i));
 			hapsHS.remove(low_freq_hap.get(i));
-			for(int pool=0;pool<num_pools;pool++) {
+			for(int pool=0;pool<pool2allhapList.size();pool++) {
+				if(pool2allhapList.get(pool).containsKey(low_freq_hap.get(i))) {
 				pool2allhapList.get(pool).remove(low_freq_hap.get(i));
+				}
 			}
 		}
 		
