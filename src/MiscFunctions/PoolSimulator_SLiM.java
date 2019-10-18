@@ -238,6 +238,7 @@ public class PoolSimulator_SLiM {
 					int tmpCt =  hapsHS.get(curr_hap) + 1;
 					hapsHS.put(curr_hap, tmpCt);
 				}
+
 				if(!pool2allhapList.get(curr_pool_index).containsKey(curr_hap)) {
 					this.pool2allhapList.get(curr_pool_index).put(curr_hap, 1);
 				}else if(pool2allhapList.get(curr_pool_index).containsKey(curr_hap)) {
@@ -248,8 +249,23 @@ public class PoolSimulator_SLiM {
 			currLine = br.readLine();
 		}
 		br.close();
-
 		this.all_pool_haps=num_hap;
+		double num_hap_cutoff = (double)all_pool_haps*0.005; 
+		ArrayList<String> low_freq_hap = new ArrayList<String>();
+		for (String h : hapsHS.keySet()) {
+			if(hapsHS.get(h)<num_hap_cutoff) {
+				low_freq_hap.add(h);
+				
+			}
+		}
+		for(int i=0;i<low_freq_hap.size();i++) {
+			all_pool_haps=all_pool_haps-hapsHS.get(low_freq_hap.get(i));
+			hapsHS.remove(low_freq_hap.get(i));
+			for(int pool=0;pool<num_pools;pool++) {
+				pool2allhapList.get(pool).remove(low_freq_hap.get(i));
+			}
+		}
+		
 		this.actual_num_haps = hapsHS.size();
         this.hap2varcomp = new int[actual_num_haps][num_var_pos]; 
         this.hap2cts = new int[actual_num_haps]; 

@@ -28,6 +28,16 @@ public class test {
 		has2HashMap.put("100", 3);
 //		int update = has2HashMap.get("000")+2;
 		System.out.println(has2HashMap);
+		ArrayList<String> h2 = new ArrayList<String>();
+		for (String h : has2HashMap.keySet()) {
+			if(has2HashMap.get(h)<4) {
+				h2.add(h);
+			}
+		}
+		for(int i=0;i<h2.size();i++) {
+			has2HashMap.remove(h2.get(i));
+		}
+		System.out.println(has2HashMap);
 		pool.add(has2HashMap);
 		pool.get(0).put("1111", 4);
 		System.out.println(pool);
