@@ -15,6 +15,8 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 
+import spire.optional.intervalGeometricPartialOrder;
+
 
 /*
  * The properties_file looks like this:
@@ -79,6 +81,7 @@ public class PoolSimulator_SLiM {
     int read_len ;
     int outer_dist ;
     double hap_freq_cutoff;
+    int weak_length;
     // intermediate global variables that are needed in the simulation.
     int actual_num_haps = 0; 
     int actual_num_vars = 0; 
@@ -92,7 +95,6 @@ public class PoolSimulator_SLiM {
     HashMap<Integer, ArrayList<Integer>> pool2hapcomp = new HashMap<Integer, ArrayList<Integer>>();
     ArrayList<HashMap<String, Integer>> pool2allhapList=new ArrayList<HashMap<String, Integer>>();
     ArrayList<String> actual_hap_list = new ArrayList<String>();
-
     double var_burden_avg;
     
 	public PoolSimulator_SLiM(String parameter_file) throws IOException {
@@ -128,7 +130,7 @@ public class PoolSimulator_SLiM {
         this.coverage = Integer.parseInt(prop.getProperty("Coverage"));
         this.read_len = Integer.parseInt(prop.getProperty("Read_Len"));
         this.outer_dist = Integer.parseInt(prop.getProperty("Outer_Dist"));
-//        this.sim_var_pos = new int[num_var_pos];
+        this.weak_length = Integer.parseInt(prop.getProperty("Weak_Length"));
         is.close();
  
 	}
@@ -172,8 +174,15 @@ public class PoolSimulator_SLiM {
 			currLine = br.readLine();
 			tmpcurrpos = currLine.split(" ");
 		}
+		// get rid of variant positions that occur at beginning of weak_length
+		// and at end of the weak_length
+		//int weak_length = this.read_len*2+this.outer_dist;
+		int front_cutoff = weak_length;
+		int end_cutoff = this.ref_seq_len -weak_length;
 		while(!tmpcurrpos[0].equals("Genomes:")&&!tmpcurrpos[0].equals("Individuals:")) {//Read those lines under the "Mutations" section
-			index2varpos.add(tmpcurrpos[0]+"_"+tmpcurrpos[3]);
+			if(Integer.parseInt(tmpcurrpos[3])>front_cutoff && Integer.parseInt(tmpcurrpos[3])<end_cutoff ) {
+				index2varpos.add(tmpcurrpos[0]+"_"+tmpcurrpos[3]);
+			}	
 			currLine = br.readLine();
 			tmpcurrpos = currLine.split(" ");
 		}
