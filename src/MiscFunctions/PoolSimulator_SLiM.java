@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 
+import shapeless.newtype;
 import spire.optional.intervalGeometricPartialOrder;
 
 
@@ -179,9 +180,14 @@ public class PoolSimulator_SLiM {
 		//int weak_length = this.read_len*2+this.outer_dist;
 		int front_cutoff = weak_length;
 		int end_cutoff = this.ref_seq_len -weak_length;
-		while(!tmpcurrpos[0].equals("Genomes:")&&!tmpcurrpos[0].equals("Individuals:")) {//Read those lines under the "Mutations" section
+		ArrayList<String> var_pos_list = new ArrayList<String>(); 
+		while(!tmpcurrpos[0].equals("Genomes:")&&!tmpcurrpos[0].equals("Individuals:")) {
+			//Read those lines under the "Mutations" section
 			if(Integer.parseInt(tmpcurrpos[3])>front_cutoff && Integer.parseInt(tmpcurrpos[3])<end_cutoff ) {
-				index2varpos.add(tmpcurrpos[0]+"_"+tmpcurrpos[3]);
+				if(!var_pos_list.contains(tmpcurrpos[3])) {
+					var_pos_list.add(tmpcurrpos[3]);
+					index2varpos.add(tmpcurrpos[0]+"_"+tmpcurrpos[3]);
+				}
 			}	
 			currLine = br.readLine();
 			tmpcurrpos = currLine.split(" ");
@@ -424,7 +430,7 @@ public class PoolSimulator_SLiM {
             + " and the maximum is " + sortedCts[sortedCts.length - 1] + "."); 
         
         PrintWriter pw = new PrintWriter(new FileWriter(gs_dir 
-            + "PD.simulation_summary.txt", false));   // gs_dir/c.simulation_summary.txt
+            + "PD.simulation_summary.txt", true));   // gs_dir/c.simulation_summary.txt
         pw.append("Project_Name"+"\t"+"Total_Hap_Count"+"\t"+"Num_Var_Pos"+"\t"
             +"Ave_Mutation_Burden_Per_Hap"+"\t"+"Ave_Pairwise_Diff"+"\t"+"Std"
         		+"\t"+"Min_Pairwise_Diff"+"\t"+"Max_Pairwise_Diff"+"\t"
