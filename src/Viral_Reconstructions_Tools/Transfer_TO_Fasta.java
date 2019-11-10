@@ -72,6 +72,31 @@ public class Transfer_TO_Fasta {
 		bw_fasta_file.close();
 	}
 	
+	public void output_to_fasta_quasirecomb() throws IOException, InterruptedException{
+		BufferedReader br_ref_file = new BufferedReader(new FileReader(
+				referece_seqence ));
+		BufferedWriter bw_fasta_file = new BufferedWriter(new FileWriter(
+					final_output_dir + fasta_file_name + ".fasta"));
+		bw_fasta_file.write(">Reference"+"\n");
+		String ref_line=br_ref_file.readLine();
+		ref_line=br_ref_file.readLine();
+		while(ref_line!=null) {
+			String [] each_position=ref_line.split("");
+			for(int i =0 ;i < each_position.length; i++) {
+				bw_fasta_file.write(each_position[i]);
+			}
+			ref_line=br_ref_file.readLine();
+		}
+		br_ref_file.close();
+		int num_haps_per_pool = 0;
+		BufferedReader br = new BufferedReader(new FileReader(output_dir 
+				+ outfile_name));
+		String currline = br.readLine(); // read the first line
+		while(currline!=null) {
+			
+		}
+	}
+	
 	public void output_to_fasta_predicthaplo() throws IOException, InterruptedException{
 		BufferedReader br_ref_file = new BufferedReader(new FileReader(
 				referece_seqence ));

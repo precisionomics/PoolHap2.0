@@ -111,6 +111,7 @@ public class ComparisonSim_arc {
 				+ "_d_"+ Integer.toString(this.depths[j])+"_"+k+".error\n" );
 				bw.write("#SBATCH --output=p_"+Integer.toString(this.pools[i])
 				+ "_d_"+ Integer.toString(this.depths[j])+"_"+k+".out\n" );
+				bw.write("##SBATCH --mem=20gb\n");
 				bw.write("##SBATCH --ntasks=1\n");
 				bw.write("##SBATCH --cpus-per-task=8\n");
 				bw.write("##SBATCH --time=99-00:00:00\n");
