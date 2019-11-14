@@ -109,16 +109,13 @@ public class ScriptForTool {
 				bw.write("java7=/export/home/jhe/download/jdk1.7.0_80/bin/java\n");
 				bw.write("python=/export/home/jhe/download/anaconda/anaconda3/envs/tensqr_env/bin/python\n");
 				bw.write("ExtractMatrix=/export/home/jhe/download/TenSQR/TenSQR-master/ExtractMatrix\n");
-				bw.write("clustalo=/export/home/jhe/.local/bin/clustalo\n");
 				bw.write("bwa=/export/home/jhe/download/bwa-0.7.17/bwa\n");
 				bw.write("ref_dir=/export/home/jhe/project/Viral_reconstruction/SLiM/SLiM/Reference\n");
 				bw.write("ref="+ this.genome_path+"\n");
 				bw.write("PredictHaplo_Paired=/export/home/jhe/project/Viral_reconstruction/PredictHaplo/PredictHaplo-Paired-0.4/PredictHaplo-Paired\n");
-				bw.write("TransferToFasta = /export/home/jhe/project/Viral_reconstruction/Other_Tools/programs/TransferToFasta.jar\n");
-				bw.write("TransferOutput = /export/home/jhe/project/Viral_reconstruction/Other_Tools/programs/Transfer_Output.jar\n");
-				bw.write("poolhapx=/export/qlong/PoolHapX/PoolHapX.jar\n");
+
 				
-				bw.write("start1=$SECONDS\n");
+				bw.write("start=$SECONDS\n");
 				for (int p=0;p < this.pools[i];p ++) {
 					String pool_name = project_name +"_p"+p;
 					String pool_folder = prefix_folder + "/"+ project_name +"/"+pool_name+"/";
@@ -209,103 +206,10 @@ public class ScriptForTool {
 						bw.write("$PredictHaplo_Paired $prefix\\.config > $prefix\\.out"+"\n");
 					}
 				}//end of p_for_loop
-				bw.write("end1=$SECONDS\n"); 
+				bw.write("end=$SECONDS\n"); 
 				bw.write("\n");
-	        	
-				bw.write("start2=$SECONDS\n");
-				for(int p=0;p<this.pools[i];p++) {
-					String pool_name = project_name +"_p"+p;
-					String pool_folder = prefix_folder + "/"+ project_name +"/"+pool_name+"/";
-						if(tool_name.equals("QuasiRecomb")) {
-							BufferedReader br = new BufferedReader(new FileReader(pool_folder 
-								+ "quasispecies.fasta"));
-							String currline = br.readLine(); 
-							int line_count=1;
-							while(currline!=null) {
-								currline = br.readLine(); 
-								line_count++;
-							}
-							int num_file = line_count/100 + 1;
-							br.close();
-							bw.write("$java -jar $TransferToFasta "+ pool_folder+pool_name+"_O2R.properties"+"\n");
-							for (int f=0;f<num_file;f++) {
-								bw.write("$clustalo -i "+ pool_folder+pool_name+"_"+f+".fasta -o "+ 
-										pool_folder+pool_name+"_"+f+".fa\n");
-							}
-							bw.write("$java -Xmx20g -jar $TransferOutput "+ pool_folder+pool_name+"_O2R.properties"+"\n");
-						}else {
-							bw.write("$java -jar $TransferToFasta "+ pool_folder+pool_name+"_O2R.properties"+"\n");
-							bw.write("cp "+ pool_folder+pool_name+".fasta "+ pool_folder+pool_name+".fa"+"\n");
-							bw.write("$java -Xmx20g -jar $TransferOutput "+ pool_folder+pool_name+"_O2R.properties"+"\n");
-						}
-					
-					}//end of pool_for_loop
-				
-					BufferedWriter bw_properties = new BufferedWriter(new FileWriter(
-						prefix_folder+"/"+project_name+"/PHX.properties"));
-					
-					bw_properties.write("Proj_Name = "+ project_name+"\n" );
-					bw_properties.write("Input_Dir = "+phx_folder_prefix + "/"+ project_name +"/input/\n" );					
-					bw_properties.write("Intermediate_Dir = "+phx_folder_prefix + "/"+ project_name +"/intermediate/\n" );					
-					bw_properties.write("Output_Dir = "+prefix_folder + "/"+ project_name +"/\n" );			
-					bw_properties.write("Gold_Dir = "+phx_folder_prefix + "/"+ project_name +"/gold_standard/\n" );
-					
-					bw_properties.write("Num_Pos_Window = 1000\n");
-					bw_properties.write("Num_Gap_Window = 2\n");
-					bw_properties.write("Num_Pos_Job = 1000\n");
-																	
-					bw_properties.write("In-pool_Gap_Support_Min = 1\n");
-					bw_properties.write("All-pool_Gap_Support_Min = 1\n");
-					
-					bw_properties.write("Level_1_Region_Size_Min = 10\n");
-					bw_properties.write("Level_1_Region_Size_Max = 12\n");
-					bw_properties.write("Level_2_Region_Size_Min = 10\n");
-					bw_properties.write("Level_2_Region_Size_Max = 12\n");
-					
-					
-					bw_properties.write("Est_Ind_PerPool = 1000000\n");
-					bw_properties.write("Level_3_4_Region_Mismatch_Tolerance = 1\n");
-					bw_properties.write("Level_5_6_Region_Mismatch_Tolerance = 2\n");
-					bw_properties.write("Level_7_8_Region_Mismatch_Tolerance = 5\n");
-					bw_properties.write("AEM_Maximum_Level = 7\n");
-					bw_properties.write("BFS_Mismatch_Tolerance = 8\n");
-					bw_properties.write("AEM_Iterations_Max = 200\n");
-					bw_properties.write("AEM_Convergence_Cutoff = 0.0\n");
-					bw_properties.write("AEM_Zero_Cutoff = 0.0\n");
-					bw_properties.write("AEM_Regional_Cross_Pool_Freq_Cutoff = 0.0\n");
-					bw_properties.write("AEM_Regional_HapSetSize_Max = 50\n");
-					bw_properties.write("AEM_Regional_HapSetSize_Min = 3\n");
-					bw_properties.write("Virtual_Coverage_Link_GC = 1500\n");
-					
-					bw_properties.write("Hc_Similarity_Cutoff =0.95\n");
-					bw_properties.write("MCC_Freq_Cutoff = 0.01\n");
-					bw_properties.write("Rscript_path = /export/home/jhe/download/anaconda/anaconda3/envs/Regress_Haplo/bin/Rscript\n");
-					bw_properties.write("Regression_Distance_Max_Weight = 2.5\n");
-					bw_properties.write("Regression_Coverage_Weight = 1.0\n");
-					bw_properties.write("Regression_Mismatch_Tolerance= 7\n");
-					
-					bw_properties.write("Regression_One_Vector_Weight = 5.0 \n");
-					bw_properties.write("Regression_Hap_VC_Weight = 2.0 \n");
-					bw_properties.write("Regression_Hap_11_Weight = 1.0 \n");
-					
-					bw_properties.write("Regression_Regional_HapSetSize_Max = 35\n");
-					bw_properties.write("Regression_Regional_HapSetSize_Min = 40\n");
-					bw_properties.write("Regression_Gamma_Min = 0.01\n");
-					bw_properties.write("Regression_n_Gamma = 10\n");
-					bw_properties.write("Regression_Gamma_Max = 0.2\n");
-					bw_properties.write("Regression_Maximum_Regions = 3\n");
-					bw_properties.write("Maximum_Selected_HapSet = 15\n");
-					bw_properties.write("Sequencing_Technology = paired-end reads\n");
-					bw_properties.write("Number_Threads = 5\n");											
-					bw_properties.close();
-					
-					bw.write("properties="+prefix_folder + "/"+project_name+"/PHX.properties\n");
-					bw.write("$java -jar $poolhapx evaluate $properties\n");
-					
-					bw.write("end2=$SECONDS\n"); 
-					bw.write("echo \"duration_runing: $((end1-start1)) seconds.\"");
-					bw.write("echo \"duration_calculating: $((end2-start2)) seconds.\"");
-					bw.write("\n");
+				bw.write("echo \"duration_runing: $((end-start)) seconds.\""+"\n");
+				bw.close();
 				}
 			}
 		}

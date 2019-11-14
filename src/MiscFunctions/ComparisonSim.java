@@ -86,6 +86,7 @@ public class ComparisonSim {
 				bw1.write("Read_Len = 150\n");
 				bw1.write("Outer_Dist = 400\n");
 				bw1.write("Weak_Length = 700\n");
+				bw1.write("Num_Haps_Pool = 50\n");
 				bw1.close();
 
 				BufferedWriter bw = new BufferedWriter(new FileWriter(prefix_folder + "/cmd/pool_"+ 
