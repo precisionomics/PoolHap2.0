@@ -50,6 +50,56 @@ public class Transfer_Output {
 	     
 	}
 	
+	public void quasirecomb_combine() throws IOException, InterruptedException{
+		BufferedWriter bw_fa = new BufferedWriter(new FileWriter(
+				final_output_dir + fasta_file_name + ".fa"));
+		BufferedReader br_ref_file = new BufferedReader(new FileReader(
+				referece_seqence ));
+		bw_fa.write(">Reference"+"\n");
+		String ref_line=br_ref_file.readLine();
+		ref_line=br_ref_file.readLine();
+		while(ref_line!=null) {
+			String [] each_position=ref_line.split("");
+			for(int i =0 ;i < each_position.length; i++) {
+				bw_fa.write(each_position[i]);
+			}
+			ref_line=br_ref_file.readLine();
+		}
+		bw_fa.write("\n");
+		br_ref_file.close();
+		
+		BufferedReader br = new BufferedReader(new FileReader(output_dir 
+				+ outfile_name));
+		String currline = br.readLine(); 
+		int line_count=1;
+		while(currline!=null) {
+			currline = br.readLine(); 
+			line_count++;
+		}
+		int num_file = line_count/100 + 1;
+		System.out.println(num_file);
+		br.close();
+		for (int f=0;f<num_file;f++) {
+			BufferedReader br_fa = new BufferedReader(new FileReader(final_output_dir
+					+ fasta_file_name +"_" + f + ".fa"));
+			String fa_line= br_fa.readLine();
+			fa_line= br_fa.readLine();
+			String[] tmpcurrpos = fa_line.split("");
+			while(!tmpcurrpos[0].equals(">")) {
+				fa_line=br_fa.readLine();
+				tmpcurrpos = fa_line.split("");
+			}
+			
+			while(fa_line!=null) {
+				bw_fa.write(fa_line+"\n");
+				fa_line= br_fa.readLine();
+			}
+			br_fa.close();
+		}
+		bw_fa.close();
+		
+	}
+	
 	public void true_var_position() throws IOException, InterruptedException{
 		BufferedReader br = new BufferedReader(new FileReader(
 				gs_dir+project_name+"_haps.inter_freq_vars.txt"));
@@ -259,7 +309,16 @@ public class Transfer_Output {
 
 	public static void main(String[] args)throws IOException, InterruptedException {
 		String parameter = args[0];//"D:\\PhD-Studying\\Informatics\\Project\\HIV project\\Viral_reconstruction\\Other_tools_results\\CliqueSNV\\fasta\\FS3.properties";
+		InputStream is = new FileInputStream(parameter);
+        Properties prop = new Properties();
+        prop.load(is);
+	    String tool_name = prop.getProperty("Tool_Name");
+	    is.close(); 
+
 		Transfer_Output gf = new Transfer_Output(parameter);
+	    if(tool_name.equals("QuasiRecomb")) {	
+			gf.quasirecomb_combine();
+		}
 		gf.true_var_position();
 		gf.generate_hap2poolfre_hashmap();
 		gf.generate_inter_file();

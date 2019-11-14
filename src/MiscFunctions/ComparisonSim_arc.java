@@ -30,7 +30,7 @@ public class ComparisonSim_arc {
 		new File(prefix_folder + "/cmd/").mkdir();
 		for (int i =0; i< this.pools.length; i++) {
 			for (int j =0; j< this.depths.length; j++) {
-				for (int k=1;k<4;k++) {
+				for (int k=1;k<8;k++) {
 				
 				
 				
