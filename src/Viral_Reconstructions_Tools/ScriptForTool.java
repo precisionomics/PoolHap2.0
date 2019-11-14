@@ -68,11 +68,8 @@ public class ScriptForTool {
 						bw1.write("Out_File_Name ="+ pool_name+".out\n");
 					}else if(tool_name.equals("QuasiRecomb")) {
 						bw1.write("Out_File_Name ="+ "quasispecies.fasta\n");
-					}else {
-						System.out.println("This tools are not in the list. Please choose "
-								+ "from CliqueSNV,QuasiRecomb,RegressHaplo,PredictHaplo "
-								+ "and TenSQR.");
 					}
+					
 					bw1.write("Fasta_File_Name = "+ pool_name+"\n");
 					bw1.write("Proj_Name ="+ project_name+"\n");
 					bw1.write("Tool_Name ="+ tool_name+"\n");
