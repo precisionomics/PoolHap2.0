@@ -290,6 +290,7 @@ public class ComparisonSim {
 				bw_properties.write("Level_2_Region_Size_Min = 10\n");
 				bw_properties.write("Level_2_Region_Size_Max = 12\n");
 				
+				
 				bw_properties.write("Est_Ind_PerPool = 1000000\n");
 				bw_properties.write("Level_3_4_Region_Mismatch_Tolerance = 1\n");
 				bw_properties.write("Level_5_6_Region_Mismatch_Tolerance = 2\n");
