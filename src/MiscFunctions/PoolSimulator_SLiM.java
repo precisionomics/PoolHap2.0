@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 
+
 /*
  * The properties_file looks like this:
  * 
@@ -93,7 +94,6 @@ public class PoolSimulator_SLiM {
     ArrayList<HashMap<String, Integer>> pool2allhapList=new ArrayList<HashMap<String, Integer>>();
     ArrayList<String> actual_hap_list = new ArrayList<String>();
     double var_burden_avg;
-    boolean is_bacteria =true;
     int num_haps_pool;
     
 	public PoolSimulator_SLiM(String parameter_file) throws IOException {
@@ -268,9 +268,6 @@ public class PoolSimulator_SLiM {
 			currLine = br.readLine();
 		}
 		br.close();
-		
-		
-		
 		this.all_pool_haps=num_hap;
 		double num_hap_cutoff = (double)all_pool_haps*this.hap_freq_cutoff; 
 		ArrayList<String> low_freq_hap = new ArrayList<String>();
@@ -556,60 +553,6 @@ public class PoolSimulator_SLiM {
                 	bw_inter.write("\t" + hap2varcomp[h][v]);
                 bw_inter.write("\n");
             } bw_inter.close();
-            
-            
-//            
-//            for (int p = 0; p < num_pools; p++) {
-//            	int haps_this_pool = pool2hapcomp.get(p).size();
-//                PrintWriter pw = new PrintWriter(fasta_folder + project_name + "_p" + p + ".fa");
-//                	for (int h = 0; h < haps_this_pool; h++) {
-//                		int currHap = this.pool2hapcomp.get(p).get(h);
-//                		pw.append(">Haplotype_" + currHap + " \n");
-//                		for (String s : allSimHaps[currHap]) pw.append(s);
-//                		pw.append("\n\n");
-//                	}
-//                pw.close();
-//            	}
-            
-            if (is_bacteria) {
-            	
-            	 
-            	
-            	
-//            	fastq_folder + project_name + "_p" + p, 
-            	
-            	for (int p = 0; p < num_pools; p++) {
-            		
-            		int haps_this_pool = pool2hapcomp.get(p).size();
-            		int[] hap_count = new int[all_pool_haps];
-            		for (int i=0;i< hap_count.length;i++) {
-            			hap_count[i] =0;
-            		}
-            		for(int h = 0; h < haps_this_pool; h++) {
-            			hap_count[this.pool2hapcomp.get(p).get(h)]++;
-            		}
-		        	BufferedWriter bw_bed = new BufferedWriter(new FileWriter(fasta_folder + project_name + "_p" + 
-		        			Integer.toString(p) + ".bed"));
-		        	
-		        	for(int h = 0; h < haps_this_pool; h++) {
-		        		for(int t = 0; t < hap_count[h]; t++) {
-		        			for(int v = 0; v < actual_num_vars; v++){
-		        			
-		        				String Chrom = "Haplotype_" + Integer.toString(h)+"_"+Integer.toString(t);
-		        				bw_bed.write(Chrom+"\t" +  (sim_var_pos[v]-750)+ "\t"+ 
-				        				(sim_var_pos[v]+750)+"\n");
-		        			}
-		        		}
-		        	}
-		        		
-
-			        	
-			       bw_bed.close();
-            	}
-            }
-        	
-  
-            
 
             BufferedWriter bw = new BufferedWriter(new FileWriter(gs_dir + project_name + "_haps.intra_freq.txt"));
             bw.write("Hap_ID");
@@ -708,21 +651,12 @@ public class PoolSimulator_SLiM {
         if(is_single_population==true) {
         	for (int p = 0; p < num_pools; p++) {
         	int haps_this_pool = pool2hapcomp.get(p).size();
-        	HashMap<Integer, Integer> hap_count = new HashMap<Integer, Integer>();
             PrintWriter pw = new PrintWriter(fasta_folder + project_name + "_p" + p + ".fa");
             	for (int h = 0; h < haps_this_pool; h++) {
             		int currHap = this.pool2hapcomp.get(p).get(h);
-            		if (!hap_count.containsKey(currHap)) {
-            			hap_count.put(currHap, 0);
-	            		pw.append(">Haplotype_" + currHap + "_0 \n");
-	            		for (String s : allSimHaps[currHap]) pw.append(s);
-	            		pw.append("\n\n");
-            		}else {
-            			hap_count.put(currHap , hap_count.get(currHap)+1);
-            			pw.append(">Haplotype_" + currHap +  "_"+ hap_count.get(currHap)+" \n");
-	            		for (String s : allSimHaps[currHap]) pw.append(s);
-	            		pw.append("\n\n");
-            		}
+            		pw.append(">Haplotype_" + currHap + " \n");
+            		for (String s : allSimHaps[currHap]) pw.append(s);
+            		pw.append("\n\n");
             	}
             pw.close();
         	}
@@ -733,7 +667,7 @@ public class PoolSimulator_SLiM {
                 	String curr_hap = actual_hap_list.get(h);
                 	if(pool2allhapList.get(p).containsKey(curr_hap)) {
                 		for(int currhap_num=0;currhap_num<pool2allhapList.get(p).get(curr_hap);currhap_num++) {
-                    		pw.append(">Haplotype_" + h   + " \n");
+                    		pw.append(">Haplotype_" + h + " \n");
                     		for (String s : allSimHaps[h]) pw.append(s);
                     		pw.append("\n\n");
                 		}
@@ -755,48 +689,24 @@ public class PoolSimulator_SLiM {
         	}
         	System.out.println("Haplotypes within this pool:" + haps_this_pool);
             double coverage_set = (double)coverage/(double)haps_this_pool;
+            ProcessBuilder CMDLine = new ProcessBuilder(dwgsimCMDLine,
+                fasta_folder + project_name + "_p" + p + ".fa", 
+                fastq_folder + project_name + "_p" + p, 
+                "-e", Double.toString(error_rate),
+                "-E", Double.toString(error_rate), "-C", Double.toString(coverage_set),
+                "-1", Integer.toString(read_len),
+                "-2", Integer.toString(read_len),
+                "-r", "0",
+                "-F", "0",
+                "-H",
+                "-d", Integer.toString(outer_dist),
+                "-o", "1",
+                "-s", "0",
+                "-y", "0");
             
-           if (is_bacteria) {
-	            ProcessBuilder CMDLine = new ProcessBuilder(dwgsimCMDLine,
-	                fasta_folder + project_name + "_p" + p + ".fa", 
-	                fastq_folder + project_name + "_p" + p, 
-	                "-e", Double.toString(error_rate),
-	                "-E", Double.toString(error_rate), "-C", Double.toString(coverage_set),
-	                "-1", Integer.toString(read_len),
-	                "-2", Integer.toString(read_len),
-	                "-r", "0",
-	                "-F", "0",
-	                "-H",
-	                "-d", Integer.toString(outer_dist),
-	                "-o", "1",
-	                "-s", "0",
-	                "-y", "0",
-	                "-x", fasta_folder + project_name + "_p" + 
-		        			Integer.toString(p) + ".bed");
-	            
-	            Process CMDProcess = CMDLine.start();
-	            CMDProcess.waitFor();
-	            System.out.println("Finished simulating reads for pool " + p + ".");
-           }else {
-        	   ProcessBuilder CMDLine = new ProcessBuilder(dwgsimCMDLine,
-   	                fasta_folder + project_name + "_p" + p + ".fa", 
-   	                fastq_folder + project_name + "_p" + p, 
-   	                "-e", Double.toString(error_rate),
-   	                "-E", Double.toString(error_rate), "-C", Double.toString(coverage_set),
-   	                "-1", Integer.toString(read_len),
-   	                "-2", Integer.toString(read_len),
-   	                "-r", "0",
-   	                "-F", "0",
-   	                "-H",
-   	                "-d", Integer.toString(outer_dist),
-   	                "-o", "1",
-   	                "-s", "0",
-   	                "-y", "0");
-   	            
-   	            Process CMDProcess = CMDLine.start();
-   	            CMDProcess.waitFor();
-   	            System.out.println("Finished simulating reads for pool " + p + ".");
-           }
+            Process CMDProcess = CMDLine.start();
+            CMDProcess.waitFor();
+            System.out.println("Finished simulating reads for pool " + p + ".");
         }
 	}
 	
@@ -910,5 +820,4 @@ public class PoolSimulator_SLiM {
 	    	ps.generate_VEF();
 	    }
 	}
-
 }
