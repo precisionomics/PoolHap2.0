@@ -13,7 +13,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Properties;
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
+
+import shapeless.newtype;
 
 
 /*
@@ -465,9 +468,13 @@ public class PoolSimulator_SLiM {
     	double[][] var2infreqs = new double[actual_num_vars][num_pools];
         if(is_single_population==true) {
         	int[][] hap2incts = new int[actual_num_haps][num_pools];
+        	int random_count=0;
             for (int h = 0; h < actual_num_haps; h++) {
                 while (hap2cts[h] != 0) {
-                    int currPool = ThreadLocalRandom.current().nextInt(0, num_pools);
+                    Random seedRandom =new Random(random_count);
+                    random_count++;
+                    int currPool =seedRandom.nextInt(num_pools);
+                	//int currPool = ThreadLocalRandom.current().nextInt(0, num_pools);
                     if (!this.pool2hapcomp.containsKey(currPool)) {
                     	this.pool2hapcomp.put(currPool, new ArrayList<Integer>());
                     	this.pool2hapcomp.get(currPool).add(h);
@@ -784,7 +791,9 @@ public class PoolSimulator_SLiM {
 	        if (!refBase.equals("C")) bases.add("C");
 	        if (!refBase.equals("G")) bases.add("G");
 	        if (!refBase.equals("T")) bases.add("T");
-	        return bases.get(ThreadLocalRandom.current().nextInt(0, 3));
+	        Random seedRandom = new Random(1);
+	        return bases.get(seedRandom.nextInt(3));
+	        //return bases.get(ThreadLocalRandom.current().nextInt(0, 3));
 	}
 
 	static int find(int[] a, int target) {

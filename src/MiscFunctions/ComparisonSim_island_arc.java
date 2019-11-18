@@ -15,7 +15,7 @@ public class ComparisonSim_island_arc {
 	
 //	int[] pools = new  int [] {50, 200};
 //	double[] mut_rates = new  double [] { 1e-6, 1e-7, 1e-8, 1e-9};
-	int[] depths = new  int  [] { 500, 1000, 2000};
+	int[] depths = new  int  [] { 250, 500, 1000, 2000};
 //	int[] num_haps = new  int  [] { 15, 30};
 	
 	
@@ -87,7 +87,7 @@ public class ComparisonSim_island_arc {
 				bw1.write("Read_Len = 150\n");
 				bw1.write("Outer_Dist = 400\n");
 				bw1.write("Weak_Length = 550\n");
-				bw1.write("Num_Haps_Pool = 40\n");
+				bw1.write("Num_Haps_Pool = 30\n");
 				bw1.close();
 
 				BufferedWriter bw = new BufferedWriter(new FileWriter(prefix_folder + "/cmd/pool_"+ 
@@ -114,7 +114,7 @@ public class ComparisonSim_island_arc {
 				bw.write("#SBATCH --output=p_"+Integer.toString(num_pool)
 				+ "_d_"+ Integer.toString(this.depths[j])+"_"+k+".out\n" );
 				bw.write("#SBATCH --ntasks=1\n");
-				bw.write("#SBATCH --cpus-per-task=8\n");
+				bw.write("#SBATCH --cpus-per-task=6\n");
 				bw.write("#SBATCH --time=99-00:00:00\n");
 				bw.write("#SBATCH --nodes=1\n");
 				
@@ -145,11 +145,11 @@ public class ComparisonSim_island_arc {
 				bw.write("mkdir "+ prefix_folder + "/pool_"+ Integer.toString(num_pool)
 				+ "_dep_"+ Integer.toString(this.depths[j])+"_"+k+ "/intermediate\n");
 				
-				bw.write("cp  "+ slimout_folder + "/0_"+k+"_panmictic_haploid.out "
+				bw.write("cp  "+ slimout_folder + "/0_"+k+"_island_haploid.out "
 						+ prefix_folder + "/pool_"+ Integer.toString(num_pool)
 				+ "_dep_"+ Integer.toString(this.depths[j])+"_"+k+ "/gold_standard/"+ 
 				"pool_"+ Integer.toString(num_pool)+ "_dep_"+ Integer.toString(this.depths[j])+"_"+k
-						+ "_panmictic_haploid.out\n");
+						+ "_island_haploid.out\n");
 				
 // Step 1: Generate coalescence-simulated haplotypes, distribute to each of the pools, and simulate reads for each pool.
 				
@@ -287,9 +287,9 @@ public class ComparisonSim_island_arc {
 				bw_properties.write("All-pool_Gap_Support_Min = 1\n");
 				
 				bw_properties.write("Level_1_Region_Size_Min = 10\n");
-				bw_properties.write("Level_1_Region_Size_Max = 13\n");
+				bw_properties.write("Level_1_Region_Size_Max = 12\n");
 				bw_properties.write("Level_2_Region_Size_Min = 10\n");
-				bw_properties.write("Level_2_Region_Size_Max = 13\n");
+				bw_properties.write("Level_2_Region_Size_Max = 12\n");
 				
 				
 				bw_properties.write("Est_Ind_PerPool = 1000000\n");
@@ -326,7 +326,7 @@ public class ComparisonSim_island_arc {
 				bw_properties.write("Maximum_Selected_HapSet = 15\n");
 				bw_properties.write("Sequencing_Technology = paired-end reads\n");
 				bw_properties.write("Number_Threads = 5\n");
-															
+				bw_properties.write("Species = virus\n");												
 				bw_properties.close();
 				
 				bw.write("properties="+prefix_folder + "/pool_"+ Integer.toString(num_pool)+ 

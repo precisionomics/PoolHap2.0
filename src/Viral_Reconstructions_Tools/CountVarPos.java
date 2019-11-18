@@ -26,6 +26,7 @@ public class CountVarPos {
 				currLine = br.readLine();
 				tmpcurrpos = currLine.split(" ");
 			}else {
+				
 				while(!tmpcurrpos[0].equals("Populations:")) { // Read those lines before "Populations:"
 					currLine = br.readLine();
 					tmpcurrpos = currLine.split(" ");
