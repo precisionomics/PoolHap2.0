@@ -236,36 +236,38 @@ public class PoolSimulator_SLiM {
 		while(currLine!=null) {
 			tmpcurrpos = currLine.split(" ");
 			int curr_pool_index= Integer.parseInt(tmpcurrpos[0].split(":")[0].split("p")[1])-1;
-			if(tmpcurrpos.length>2) {
-				if(is_single_population==true&& num_hap>= max_num_haps) {
-					break;
-				}
-				num_hap++;
-				ArrayList<Integer> currvarpos = new ArrayList<Integer>();
-				String curr_hap="";
-				for (int p=2;p<tmpcurrpos.length;p++){
-					currvarpos.add(Integer.parseInt(tmpcurrpos[p]));
-				}
-				for(int p=0;p<num_var_pos;p++) {
-					int curr_var_index=sim_var_index[p];
-					if(currvarpos.contains(curr_var_index)) {
-						curr_hap=curr_hap+1;
-					}else {
-						curr_hap=curr_hap+0;
+			if((curr_pool_index<=this.num_pools)||(is_single_population)) {
+				if(tmpcurrpos.length>2) {
+					if(is_single_population==true&& num_hap>= max_num_haps) {
+						break;
 					}
-				}
-				if (!hapsHS.containsKey(curr_hap)) {
-					hapsHS.put(curr_hap, 1);
-				}else {
-					int tmpCt =  hapsHS.get(curr_hap) + 1;
-					hapsHS.put(curr_hap, tmpCt);
-				}
+					num_hap++;
+					ArrayList<Integer> currvarpos = new ArrayList<Integer>();
+					String curr_hap="";
+					for (int p=2;p<tmpcurrpos.length;p++){
+						currvarpos.add(Integer.parseInt(tmpcurrpos[p]));
+					}
+					for(int p=0;p<num_var_pos;p++) {
+						int curr_var_index=sim_var_index[p];
+						if(currvarpos.contains(curr_var_index)) {
+							curr_hap=curr_hap+1;
+						}else {
+							curr_hap=curr_hap+0;
+						}
+					}
+					if (!hapsHS.containsKey(curr_hap)) {
+						hapsHS.put(curr_hap, 1);
+					}else {
+						int tmpCt =  hapsHS.get(curr_hap) + 1;
+						hapsHS.put(curr_hap, tmpCt);
+					}
 
-				if(!pool2allhapList.get(curr_pool_index).containsKey(curr_hap)) {
-					this.pool2allhapList.get(curr_pool_index).put(curr_hap, 1);
-				}else if(pool2allhapList.get(curr_pool_index).containsKey(curr_hap)) {
-					int tmpCt = pool2allhapList.get(curr_pool_index).get(curr_hap)+1;
-					this.pool2allhapList.get(curr_pool_index).put(curr_hap, tmpCt);
+					if(!pool2allhapList.get(curr_pool_index).containsKey(curr_hap)) {
+						this.pool2allhapList.get(curr_pool_index).put(curr_hap, 1);
+					}else if(pool2allhapList.get(curr_pool_index).containsKey(curr_hap)) {
+						int tmpCt = pool2allhapList.get(curr_pool_index).get(curr_hap)+1;
+						this.pool2allhapList.get(curr_pool_index).put(curr_hap, tmpCt);
+					}
 				}
 			}
 			currLine = br.readLine();

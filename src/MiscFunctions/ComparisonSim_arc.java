@@ -5,6 +5,7 @@ import java.util.*;
 
 import PoolHap.Entrance;
 import breeze.macros.expand.args;
+import shapeless.newtype;
 import spire.math.UInt;
 import spire.optional.intervalGeometricPartialOrder;
 
@@ -12,11 +13,11 @@ import spire.optional.intervalGeometricPartialOrder;
 
 public class ComparisonSim_arc {
 	
-	int[] pools = new  int [] {50, 200};
+	int[] pools = new  int [] {25,50};
 //	double[] mut_rates = new  double [] { 1e-6, 1e-7, 1e-8, 1e-9};
-	int[] depths = new  int  [] { 250, 500, 1000, 2000};
+	int[] depths = new  int  [] { 50, 100, 250, 500};
 //	int[] num_haps = new  int  [] { 15, 30};
-	
+	int[] freq_cutoff = new int [] {1,2,4,8};
 	
 	String slim_script; 
 	
@@ -30,16 +31,18 @@ public class ComparisonSim_arc {
 		new File(prefix_folder + "/cmd/").mkdir();
 		for (int i =0; i< this.pools.length; i++) {
 			for (int j =0; j< this.depths.length; j++) {
-				for (int k=1;k<8;k++) {
+				for(int h=0;h<this.freq_cutoff.length;h++) {
+					for (int k=1;k<7;k++) {
+
 				
 				
+				String project_name = "freq_"+this.freq_cutoff[h]+"_pool_"+ Integer.toString(this.pools[i])
+						+ "_dep_"+ Integer.toString(this.depths[j])+"_"+k;
+						
+				new File(prefix_folder +"/"+ project_name).mkdir();
 				
-				new File(prefix_folder + "/pool_"+ Integer.toString(this.pools[i])
-						+ "_dep_"+ Integer.toString(this.depths[j])+"_"+k).mkdir();
-				
-				BufferedWriter bw1 = new BufferedWriter(new FileWriter(prefix_folder + "/cmd/pool_"+ 
-						Integer.toString(this.pools[i])+ "_dep_"+ 
-						Integer.toString(this.depths[j]) +"_"+k+".PoolSimulator.properties"));
+				BufferedWriter bw1 = new BufferedWriter(new FileWriter(prefix_folder +
+						"/cmd/"+project_name +".PoolSimulator.properties"));
 				
 //				Input_Dir = /export/qlong/chencao/Work/poolhaopx/slim/cc/input
 //				Intermediate_Dir = /export/qlong/chencao/Work/poolhaopx/slim/cc/intermediate
@@ -59,21 +62,17 @@ public class ComparisonSim_arc {
 //				Coverage = 1000
 //				Read_Len = 150
 //				Outer_Dist = 400
+				double hap_freq_cutoff = (double)this.freq_cutoff[h]*0.005;
 				
-				bw1.write("Input_Dir = "+ prefix_folder + "/pool_"+ Integer.toString(this.pools[i])
-				+ "_dep_"+ Integer.toString(this.depths[j])+"_"+k+ "/input\n");
-				bw1.write("Intermediate_Dir ="+ prefix_folder + "/pool_"+ Integer.toString(this.pools[i])
-				+ "_dep_"+ Integer.toString(this.depths[j])+"_"+k+ "/intermediate\n");
-				bw1.write("Gold-Standard_Dir ="+ prefix_folder + "/pool_"+ Integer.toString(this.pools[i])
-				+ "_dep_"+ Integer.toString(this.depths[j])+"_"+k+ "/gold_standard\n");
-				bw1.write("Slim_Output_Path ="+ prefix_folder + "/pool_"+ Integer.toString(this.pools[i])
-				+ "_dep_"+ Integer.toString(this.depths[j])+"_"+k+ "/gold_standard\n");
+				bw1.write("Input_Dir = "+ prefix_folder +"/" + project_name+ "/input\n");
+				bw1.write("Intermediate_Dir ="+ prefix_folder+"/" + project_name+ "/intermediate\n");
+				bw1.write("Gold-Standard_Dir ="+ prefix_folder+"/" + project_name+ "/gold_standard\n");
+				bw1.write("Slim_Output_Path ="+ prefix_folder+"/" + project_name+ "/gold_standard\n");
 //				Slim_Model = panmictic_haploid
 				bw1.write("Slim_Model = panmictic_haploid\n");
-				bw1.write("Proj_Name = pool_" + Integer.toString(this.pools[i]) 
-						+ "_dep_"+ Integer.toString(this.depths[j])+"_"+k+"\n");
+				bw1.write("Proj_Name =" + project_name +"\n");
 				
-				bw1.write("Is_Single_Population = true\n");
+				bw1.write("Is_Single_Population = false\n");
 				bw1.write("Is_Ms_Output = false\n");
 				bw1.write("DWGSIM = /home/jingni.he1/download/DWGSIM-master/dwgsim\n");
 				bw1.write("Num_Pools = " + Integer.toString(this.pools[i])+ "\n");
@@ -81,7 +80,7 @@ public class ComparisonSim_arc {
 				bw1.write("Reference_Seq= " + this.genome_path+"\n");
 				bw1.write("Is_Perfect = false\n");
 				bw1.write("Error_Rate_Per_Base = 0.001 \n");
-				bw1.write("Hap_Freq_Cutoff = 0.01\n");
+				bw1.write("Hap_Freq_Cutoff = "+ Double.toString(hap_freq_cutoff)+  "\n");
 				bw1.write("Coverage = "+ Integer.toString(this.depths[j])+  "\n");
 				bw1.write("Read_Len = 150\n");
 				bw1.write("Outer_Dist = 400\n");
@@ -89,9 +88,7 @@ public class ComparisonSim_arc {
 				bw1.write("Num_Haps_Pool = 30\n");
 				bw1.close();
 
-				BufferedWriter bw = new BufferedWriter(new FileWriter(prefix_folder + "/cmd/pool_"+ 
-						Integer.toString(this.pools[i])
-				+ "_dep_"+ Integer.toString(this.depths[j])+"_"+k +".cmd"));
+				BufferedWriter bw = new BufferedWriter(new FileWriter(prefix_folder + "/cmd/"+ project_name +".cmd"));
 				
 //				#!/bin/sh
 //				#SBATCH --job-name=muse
@@ -104,15 +101,10 @@ public class ComparisonSim_arc {
 //				#SBATCH --nodes=1
 //				#SBATCH --exclude=node[029-033]
 				bw.write("#!/bin/bash\n");
-				bw.write("#SBATCH --job-name=p_"+ Integer.toString(this.pools[i])
-				+ "_d_"+ Integer.toString(this.depths[j])+"_"+k +"\n");
-				bw.write("#SBATCH --workdir="+ prefix_folder + "/pool_"+ Integer.toString(this.pools[i])
-				+ "_dep_"+ Integer.toString(this.depths[j])+"_"+k +"\n");
-				bw.write("#SBATCH --error=p_"+Integer.toString(this.pools[i])
-				+ "_d_"+ Integer.toString(this.depths[j])+"_"+k+".error\n" );
-				bw.write("#SBATCH --output=p_"+Integer.toString(this.pools[i])
-				+ "_d_"+ Integer.toString(this.depths[j])+"_"+k+".out\n" );
-				bw.write("##SBATCH --mem=20gb\n");
+				bw.write("#SBATCH --job-name="+ project_name +"\n");
+				bw.write("#SBATCH --workdir="+ prefix_folder + "/"+ project_name +"\n");
+				bw.write("#SBATCH --error="+project_name+".error\n" );
+				bw.write("#SBATCH --output="+project_name+".out\n" );
 				bw.write("##SBATCH --ntasks=1\n");
 				bw.write("##SBATCH --cpus-per-task=6\n");
 				bw.write("##SBATCH --time=99-00:00:00\n");
@@ -128,6 +120,7 @@ public class ComparisonSim_arc {
 				bw.write("poolsim=/home/jingni.he1/project/Viral_reconstruction/SLiM/programs/PoolSimulator_SLiM.jar\n");
 				bw.write("rewrite_vars=/home/jingni.he1/project/Viral_reconstruction/SLiM/programs/Rewrite_VarsFile.jar\n");
 				bw.write("bwa=/home/jingni.he1/download/bwa-0.7.17/bwa\n");
+				bw.write("samtools=/home/jingni.he1/download/samtools-1.9/samtools\n");
 				bw.write("ref="+ this.genome_path+"\n");
 				bw.write("gatk=/home/jingni.he1/download/gatk-4.0.0.0/"
 						+ "gatk-package-4.0.0.0-local.jar\n");
@@ -136,72 +129,52 @@ public class ComparisonSim_arc {
 //$java -jar /home/jingni.he1/project/Viral_reconstruction/SLiM/programs/
 //				PoolSimulator_SLiM.jar "$1"/input/PoolSimulator.properties
 				
-				bw.write("mkdir "+ prefix_folder + "/pool_"+ Integer.toString(this.pools[i])
-				+ "_dep_"+ Integer.toString(this.depths[j])+"_"+k+ "/input\n");
-				bw.write("mkdir "+ prefix_folder + "/pool_"+ Integer.toString(this.pools[i])
-				+ "_dep_"+ Integer.toString(this.depths[j])+"_"+k+ "/gold_standard\n");
-				bw.write("mkdir "+ prefix_folder + "/pool_"+ Integer.toString(this.pools[i])
-				+ "_dep_"+ Integer.toString(this.depths[j])+"_"+k+ "/output\n");
-				bw.write("mkdir "+ prefix_folder + "/pool_"+ Integer.toString(this.pools[i])
-				+ "_dep_"+ Integer.toString(this.depths[j])+"_"+k+ "/intermediate\n");
+				bw.write("mkdir "+ prefix_folder + "/"+ project_name+ "/input\n");
+				bw.write("mkdir "+ prefix_folder + "/"+ project_name+ "/gold_standard\n");
+				bw.write("mkdir "+ prefix_folder + "/"+ project_name+ "/output\n");
+				bw.write("mkdir "+ prefix_folder + "/"+ project_name+ "/intermediate\n");
 				
-				bw.write("cp  "+ slimout_folder + "/0_"+k+"_panmictic_haploid.out "
-						+ prefix_folder + "/pool_"+ Integer.toString(this.pools[i])
-				+ "_dep_"+ Integer.toString(this.depths[j])+"_"+k+ "/gold_standard/"+ 
-				"pool_"+ Integer.toString(this.pools[i])+ "_dep_"+ Integer.toString(this.depths[j])+"_"+k
-						+ "_panmictic_haploid.out\n");
+				bw.write("cp  "+ slimout_folder + "/0_"+k+"_panmictic_haploid "
+						+ prefix_folder + "/"+ project_name+ "/gold_standard/"+ 
+						project_name + "panmictic_haploid\n");
 				
 // Step 1: Generate coalescence-simulated haplotypes, distribute to each of the pools, and simulate reads for each pool.
 				
-				bw.write("$java -jar $poolsim "+ 	prefix_folder + "/cmd/pool_"+ 
-				Integer.toString(this.pools[i])+ "_dep_"+ 
-						Integer.toString(this.depths[j])+"_"+k +".PoolSimulator.properties\n");
-				
+				bw.write("$java -jar $poolsim "+ 	prefix_folder + "/cmd/"+ 
+						project_name +".PoolSimulator.properties\n");
+			
 				
 				for (int p=0;p < this.pools[i];p ++) {
 					
-					bw.write("prefix="+ prefix_folder + "/pool_"+ Integer.toString(this.pools[i])+ 
-							"_dep_"+ Integer.toString(this.depths[j])+"_"+k+"/input/fastq/"
-							+ "pool_"+ Integer.toString(this.pools[i])+ 
-							"_dep_"+ Integer.toString(this.depths[j])+"_"+k+
+					bw.write("prefix="+ prefix_folder + "/"+ project_name+"/input/fastq/"+project_name+
 							"_p"+ Integer.toString(p) +"\n");
 					
 					
-					bw.write("prefix_bam="+ prefix_folder + "/pool_"+ Integer.toString(this.pools[i])+ 
-								"_dep_"+ Integer.toString(this.depths[j])+"_"+k+"/input/bam/"
-								+ "pool_"+ Integer.toString(this.pools[i])+ 
-								"_dep_"+ Integer.toString(this.depths[j])+"_"+k+
+					bw.write("prefix_bam="+ prefix_folder + "/"+ project_name+"/input/bam/"+project_name+
 								"_p"+ Integer.toString(p) +"\n");
+					
 
 // Step 2: For each pool, align the simulated reads to a reference sequence.	
 					
 					bw.write("gunzip   $prefix\\.bwa.read1.fastq\n");
 					bw.write("gunzip   $prefix\\.bwa.read2.fastq\n");
 					bw.write("$bwa mem $ref $prefix\\.bwa.read1.fastq $prefix\\.bwa.read2.fastq "
-							+ "| samtools view -Shub - > $prefix_bam\\.bam\n");
-					bw.write("samtools sort -o  " +	"$prefix_bam\\.srt.bam  $prefix_bam\\.bam\n");
+							+ "| $samtools view -Shub - > $prefix_bam\\.bam\n");
+					bw.write("$samtools sort -o  " +	"$prefix_bam\\.srt.bam  $prefix_bam\\.bam\n");
 					
 					
 // Step 3: For each pool, call variants using GATK HaplotypeCaller in gVCF mode.	
 					
-					bw.write("inbam="+ prefix_folder + "/pool_"+ Integer.toString(this.pools[i])+ 
-									"_dep_"+ Integer.toString(this.depths[j])+"_"+k+"/input/bam/"
-									+ "pool_"+ Integer.toString(this.pools[i])+ 
-									"_dep_"+ Integer.toString(this.depths[j])+"_"+k+
-									"_p"+ Integer.toString(p) +".rg.bam\n");
+					bw.write("inbam="+ prefix_folder + "/"+ project_name +"/input/bam/"+project_name+
+							"_p"+ Integer.toString(p) +".rg.bam\n");
 								
 					bw.write("$java -jar $gatk  AddOrReplaceReadGroups -I  $prefix_bam\\.srt.bam -O $inbam"
-							+ " -R $ref -ID " +   "pool_"+ Integer.toString(this.pools[i])+ 
-							"_dep_"+ Integer.toString(this.depths[j])+"_"+k+ "_p"+ Integer.toString(p)
-							+" -LB NPD -PL Illumina -PU NPD -SM pool_"+ Integer.toString(this.pools[i])+ 
-							"_dep_"+ Integer.toString(this.depths[j])+"_"+k+ "_p"+ Integer.toString(p)+ "\n");
+							+ " -R $ref -ID " +  project_name + "_p"+ Integer.toString(p)
+							+" -LB NPD -PL Illumina -PU NPD -SM "+ project_name + "_p"+ Integer.toString(p)+ "\n");
 					
-					bw.write("samtools index $inbam\n");
+					bw.write("$samtools index $inbam\n");
 										
-					bw.write("prefix_vcf="+ prefix_folder + "/pool_"+ Integer.toString(this.pools[i])+ 
-							"_dep_"+ Integer.toString(this.depths[j])+"_"+k+"/input/vcf/"
-							+ "pool_"+ Integer.toString(this.pools[i])+ 
-							"_dep_"+ Integer.toString(this.depths[j])+"_"+k+
+					bw.write("prefix_vcf="+ prefix_folder + "/"+ project_name +"/input/vcf/"+project_name+
 							"_p"+ Integer.toString(p) +"\n");
 					
 					
@@ -212,10 +185,7 @@ public class ComparisonSim_arc {
 				}
 //	Step 4: Join all pool-specific gVCFs into a joint gVCF file and convert to VCF.
 				
-				bw.write("prefix="+ prefix_folder + "/pool_"+ Integer.toString(this.pools[i])+ 
-						"_dep_"+ Integer.toString(this.depths[j])+"_"+k+"/input/vcf/"
-						+ "pool_"+ Integer.toString(this.pools[i])+ 
-						"_dep_"+ Integer.toString(this.depths[j])+"_"+k +"\n");
+				bw.write("prefix="+ prefix_folder + "/"+ project_name +"/input/vcf/"+project_name+"\n");
 				
 				String tmp= "$java -jar $gatk CombineGVCFs -R $ref ";
 				for (int p=0;p < this.pools[i];p ++) {
@@ -230,10 +200,8 @@ public class ComparisonSim_arc {
 				bw.write("$java -jar $gatk   GenotypeGVCFs -R $ref -V  $prefix\\.g.vcf" + 
 						" -ploidy 8 -O $prefix\\.raw.vcf\n");
 				
-				bw.write("prefix_vcf="+ prefix_folder + "/pool_"+ Integer.toString(this.pools[i])+ 
-						"_dep_"+ Integer.toString(this.depths[j])+"_"+k+"/input/"
-						+ "pool_"+ Integer.toString(this.pools[i])+ 
-						"_dep_"+ Integer.toString(this.depths[j])+"_"+k +"\n");
+				bw.write("prefix_vcf="+ prefix_folder + "/"+ project_name +"/input/"
+                        +project_name+"\n");
 				
 				bw.write( "$java -jar $gatk  SelectVariants -R $ref -V  $prefix\\.raw.vcf" + 
 						" -O $prefix_vcf\\.vcf\n");
@@ -241,43 +209,32 @@ public class ComparisonSim_arc {
 //	Step 5. Convert each pool-specific BAM file to SAM (i.e.: text), then VEF files.	
 				for (int p=0;p < this.pools[i];p ++) {
 					
-					bw.write("prefix_sam="+prefix_folder + "/pool_"+ Integer.toString(this.pools[i])+ 
-							"_dep_"+ Integer.toString(this.depths[j])+"_"+k+"/input/sam/"
-							+ "pool_"+ Integer.toString(this.pools[i])+ 
-							"_dep_"+ Integer.toString(this.depths[j])+"_"+k+
+					bw.write("prefix_sam="+prefix_folder + "/"+ project_name+"/input/sam/"
+							+ project_name+
 							"_p"+ Integer.toString(p) +"\n");
 					
-					bw.write("prefix_bam="+prefix_folder + "/pool_"+ Integer.toString(this.pools[i])+ 
-							"_dep_"+ Integer.toString(this.depths[j])+"_"+k+"/input/bam/"
-							+ "pool_"+ Integer.toString(this.pools[i])+ 
-							"_dep_"+ Integer.toString(this.depths[j])+"_"+k+
+					bw.write("prefix_bam="+prefix_folder + "/"+ project_name+"/input/bam/"
+							+ project_name +
 							"_p"+ Integer.toString(p) +"\n");
 					
-					bw.write("samtools view -ho $prefix_sam\\.sam $prefix_bam\\.srt.bam\n");
+					bw.write("$samtools view -ho $prefix_sam\\.sam $prefix_bam\\.srt.bam\n");
 					
 				}
 				
-				new File(prefix_folder + "/pool_"+ Integer.toString(this.pools[i])+ 
-							"_dep_"+ Integer.toString(this.depths[j])+"_"+k+"/input/").mkdir();         
+				new File(prefix_folder + "/"+ project_name +"/input/").mkdir();         
 				
 				BufferedWriter bw_properties = new BufferedWriter(new FileWriter(
-					prefix_folder + "/pool_"+ Integer.toString(this.pools[i])+ 
-					"_dep_"+ Integer.toString(this.depths[j])+"_"+k+"/input/PHX.properties"));
+					prefix_folder + "/"+ project_name+"/input/PHX.properties"));
 				
-				bw_properties.write("Proj_Name = "+ "pool_"+ Integer.toString(this.pools[i])+ 
-						"_dep_"+ Integer.toString(this.depths[j])+"_"+k+"\n" );
+				bw_properties.write("Proj_Name = "+ project_name+"\n" );
 
-				bw_properties.write("Input_Dir = "+prefix_folder + "/pool_"+ Integer.toString(this.pools[i])+ 
-						"_dep_"+ Integer.toString(this.depths[j])+"_"+k +"/input/\n" );
+				bw_properties.write("Input_Dir = "+prefix_folder + "/"+ project_name +"/input/\n" );
 				
-				bw_properties.write("Intermediate_Dir = "+prefix_folder + "/pool_"+ Integer.toString(this.pools[i])+ 
-						"_dep_"+ Integer.toString(this.depths[j])+"_"+k +"/intermediate/\n" );
+				bw_properties.write("Intermediate_Dir = "+prefix_folder + "/"+ project_name +"/intermediate/\n" );
 				
-				bw_properties.write("Output_Dir = "+prefix_folder + "/pool_"+ Integer.toString(this.pools[i])+ 
-						"_dep_"+ Integer.toString(this.depths[j])+"_"+k +"/output/\n" );
+				bw_properties.write("Output_Dir = "+prefix_folder + "/"+ project_name +"/output/\n" );
 				
-				bw_properties.write("Gold_Dir = "+prefix_folder + "/pool_"+ Integer.toString(this.pools[i])+ 
-						"_dep_"+ Integer.toString(this.depths[j])+"_"+k +"/gold_standard/\n" );
+				bw_properties.write("Gold_Dir = "+prefix_folder + "/"+ project_name +"/gold_standard/\n" );
 				
 				bw_properties.write("Num_Pos_Window = 1000\n");
 				bw_properties.write("Num_Gap_Window = 2\n");
@@ -287,9 +244,10 @@ public class ComparisonSim_arc {
 				bw_properties.write("All-pool_Gap_Support_Min = 1\n");
 				
 				bw_properties.write("Level_1_Region_Size_Min = 10\n");
-				bw_properties.write("Level_1_Region_Size_Max = 12\n");
+				bw_properties.write("Level_1_Region_Size_Max = 13\n");
 				bw_properties.write("Level_2_Region_Size_Min = 10\n");
-				bw_properties.write("Level_2_Region_Size_Max = 12\n");
+				bw_properties.write("Level_2_Region_Size_Max = 13\n");
+				
 				
 				bw_properties.write("Est_Ind_PerPool = 1000000\n");
 				bw_properties.write("Level_3_4_Region_Mismatch_Tolerance = 1\n");
@@ -325,24 +283,20 @@ public class ComparisonSim_arc {
 				bw_properties.write("Maximum_Selected_HapSet = 15\n");
 				bw_properties.write("Sequencing_Technology = paired-end reads\n");
 				bw_properties.write("Number_Threads = 5\n");
-				bw_properties.write("Species = virus\n");											
+				bw_properties.write("Species = virus\n");
+															
 				bw_properties.close();
 				
-				bw.write("properties="+prefix_folder + "/pool_"+ Integer.toString(this.pools[i])+ 
-				"_dep_"+ Integer.toString(this.depths[j])+"_"+k+"/input/PHX.properties\n");
+				bw.write("properties="+prefix_folder + "/"+ project_name+"/input/PHX.properties\n");
 				bw.write("poolhapx=/home/jingni.he1/project/Viral_reconstruction/SLiM/programs/PoolHapX.jar\n");
 				bw.write("start=$SECONDS\n");
 				bw.write("$java -jar $poolhapx format $properties\n");
-				bw.write("$java -jar $rewrite_vars "+ prefix_folder + "/pool_"
-						+ Integer.toString(this.pools[i]) + "_dep_"
-						+ Integer.toString(this.depths[j])+"_"+k+ "/gold_standard/"
-						+ "pool_"+ Integer.toString(this.pools[i])+ 
-						"_dep_"+ Integer.toString(this.depths[j])+"_"+k
-						+"_haps.inter_freq_vars.txt "+prefix_folder + "/pool_"
-						+ Integer.toString(this.pools[i]) + "_dep_"
-						+ Integer.toString(this.depths[j])+"_"+k+ "/intermediate/"
-						+ "pool_"+ Integer.toString(this.pools[i])+ 
-						"_dep_"+ Integer.toString(this.depths[j])+"_"+k
+				bw.write("$java -jar $rewrite_vars "+ prefix_folder + "/"
+						+ project_name+ "/gold_standard/"
+						+ project_name
+						+"_haps.inter_freq_vars.txt "+prefix_folder + "/"
+						+ project_name+ "/intermediate/"
+						+ project_name
 						+"_vars.intra_freq.txt\n");
 				bw.write("$java -jar $poolhapx gc $properties\n");
 				bw.write("$java -jar $poolhapx aem $properties\n");
@@ -351,8 +305,8 @@ public class ComparisonSim_arc {
 						"echo \"duration: $((end-start)) seconds.\"");
 				bw.write("\n");
 				
-	        	bw.close();
-	        	
+	        	bw.close();	        	
+					}
 				}
 			}
 		}

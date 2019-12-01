@@ -7,7 +7,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 
-public class ScriptForTool {
+public class ScriptForTool_arc {
 	
 	int[] pools = new  int [] {25, 50};
 //	double[] mut_rates = new  double [] { 1e-6, 1e-7, 1e-8, 1e-9};
@@ -18,11 +18,10 @@ public class ScriptForTool {
 	String slim_script; 
 	
 	int genome_len = 9719;
-	String genome_path ="/export/home/jhe/project/"
-			+ "Viral_reconstruction/SLiM/SLiM/Reference/HIV_HXB2.fa"; 
+	String genome_path ="/home/jingni.he1/project/Viral_reconstruction/SLiM/Reference/HIV_HXB2.fa"; 
 	
 	
-	public ScriptForTool(String prefix_folder, String phx_folder_prefix, String tool_name) throws IOException {
+	public ScriptForTool_arc(String prefix_folder, String phx_folder_prefix, String tool_name) throws IOException {
 		
 		new File(prefix_folder + "/cmd/").mkdir();
 		for (int i =0; i< this.pools.length; i++) {
@@ -103,17 +102,17 @@ public class ScriptForTool {
 				bw.write("#SBATCH --mem=30gb\n");
 				bw.write("#SBATCH --ntasks=1\n");
 				bw.write("#SBATCH --cpus-per-task=6\n");
-				bw.write("#SBATCH --time=99-00:00:00\n");
+				bw.write("#SBATCH --time=3-0\n");
 				bw.write("#SBATCH --nodes=1\n");
 				
-				bw.write("java=/export/home/jhe/download/java_jdk_8u201/jdk1.8.0_201/bin/java\n");
-				bw.write("java7=/export/home/jhe/download/jdk1.7.0_80/bin/java\n");
-				bw.write("python=/export/home/jhe/download/anaconda/anaconda3/envs/tensqr_env/bin/python\n");
-				bw.write("ExtractMatrix=/export/home/jhe/download/TenSQR/TenSQR-master/ExtractMatrix\n");
-				bw.write("bwa=/export/home/jhe/download/bwa-0.7.17/bwa\n");
-				bw.write("ref_dir=/export/home/jhe/project/Viral_reconstruction/SLiM/SLiM/Reference\n");
+				bw.write("java=/home/jingni.he1/download/java_jdk_8u201/jdk1.8.0_201/bin/java\n");
+				bw.write("java7=/home/jingni.he1/download/jdk1.7.0_80/bin/java\n");
+				bw.write("python=/home/jingni.he1/anaconda3/envs/tensqr_env/bin/python\n");
+				bw.write("ExtractMatrix=/home/jingni.he1/project/Viral_reconstruction/programs/ExtractMatrix\n");
+				bw.write("bwa=/home/jingni.he1/download/bwa-0.7.17/bwa\n");
+				bw.write("ref_dir=/home/jingni.he1/project/Viral_reconstruction/SLiM/Reference\n");
 				bw.write("ref="+ this.genome_path+"\n");
-				bw.write("PredictHaplo_Paired=/export/home/jhe/project/Viral_reconstruction/PredictHaplo/PredictHaplo-Paired-0.4/PredictHaplo-Paired\n");
+				bw.write("PredictHaplo_Paired=/home/jingni.he1/project/Viral_reconstruction/programs/PredictHaplo-Paired-0.4/PredictHaplo-Paired\n");
 
 				
 				bw.write("start=$SECONDS\n");
@@ -129,7 +128,7 @@ public class ScriptForTool {
 					if(tool_name.equals("QuasiRecomb")) {
 						bw.write("cd "+ pool_folder +"\n");
 						bw.write("$java7 -XX:+UseParallelGC -XX:NewRatio=9 -Xms10G "
-								+ "-Xmx20G -jar /export/home/jhe/project/Viral_reconstruction/QuasiRecomb/QuasiRecomb.jar -i "
+								+ "-Xmx20G -jar /home/jingni.he1/project/Viral_reconstruction/programs/QuasiRecomb.jar -i "
 								+ "$inbam -conservative"+"\n");
 					}else if(tool_name.equals("TenSQR")){
 						BufferedWriter bw_config = new BufferedWriter(new FileWriter(pool_folder+pool_name+".config"));
@@ -149,11 +148,10 @@ public class ScriptForTool {
 						bw.write("cd "+ pool_folder +"\n");
 						bw.write("$bwa mem $ref $fastq_prefix\\.bwa.read1.fastq $fastq_prefix\\.bwa.read2.fastq > $prefix\\.sam"+"\n");
 						bw.write("$ExtractMatrix  $prefix\\.config\n");
-						bw.write("$python /export/home/jhe/download/TenSQR/TenSQR-master/TenSQR.py $prefix\\.config\n");
+						bw.write("$python /home/jingni.he1/project/Viral_reconstruction/programs/TenSQR.py $prefix\\.config\n");
 						
 					}else if(tool_name.equals("CliqueSNV")) {
-						bw.write("$java -Xmx20G -jar /export/home/jhe/project/Viral_reconstruction/"
-								+ "CliqueSNV/clique-snv.jar -m snv-illumina -tf "
+						bw.write("$java -Xmx20G -jar /home/jingni.he1/project/Viral_reconstruction/programs/clique-snv.jar -m snv-illumina -tf "
 								+ "0.000000001 -in $inbam -log\n");
 					}else if(tool_name.equals("PredictHaplo")) {
 						BufferedWriter bw_config = new BufferedWriter(new FileWriter(pool_folder+pool_name+".config"));
@@ -222,7 +220,7 @@ public class ScriptForTool {
 		String prefix_folder= args[0];//
 		String phx_folder_prefix = args[1];
 		String tool_name = args[2];
-		ScriptForTool cs = new ScriptForTool(prefix_folder,phx_folder_prefix,tool_name);
+		ScriptForTool_arc cs = new ScriptForTool_arc(prefix_folder,phx_folder_prefix,tool_name);
 		System.out.println("Done, Enjoy!");
 	}	
 }
