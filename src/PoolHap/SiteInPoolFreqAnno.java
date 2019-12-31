@@ -106,6 +106,94 @@ public class SiteInPoolFreqAnno {
         }
 
     }
+    
+    
+    public SiteInPoolFreqAnno(String input_file, int start, int end, int pool_index ) {
+        try {
+            /*
+             *  Read the file to determine the lengths of related fields.
+             *  TODO: [ReconEP]:: this section should be a helper I think.
+             */
+            BufferedReader br = new BufferedReader(new FileReader(input_file));
+            String line = br.readLine();
+
+            // Skip metadata lines (starting with "#"), if any.
+            // TODO: [ReconEP]:: extract to static utils method.
+            while (line.startsWith("#")) {
+                line = br.readLine();
+            }
+
+            // Determine number of pools from length of header line (minus annotation column).
+            String[] header = line.split("\t");
+            this.num_pools =  header.length - 1;
+            line = br.readLine();
+
+            // Determine number of sites from number of data lines.
+            // TODO: [ReconEP]:: mentioned in GC file; occurs multiple times, extract to global
+            // variable?
+            int pos_index =0;
+            while (line != null) {
+            	if ((pos_index>= start) && (pos_index<= end )) {
+                	this.num_sites++;
+                	line = br.readLine();
+            	}
+            	pos_index++;
+            }
+
+            br.close();
+
+
+            /*
+             *  Initialize array variables based on previously determined lenghts.
+             */
+            this.inpool_freqs = new double[this.num_sites][this.num_pools];
+            this.pool_IDs = new String[this.num_pools];
+            for (int p = 0; p < this.num_pools; p++) {
+            	this.pool_IDs[p] = header[p + 1];
+            }
+
+            this.loci_annotations = new LocusAnnotation[this.num_sites];
+
+
+            /*
+             *  Read the file a second time to fill arrays.
+             *  TODO: [ReconEP]:: I think this part can also be a separate helper.
+             */
+            br = new BufferedReader(new FileReader(input_file));
+            line = br.readLine();
+
+            // Skip metadata lines.
+            // TODO: [ReconEP]:: as per above, extract to static utils method.
+            while (line.startsWith("#")) {
+                line = br.readLine();
+            }
+
+            line = br.readLine(); // skip the header
+            int locus_index = 0;
+
+            // Parse data lines.
+            while (line != null) {
+                String[] tmp = line.split("\t");
+                if ((locus_index>= start) && (locus_index<= end )) {
+	                this.loci_annotations[locus_index-start] = new LocusAnnotation(tmp[0]);
+	
+	                // TODO: [LEFTOVER]
+	                // System.out.println("ding\t" + this.loci_annotations[0].alleles_coding.size());
+	
+	                for (int p = 0; p < this.num_pools; p++) {
+	                    this.inpool_freqs[locus_index-start][p] = 
+	                    		Double.parseDouble(tmp[p + 1]);
+	                }
+                }
+                locus_index++;
+                line = br.readLine();
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
 
 
     /**

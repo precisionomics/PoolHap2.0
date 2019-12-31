@@ -56,8 +56,10 @@ public class Algebra {
     }
 
     public static double sum(double[] a) {
+//    	System.out.println("\n___________");
         double result = 0;
         for (int k = 0; k < a.length; k++) {
+//        	System.out.println(a[k]+"\t"+result);
             result += a[k];
         }
         return result;
@@ -163,10 +165,13 @@ public class Algebra {
      *  Given an array, divide all the entries by their sum to form a distribution
      */
     public static void normalize_ditribution(double[] p) {
+
+    	
         double sum = sum(p);
         for (int k = 0; k < p.length; k++) {
             p[k] = p[k] / sum;
         }
+
     }
 
     public static void normalize_ditribution(ArrayList<Double> p) {

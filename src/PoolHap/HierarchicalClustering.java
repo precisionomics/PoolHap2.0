@@ -20,7 +20,8 @@ import java.util.List;
 
 public class HierarchicalClustering {
 	
-	public HashMap<String, Integer> output_ref_arr ;
+	public HashMap<String, Double> output_ref_arr ;
+	
     public HashMap<String, String> conf_ref_arr;
     public int num_loci;
     public int num_pools;
@@ -28,7 +29,69 @@ public class HierarchicalClustering {
     public double[][] inpool_site_freqs; // # of loci x # of pools; Added by Quan Dec. 2018.
     public HashMap<Integer, Integer> loci_index_dict;
     
-	
+    public double [] final_freq;
+    public String [][] final_global_haps_string;
+    public String [] final_haps_ID;
+    public int max_size;
+    public HapConfig final_hapconfig;
+    public HapConfig ini_hapconfig;
+    
+    
+    public HierarchicalClustering( String[][] global_haps_string, 
+    		double []haps_freq , double dist_cutoff, int aem_hapset_size_max,
+    		HapConfig hapconfig) throws IOException {
+    	this.num_loci = hapconfig.num_loci;
+    	this.num_pools= hapconfig.num_pools;
+    	this.max_size= aem_hapset_size_max;
+    	this.ini_hapconfig= hapconfig;
+    	ArrayList<String> haplist = new ArrayList<>();
+    	ArrayList<Double> freqlist = new ArrayList<>();
+		ArrayList<Integer> hapindex = new ArrayList<>();
+		int count=0;
+//		HashMap<Integer, String> index2hapID = new HashMap<Integer, String>();
+		HashMap<Integer, Double > index2hap_freq = new HashMap<Integer, Double>();
+		double [] tmp_freq=  haps_freq.clone();
+		for (int i=0;i< tmp_freq.length;i++) {
+			for (int j=i;j< tmp_freq.length;j++) {
+				if (tmp_freq[j]>tmp_freq[i]  ) {
+					double tmp_value= tmp_freq[i];
+					tmp_freq[i] =tmp_freq[j];
+					tmp_freq[j]= tmp_value;
+				}
+			}
+		}
+		double min_freq_cutoff= 0;
+		if (tmp_freq.length>1500) {
+			min_freq_cutoff = tmp_freq[1500];
+		}
+		ArrayList<Integer> index_arr = new ArrayList<>();
+		
+		for (int i=0; i<global_haps_string.length;i++ ) {
+			if (haps_freq[i]>min_freq_cutoff ) {
+				index_arr.add(i); 
+//				index2hapID.put(count, haps_ID[i]);
+				index2hap_freq.put(count, haps_freq[i]);
+				String tmp ="";
+				for (int j=0; j<global_haps_string[i].length;j++ ) {
+					tmp =tmp+ global_haps_string[i][j];
+				}
+				haplist.add(tmp ); 
+				freqlist.add(haps_freq[i]); 
+				hapindex.add(count);
+				count++;
+			}
+		}
+		ArrayList<String[]> hapvec =  new ArrayList<String[]> ();
+		for (int i=0;i< index_arr.size(); i++) {
+			hapvec.add(global_haps_string[index_arr.get(i)].clone() );
+		}
+		double[][] simmatrix = this.CalSimMatrix(hapvec);
+		List<Cluster> cluste_res = this.starAnalysis(hapindex, simmatrix, dist_cutoff);
+		this.ini_hapconfig( cluste_res, haplist,  freqlist, index2hap_freq);
+		this.hapOut();
+    	
+    }
+/*    		
 	public HierarchicalClustering(String[] haps_ID, String[][] global_haps_string,
 			HashMap<String,Integer> hapID2index , String outputfile,  double disThreshold)
 					throws IOException{
@@ -57,11 +120,12 @@ public class HierarchicalClustering {
 		List<Cluster> cluste_res = this.starAnalysis(hapindex, simmatrix, disThreshold);
 		this.writeClusterToFile(outputfile, cluste_res, haplist, index2hapID);
 	}
-	
+*/	
 	
 	public  double[][] CalSimMatrix(ArrayList<String[]> vectorlist) {
 		double[][] sim = new double[vectorlist.size()][vectorlist.size()];
 		for (int i = 0; i < vectorlist.size(); i++) {
+			sim[i][i] = 1;
 			String[] vec1 = vectorlist.get(i);
 			for (int j = i + 1; j < vectorlist.size(); j++) {
 				String[] vec2 = vectorlist.get(j);
@@ -198,7 +262,7 @@ public class HierarchicalClustering {
 	public  void writeClusterToFile(String clusterFilePath,List<Cluster>clusters, 
 			ArrayList<String> sentencelist,HashMap<Integer, String> index2hapID ) throws IOException{
 		File f = new File(clusterFilePath);
-		this.output_ref_arr = new HashMap<String,Integer>();
+		this.output_ref_arr = new HashMap<String,Double>();
 		BufferedWriter bw;
 		int count0 = 0;
 		try {
@@ -246,7 +310,7 @@ public class HierarchicalClustering {
 					}
 //					System.out.println(hap_list.get(index));
 //					this.output_ref_arr.put("1111111110000", 1);
-					this.output_ref_arr.put(hap_list.get(index), 1);	
+					this.output_ref_arr.put(hap_list.get(index), 1.0);	
 				}
 			}
 		} catch (UnsupportedEncodingException e1) {
@@ -258,6 +322,89 @@ public class HierarchicalClustering {
 		}
 		System.out.println("Number of Clusters "
 				+ ":" + clusters.size());
+	}
+	
+	
+	
+	public  void ini_hapconfig(List<Cluster>clusters, ArrayList<String> sentencelist,
+			ArrayList<Double> freqlist,  HashMap<Integer, Double> index2hap_freq
+			) throws IOException{
+		
+		
+		
+		ArrayList<String>  center_haps  = new  ArrayList<String>();
+		ArrayList<Double>  center_haps_freq  = new  ArrayList<Double>();
+		
+		int count0 = 0;
+		
+		for (Cluster cl : clusters){
+			
+				count0++;
+				System.out.println("Cluster:\t" + count0);
+				double cluster_freq= 0.0;
+				
+				List<Integer> tempDps = cl.getDataPoints();
+				ArrayList<String>  hap_list  = new  ArrayList<String>();
+				ArrayList<Double>  freq_list  = new  ArrayList<Double>();
+				for(int tempdp:tempDps){				
+								
+						System.out.println( index2hap_freq.get(tempdp) +"\t"+ sentencelist.get(tempdp));
+						cluster_freq+= index2hap_freq.get(tempdp);
+						hap_list.add(sentencelist.get(tempdp));
+						freq_list.add(freqlist.get(tempdp)); 
+						
+						
+				}
+				if (hap_list.size()>0){
+					double max_sim= -1.0;
+					
+					int index =0 ;
+					for (int i=0;i<hap_list.size();i++ ) {
+						double i_sim =0.0;
+						for (int j=0;j<hap_list.size();j++ ) {
+							String[] x = hap_list.get(i).split("");
+							String[] y = hap_list.get(j).split("");
+							i_sim+=this.getSimilarity(x,y);
+			
+						}
+						if (i_sim* freq_list.get(i)> max_sim) {
+							max_sim= i_sim;
+							index=i;
+						}
+					}
+//					System.out.println(hap_list.get(index));
+//					this.output_ref_arr.put("1111111110000", 1);
+//					this.output_ref_arr.put(hap_list.get(index), 1);
+					center_haps.add(hap_list.get(index)  ); 
+					center_haps_freq.add(cluster_freq); 
+				}
+		}
+		for (int i=0 ;i< center_haps.size();i++) {
+			for (int j=i;j< center_haps.size();j++ ) {
+				if (center_haps_freq.get(i) < center_haps_freq.get(j)) {
+					double tmp_freq= center_haps_freq.get(i);
+					center_haps_freq.set(i, center_haps_freq.get(j));
+					center_haps_freq.set(j, tmp_freq);
+					String  tmp_hap= center_haps.get(i);
+					center_haps.set(i, center_haps.get(j));
+					center_haps.set(j, tmp_hap);
+				}
+			}
+		}
+		
+		
+		this.output_ref_arr = new HashMap<String,Double>();
+		
+		for (int i=0;i< this.max_size;i++) {
+			if (i<center_haps.size() ) {
+				this.output_ref_arr.put(center_haps.get(i),center_haps_freq.get(i) );
+			}
+		}
+		
+			
+		
+//		System.out.println("Number of Clusters "
+//				+ ":" + clusters.size());
 	}
 	
 	public void gc_solver(String gs_var_pos ) throws IOException {
@@ -293,7 +440,6 @@ public class HierarchicalClustering {
         br.close();
         this.loci_index_dict = pos_dict;
         this.num_loci = pos_dict.size(); // number of loci in gold standard variants file
-        
 
         /*
          *  Read through gold standard variant positions file again to load loci info into a matrix.
@@ -327,13 +473,17 @@ public class HierarchicalClustering {
 	}
 	
 	
-	public HapConfig hapOut(String[] pool_IDs) {
+	public void hapOut() {
         //
         int num_global_hap = this.output_ref_arr.size();
         String[][] global_haps_string = new String[num_global_hap][num_loci];
-        int[] global_haps_ct = new int[num_global_hap];
-        int tot_hap_ct = 0;
+        double[] global_haps_ct = new double[num_global_hap];
+        double tot_hap_ct = 0;
         int hap_index = 0;
+        
+        for (String entry : this.output_ref_arr.keySet()) {
+        	System.out.println(entry+"\t"+this.output_ref_arr.get(entry));
+        }
 
         //
         for (String entry : this.output_ref_arr.keySet()) {
@@ -355,16 +505,15 @@ public class HierarchicalClustering {
             global_haps_freq[h] = (double) global_haps_ct[h] / (double) tot_hap_ct;
         }
 
-        return new HapConfig(
+        this.final_hapconfig=  new HapConfig(
             global_haps_string,
             global_haps_freq,
             null,
-            this.inpool_site_freqs,
-            this.locusInfo,
-            this.num_pools,
+            this.ini_hapconfig.inpool_site_freqs,
+            this.ini_hapconfig.locusInfo,
+            this.ini_hapconfig.num_pools,
             null,
-            pool_IDs,
+            this.ini_hapconfig.pool_IDs,
             0);
-
     }
 }

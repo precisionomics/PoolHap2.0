@@ -39,6 +39,8 @@ public class Parameters {
     public int virtual_cov_link_gc;  // how many total "coverage" in the pool. 
                                         //The larger, the higher resolution for rare haplotypes of 
                                         //frequency 1.0/virtual_cov_link_gc.
+    
+    
 
     // Approximate expectation-maximization parameter set.
     public int aem_max_iteration;
@@ -49,6 +51,7 @@ public class Parameters {
     public double aem_regional_cross_pool_freq_cutoff;
     public int aem_hapset_size_max;
     public int aem_hapset_size_min;
+    public int aem_maximum_level;
    
     // LASSO parameters    
     // global
@@ -69,10 +72,25 @@ public class Parameters {
     public int bfs_mismatch_tolerance;
     public int level_III_IV_region_mismatch_tolerance;
     public int level_V_VI_region_mismatch_tolerance;
+    public int level_VII_VIII_region_mismatch_tolerance;
     public double lasso_coverage_weight;
     public double lasso_distance_max_weight;
     public double hc_similarity_cutoff;
     public double mcc_freq_cutoff;
+    
+    public String rscript_path;
+    public double regression_gamma_min;
+    public double regression_gamma_max;
+    public int regression_hapset_size_max;
+    public int ngammas;
+    public int regression_link_mismatch_tolerance;
+    public int regression_hapset_size_min;
+    public int regression_maximum_regions;
+    public int regression_maximum_selected_haplotypes;
+    public String sequencing_technology; 
+    public int num_threads;
+    public String species;
+    
     
     //public double hapset_size_rand;
     //public int min_num_hap_regiobal_lasso;
@@ -124,42 +142,44 @@ public class Parameters {
                 prop.getProperty("Level_3_4_Region_Mismatch_Tolerance"));
         this.level_V_VI_region_mismatch_tolerance = Integer.parseInt(
                 prop.getProperty("Level_5_6_Region_Mismatch_Tolerance"));
+        this.level_VII_VIII_region_mismatch_tolerance = Integer.parseInt(
+                prop.getProperty("Level_7_8_Region_Mismatch_Tolerance"));
         this.bfs_mismatch_tolerance = Integer.parseInt(
                 prop.getProperty("BFS_Mismatch_Tolerance"));
         
         // GC Link regions:
-        this.virtual_cov_link_gc = Integer.parseInt(prop.getProperty("Virtual_Coverage_Link_GC"));
+//        this.virtual_cov_link_gc = Integer.parseInt(prop.getProperty("Virtual_Coverage_Link_GC"));
         this.hc_similarity_cutoff = Double.parseDouble(
                 prop.getProperty("Hc_Similarity_Cutoff"));
         
         // LASSO
-        this.lasso_global_lambda = Double.parseDouble(prop.getProperty("LASSO_Global_Lambda_Penalty"));
-        this.lasso_regional_lambda = Double.parseDouble(prop.getProperty("LASSO_Reginal_Lambda_Penalty"));
-        this.lasso_global_memory = prop.getProperty("LASSO_Global_Memoery");
-        this.lasso_regional_memory = prop.getProperty("LASSO_Regional_Memoery");
+//        this.lasso_global_lambda = Double.parseDouble(prop.getProperty("LASSO_Global_Lambda_Penalty"));
+//        this.lasso_regional_lambda = Double.parseDouble(prop.getProperty("LASSO_Reginal_Lambda_Penalty"));
+//        this.lasso_global_memory = prop.getProperty("LASSO_Global_Memoery");
+//        this.lasso_regional_memory = prop.getProperty("LASSO_Regional_Memoery");
         this.lasso_weights = new double[] {
-            Double.parseDouble(prop.getProperty("LASSO_One_Vector_Weight")),
-            Double.parseDouble(prop.getProperty("LASSO_Hap_VC_Weight")),
-            Double.parseDouble(prop.getProperty("LASSO_Hap_11_Weight"))};
+            Double.parseDouble(prop.getProperty("Regression_One_Vector_Weight")),
+            Double.parseDouble(prop.getProperty("Regression_Hap_VC_Weight")),
+            Double.parseDouble(prop.getProperty("Regression_Hap_11_Weight"))};
         
         this.lasso_coverage_weight = Double.parseDouble(
-                prop.getProperty("Lasso_Coverage_Weight"));
+                prop.getProperty("Regression_Coverage_Weight"));
         this.lasso_distance_max_weight = Double.parseDouble(
-                prop.getProperty("Lasso_Distance_Max_Weight"));
+                prop.getProperty("Regression_Distance_Max_Weight"));
 
 //        this.min_r2 = Double.parseDouble(prop.getProperty("Minimum_R2_Fit"));
 //        this.lasso_penalty_step = Double.parseDouble(prop.getProperty("Penalty_Step_Size"));
 //        this.lasso_regional_cross_pool_cutoff = Double.parseDouble(
 //            prop.getProperty("Regional_Global_Freq_Min"));
-        this.lasso_full_hap_freq_cutoff = Double.parseDouble(
-            prop.getProperty("LASSO_Full_Length_Inpool_Freq_Min"));
-        this.lasso_regional_cross_pool_cutoff=Double.parseDouble(
-            prop.getProperty("LASSO_Regional_Cross_Pool_Freq_Min"));
-        this.lasso_hapset_size_max = Integer.parseInt(
-            prop.getProperty("LASSO_Regional_HapSetSize_Max"));
-
-        this.lasso_hapset_size_min = Integer.parseInt(
-            prop.getProperty("LASSO_Regional_HapSetSize_Min"));
+//        this.lasso_full_hap_freq_cutoff = Double.parseDouble(
+//            prop.getProperty("LASSO_Full_Length_Inpool_Freq_Min"));
+//        this.lasso_regional_cross_pool_cutoff=Double.parseDouble(
+//            prop.getProperty("LASSO_Regional_Cross_Pool_Freq_Min"));
+//        this.lasso_hapset_size_max = Integer.parseInt(
+//            prop.getProperty("LASSO_Regional_HapSetSize_Max"));
+//
+//        this.lasso_hapset_size_min = Integer.parseInt(
+//            prop.getProperty("LASSO_Regional_HapSetSize_Min"));
 
 //        this.hapset_size_rand = Double.parseDouble(prop.getProperty("DC_HapSetSize_Rand"));
         
@@ -170,6 +190,8 @@ public class Parameters {
         this.est_ind_pool = Integer.parseInt(prop.getProperty("Est_Ind_PerPool"));
         this.aem_epsilon = Double.parseDouble(prop.getProperty("AEM_Convergence_Cutoff"));
         this.aem_zero_cutoff = Double.parseDouble(prop.getProperty("AEM_Zero_Cutoff"));
+        this.aem_maximum_level = Integer.parseInt(prop.getProperty("AEM_Maximum_Level"));
+        
         
         this.aem_regional_cross_pool_freq_cutoff = Double.parseDouble(
             //prop.getProperty("Regional_Global_Freq_Min"));
@@ -180,15 +202,41 @@ public class Parameters {
             prop.getProperty("AEM_Regional_HapSetSize_Min"));
         this.mcc_freq_cutoff =Double.parseDouble
         		(prop.getProperty("MCC_Freq_Cutoff"));
+        this.regression_gamma_max=Double.parseDouble
+		(prop.getProperty("Regression_Gamma_Max"));
+        this.regression_gamma_min=Double.parseDouble
+		(prop.getProperty("Regression_Gamma_Min"));
+        this.regression_hapset_size_max= Integer.parseInt(
+                prop.getProperty("Regression_Regional_HapSetSize_Max"));
+        this.rscript_path= prop.getProperty("Rscript_path");
+        this.ngammas= Integer.parseInt(
+                prop.getProperty("Regression_n_Gamma"));
+        this.regression_link_mismatch_tolerance= Integer.parseInt(
+                prop.getProperty("Regression_Mismatch_Tolerance"));
+        this.regression_hapset_size_min=  this.aem_hapset_size_max/2;
+//        Integer.parseInt(prop.getProperty("Regression_Regional_HapSetSize_Min"));
+        
+       this.regression_maximum_regions=
+                Integer.parseInt(prop.getProperty("Regression_Maximum_Regions"));
+       
+       this.regression_maximum_selected_haplotypes=
+               Integer.parseInt(prop.getProperty("Regression_Regional_HapSetSize_Max"));
+       
+       this.sequencing_technology= prop.getProperty("Sequencing_Technology");
+       
+       this.num_threads= Integer.parseInt(prop.getProperty("Number_Threads"));
+       this.species= prop.getProperty("Species");
+       if (this.species.equals("bacteria")) {
+    	   this.lasso_weights[0] = this.lasso_weights[0] *2.5;
+       }
 
-        
-        
+       
  //      this.aem_hapset_size_rand = Integer.parseInt(prop.getProperty("AEM_HapSetSize_Rand"));
 
  //      this.adhoc_freq_cutoff = Integer.parseInt(prop.getProperty("Adhoc_Freq_Cutoff"));
-              
         is.close(); // close input stream         
               
+        
      }
 
 }

@@ -6,18 +6,22 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import org.apache.spark.ml.regression.LinearRegression;
-import org.apache.spark.ml.regression.LinearRegressionModel;
-import org.apache.spark.ml.regression.LinearRegressionTrainingSummary;
-import org.apache.spark.mllib.linalg.Vectors;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
+//import org.apache.spark.ml.regression.LinearRegression;
+//import org.apache.spark.ml.regression.LinearRegressionModel;
+//import org.apache.spark.ml.regression.LinearRegressionTrainingSummary;
+//import org.apache.spark.mllib.linalg.Vectors;
+//import org.apache.spark.sql.Dataset;
+//import org.apache.spark.sql.Row;
+//import org.apache.spark.sql.SparkSession;
 
 public class HapLASSO {
     /**
@@ -91,6 +95,10 @@ public class HapLASSO {
     int[][] total_counts;
     double lasso_coverage_weight;
     double lasso_distance_max_weight;
+    String sequencing_technology;
+    int l0l1_regression_level;
+    double lasso_cross_region_weight = 1.0;
+    String species;
 
     /*
      *  Output and intermediate data.
@@ -100,6 +108,7 @@ public class HapLASSO {
     double[] maf; // will be calculated differently for in-pool MAF and population MAF
     double[][] ld_matrix; // will be calculated differently for in-pool LD and population LD
     String prefix;
+    HashMap<Integer, Integer> index_2_pos_dict;
     
 
     // TODO: [LEFTOVER]
@@ -112,6 +121,9 @@ public class HapLASSO {
     // The countcome, i.e., the coefficients from LASSO, corresponding to the haps in
     // quanlified_hap_index.
     double[] out_hap_freqs;
+    String [] rscript_files;
+    HashMap<Integer,String>  pos_come_from_region;
+    int num_regions_from;
 
     /**
      *  Constructor
@@ -136,7 +148,8 @@ public class HapLASSO {
         String memory_usage,
         String prefix,
         double weight,
-        double max_weight) {
+        double max_weight
+        ) {
     	
     	this.lasso_coverage_weight= weight;
     	this.lasso_distance_max_weight= max_weight;
@@ -150,10 +163,247 @@ public class HapLASSO {
 
         this.memory_usage = memory_usage;
         this.prefix = prefix;
-        
+       
         
         // this.potential_haps.num_global_hap and this.quanlified_hap_index will be set up in the
         // function write_H_and_1_to_file();
+    }
+    
+    
+   
+    
+    
+    
+    public HapLASSO(
+    		String [] pool_names,
+    		int [][] reg_region,
+            String r_prefix,
+            String prefix,
+            int level, 
+            int maxSuppSize,
+            int minSize,
+            double gammaMin,
+            double gammaMax,
+            int nGamma,
+            double maf_weights, 
+            String sp) throws IOException  {
+    		this.species = sp;
+    		int  rscript_files_len=0;
+    		for (int r=0; r< reg_region.length;r++) {
+    			if ((reg_region[r][1]!=-1 )  && (reg_region[r][0]!=-1 )) {
+    				rscript_files_len++;
+    			}
+    		}
+    		if (rscript_files_len==1) {
+    			maxSuppSize=(int) ((double)maxSuppSize*1.0);
+    		}
+    		this.rscript_files= new String [rscript_files_len];
+        	for (int r=0; r< reg_region.length;r++) {
+        		if ((reg_region[r][1]!=-1 )  && (reg_region[r][0]!=-1 )) {
+		    		for (int p=0;p< pool_names.length;p++) {
+		    			String rfile = r_prefix+"/regression_level_"+ Integer.toString(level)+"_region_"+ 
+		        				Integer.toString(r+1)+"_pool_" + pool_names[p]+".R";
+		        		this.rscript_files[r] = rfile;
+			    		BufferedWriter bw = new BufferedWriter(new FileWriter( rfile, true));
+			    		bw.write("library(\'L0Learn\')\n");
+			    		bw.write("tryCatch({\n");
+			    		bw.write("maxSize= "+Integer.toString(maxSuppSize)+"\n");
+			    		bw.write("minSize= "+Integer.toString(minSize)+"\n");
+			    		bw.write("mum_sites="+Integer.toString(reg_region[r][1]-reg_region[r][0] +1)+"\n");
+			    		bw.write("maf_weights= "+Double.toString(maf_weights)+"\n");
+		    			String tmp ="txt<-as.matrix(read.table(\'";
+		    			String infile = prefix+ pool_names[p]+"/regression_level_" + Integer.toString(level)+
+		    					"_region_"+ Integer.toString(r+1)+ ".regression_in";
+		    			tmp=tmp+infile+"\',sep=\' \'))";
+		    			bw.write(tmp+"\n");
+		    			bw.write("y<-as.numeric(txt[,2])\n");//apply(X,2,as.numeric)
+		    			bw.write("X<-apply(txt[,3:ncol(txt)], 2,as.numeric)  \n");
+		    			bw.write("if ((ncol(X))>minSize){\n");
+	//	    			cvfit = L0Learn.cvfit(X, y, nFolds=5, seed=1, penalty="L0L1", nGamma=5, gammaMin=0.001, gammaMax=0.1, maxSuppSize=maxSize)
+		    			tmp= "cvfit = L0Learn.cvfit(X, y, nFolds=5, seed=1, penalty=\"L0L1\", "
+		    					+ "nGamma="+Integer.toString(nGamma)+", gammaMin="+ Double.toString(gammaMin)+","
+		    					+ " gammaMax="+ Double.toString(gammaMax)+ ", maxSuppSize=maxSize"+", intercept= FALSE)";
+//		    			tmp= "cvfit = L0Learn.cvfit(X, y, nFolds=5, seed=1, penalty=\"L0L1\", "
+//		    					+ "nGamma="+Integer.toString(nGamma)+", gammaMin="+ Double.toString(gammaMin)+","
+//		    					+ " gammaMax="+ Double.toString(gammaMax)+ ", maxSuppSize=maxSize"+", intercept= FALSE"
+//		    							+ ",maxIters = 5)";
+		    			bw.write(tmp+"\n");
+		    			bw.write("optimalGammaIndex= which(unlist(lapply(cvfit$cvMeans, min)) == "
+		    					+ "min(unlist(lapply(cvfit$cvMeans, min))))\n");
+		    			bw.write("optimalLambdaIndex = which.min(cvfit$cvMeans[[optimalGammaIndex]])\n");
+		    			bw.write("optimalLambda = cvfit$fit$lambda[[optimalGammaIndex]][optimalLambdaIndex]\n");
+		    			if (!this.species.equals("bacteria")) {
+		    				bw.write("tmp =coef(cvfit, lambda=optimalLambda, gamma=cvfit$fit$gamma[optimalGammaIndex])\n");
+		    			}else {
+		    				bw.write("tmp =coef(cvfit, lambda=optimalLambda, gamma=cvfit$fit$gamma[optimalGammaIndex])\n");
+		    			}
+		    			
+		    			String outfile= prefix+ pool_names[p]+"/regression_level_" + Integer.toString(level)+
+		    					"_region_"+ Integer.toString(r+1)+ ".regression_out";
+		    			tmp= "write( paste( \"#Hap_ID\", \"Freq\" ,\"Haplotype\",sep = \"\\t\" ) "
+		    					+ ",file=\""+outfile+"\",append=TRUE)";
+		    			bw.write(tmp+"\n");
+		    			bw.write("for(i in 1:length(as.vector(tmp@x))){\n");
+		    			
+		    			bw.write("hap = gsub(\", \",\"\",toString(round(X[, "
+		    					+ "as.vector(tmp@i)[i]+1][2:(1+ mum_sites)]/maf_weights)))\n");
+		    			
+		    					
+		    			
+		    			tmp= "write(paste( paste( \"h\", toString(as.vector(tmp@i)[i]),sep = \"\" ), "
+		    					+ "as.vector(tmp@x)[i],hap, sep = \"\\t\"),file=\""+outfile
+		    					+"\",append=TRUE)";
+		    			bw.write(tmp+"\n");
+		    			bw.write("}}else {\n");
+		    			tmp= "write( paste( \"#Hap_ID\", \"Freq\" ,\"Haplotype\",sep = \"\\t\" ) "
+		    					+ ",file=\""+outfile+"\",append=TRUE)";
+		    			bw.write(tmp+"\n");
+		    			bw.write("for(i in 1:ncol(X)){\n");
+		    			bw.write("hap = gsub(\", \",\"\",toString(round(X[, i][2:(1+ mum_sites)]/maf_weights)))\n");
+		    			tmp= "write(paste( paste( \"h\", toString(i),sep = \"\" ), "
+		    					+ "1.0/as.double(ncol(X)), hap, sep = \"\\t\"),file=\""+outfile
+		    					+"\",append=TRUE)\n";
+		    			bw.write(tmp);
+		    			bw.write("}}\n");
+		    			bw.write("print (\"FINISH\")\n");
+		    			
+		    			bw.write("} , error = function(err.msg){\n");
+		    			bw.write("write(toString(err.msg),\""+outfile+".log\""+  ", append=TRUE)\n");
+		    			bw.write("}\n");
+		    			bw.write(")\n");
+			    		bw.close();
+		    		}
+		    		
+	        	}
+        	}
+        }
+    
+    public void run_L0L1learn(String [] pool_names, String rscript_path , 
+    		String rscript_prefix, String outfile_prefix, 
+    		int level, int region , int num_threads)  throws IOException, InterruptedException  {
+    	
+    	DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+    	int num_run = pool_names.length/ num_threads;
+    	if( (pool_names.length% num_threads) !=0) {
+    		num_run++;
+    	}
+    	
+    	String [][] mul_pool_names = new String [ num_run][num_threads];
+    	for (int n=0; n< num_run ;n++ ) {
+    		for (int t=0; t< num_threads ;t++ ) {
+    			if ((n*num_threads+ t  )< pool_names.length) {
+    				mul_pool_names[n][t]= pool_names [n*num_threads+ t ] ;
+    			}else {
+    				mul_pool_names[n][t]= "NULL" ;
+    			}
+    		}
+    	}
+    	
+    	for (int n=0; n< num_run ;n++ ) {
+    		for (int t=0; t<num_threads;t ++ ) {
+    			System.out.print( mul_pool_names[n][t]+"\t" );
+    		}
+    		System.out.println();
+    	}
+    	
+    	for (int n=0; n< num_run ;n++ ) {
+    		int real_num_threads= 0;
+    		for (int t=0; t< num_threads ;t++ ) {
+    			if (! mul_pool_names[n][t].equals("NULL")) {
+    				real_num_threads++;
+    			}
+    		}
+    		System.out.println("Running L0L1 regression for " +Integer.toString(level)+
+            		" region "+ Integer.toString(region) +"; "+ 
+    		Integer.toString(real_num_threads)+" pools:" );
+    		for (int t=0; t<real_num_threads;t ++ ) {
+    			try {  
+		            String shpath=rscript_path+ " "+ rscript_prefix+"_pool_"+ mul_pool_names[n][t]+".R";  
+		            Process ps = Runtime.getRuntime().exec(shpath, null); 
+		            System.out.print( mul_pool_names[n][t] +"\t");
+    			} catch (Exception e) {  
+	                e.printStackTrace();  
+    			}
+    		}
+    		System.out.println( );
+    		int iter_time= 1000*60*10/20;
+	    	int maximum_iter_time= 2*60*12; 
+	    	int time_count =0;
+	    	while (time_count< maximum_iter_time) {
+	    		time_count++;
+	    		int file_count=0;
+	    		Thread.sleep(iter_time );
+	    		for (int t=0; t<real_num_threads;t ++ ) {
+	    			String outfile= outfile_prefix+ mul_pool_names[n][t]+"/regression_level_" + Integer.toString(level)+
+					"_region_"+ Integer.toString(region)+ ".regression_out";
+	    			File file = new File(outfile);
+	    			File file_log = new File(outfile+".log");
+	    			if ((file.exists())   || (file_log.exists())) {
+	    				file_count++;
+	    			}
+	    		}
+	        	System.out.println("Of "+ Integer.toString(real_num_threads)+" pools above, "+Integer.toString(file_count)+"/"+
+	                		Integer.toString( real_num_threads )+
+	                		" are finished:\t"+ dtf.format(LocalDateTime.now()));
+	    		if (file_count==real_num_threads ) {
+	    			break;
+	    		}
+	    	}
+    	}
+    		
+    		
+    		
+//	    	for (int p=0; p<pool_names.length;p++ ) {
+//		    	try {  
+//		            String shpath=rscript_path+ " "+ rscript_prefix+"_pool_"+ pool_names[p]+".R";  
+//		            Process ps = Runtime.getRuntime().exec(shpath, null); 
+//		            System.out.println(rscript_prefix+"_pool_"+ pool_names[p]+".R");
+		                
+	//	                ps.waitFor();  
+	//	                BufferedReader br = new BufferedReader(new InputStreamReader(ps.getInputStream()));  
+	//	                StringBuffer sb = new StringBuffer();  
+	//	                String line;  
+	//	                while ((line = br.readLine()) != null) {  
+	//	                    sb.append(line).append("\n");  
+	//	                }  
+		//                String result = sb.toString();  
+		//                System.out.println(result);               
+		//                if (result.contains("FINISH")){
+		//                	System.out.println("regional L0L1 regression for level "+ Integer.toString(level)+
+		//                		" region "+ Integer.toString(i+1)  +" finished:\t"+ dtf.format(LocalDateTime.now()));
+		//                }
+	//	                br.close();
+//		            }   catch (Exception e) {  
+//		                e.printStackTrace();  
+//		        }
+//	    	}
+//	
+//	    	
+//	    	int iter_time= 1000*60*10/20;
+//	    	int maximum_iter_time= 6*24;
+//	    	int time_count =0;
+//	    	
+//	    	while (time_count< maximum_iter_time) {
+//	    		int file_count=0;
+//	    		Thread.sleep(iter_time );
+//	    		for (int p=0; p<pool_names.length;p++ ) {
+//	    			String outfile= outfile_prefix+ pool_names[p]+"/regression_level_" + Integer.toString(level)+
+//					"_region_"+ Integer.toString(region)+ ".regression_out";
+//	    			File file = new File(outfile);
+//	    			if (file.exists()) {
+//	    				file_count++;
+//	    			}
+//	    		}
+//	        	System.out.println("regional L0L1 regression for level "+ Integer.toString(level)+
+//	                		" region "+ Integer.toString(region)  + ":\t"+Integer.toString(file_count)+"/"+
+//	                		Integer.toString(pool_names.length)+
+//	                		" finished:\t"+ dtf.format(LocalDateTime.now()));
+//	    		if (file_count==pool_names.length ) {
+//	    			return;
+//	    		}
+//	    	}
+    	
+	    	
     }
 
 
@@ -219,26 +469,28 @@ public class HapLASSO {
             BufferedWriter bw = new BufferedWriter(new FileWriter(lasso_in_file));
 
             // Write 1-vector. Format is w_allele\sh1:w\sh2:w...hn:w\n.
-            bw.write(this.sum1_weight + "");
+            bw.write(Integer.toString(0)+"| "+this.sum1_weight + "");
 
             // Originally, num_global_hap.
             for (int h = 0; h < this.potential_haps.num_global_hap; h++) {
-                bw.write(" " + (h + 1) + ":" + this.sum1_weight);
+//                bw.write(" " + (h + 1) + ":" + this.sum1_weight);
+                bw.write(" "  + this.sum1_weight);
             }
 
             bw.write("\n");
 
             // Write the block of MAF and H.
             for (int loc=0;loc<this.num_loci;loc++) {
-                bw.write(this.maf_weights[loc] * this.maf[loc] + "");
+                bw.write( Integer.toString(this.index_2_pos_dict.get(loc))+"|"+
+                		" "+this.maf_weights[loc] * this.maf[loc] + "");
                 for(int h = 0; h < this.potential_haps.num_global_hap; h++) {
 
                     // TODO: [LEFTOVER]
                     // int hap_index = this.quanlified_hap_index[h];
 
                     bw.write(" "
-                        + (h + 1)
-                        + ":"
+//                        + (h + 1)
+//                        + ":"
                         + this.maf_weights[loc]
 
                         // MAF_weights are the relative importance factor assigned to the variant
@@ -254,37 +506,56 @@ public class HapLASSO {
                 for (int loc2 = loc1 + 1; loc2 < this.num_loci; loc2++) {
                     // In cases where there is zero sequencing coverage of two sites, there is no
                     // information i.e.: NaN in the 'LD' matrix.
-                    if (!Double.isNaN(this.ld_matrix[loc1][loc2])) {
-                    	double coverage_coefficient= this.lasso_coverage_weight* 
-                    			(double)this.total_counts[loc1][loc2]* 
-                    			this.total_ld_covered_paired_alleles/ this.total_ld_covered_reads_counts;
-                    	double dist_coefficient= 1+ ((double) (loc2-loc1)/ (double)this.num_loci)*
-                    			(this.lasso_distance_max_weight-1);
-//                    	coverage_coefficient=1;
-//                    	dist_coefficient=1;
-                        bw.write(this.ld_weights[loc1][loc2] * this.ld_matrix[loc1][loc2]* 
-                        		coverage_coefficient*dist_coefficient + "");
-                        for (int h = 0; h < this.potential_haps.num_global_hap; h++) {
-
-                            // TODO: [LEFTOVER]
-                            // int hap_index=this.quanlified_hap_index[h];
-
-                            // TODO: DONE?(old) Lauren: please double-check whether Quan's line
-                            // below is correct!!!!
-                            // Below is the correlation, or co-occurrence of alternate alleles at
-                            // loci 1 and 2 on the same haplotype.
-                        	
-                            bw.write(" "
-                                + (h + 1)
-                                + ":"
-                                + this.ld_weights[loc1][loc2]
-                                * dist_coefficient
-                                * coverage_coefficient
-                                * this.potential_haps.global_haps[h][loc1]
-                                * this.potential_haps.global_haps[h][loc2]);
-
-                        }
-                        bw.write("\n");
+                    if (!Double.isNaN(this.ld_matrix[loc1][loc2]))   {
+                    	boolean flag= true;
+                    	
+                    	
+//                    	if (!this.sequencing_technology.equals("10X_linked_reads")) {
+//                    		flag =true;
+//                    	}
+                    	if (flag) {
+	                    	double coverage_coefficient= this.lasso_coverage_weight* 
+	                    			(double)this.total_counts[loc1][loc2]* 
+	                    			this.total_ld_covered_paired_alleles/ this.total_ld_covered_reads_counts;
+	                    	double dist_coefficient= 1+ ((double) (loc2-loc1)/ (double)this.num_loci)*
+	                    			(this.lasso_distance_max_weight-1);
+	                    	double cross_region_weight= 1;
+//	                    	if (!this.sequencing_technology.equals("10X_linked_reads")) {
+//	                    		if (!this.pos_come_from_region.get(this.index_2_pos_dict.get(loc1)).
+//	                    			equals(this.pos_come_from_region.get(this.index_2_pos_dict.get(loc2)))) {
+//	                    			cross_region_weight= cross_region_weight* this.lasso_cross_region_weight;
+//	                    		}
+//	                    	}
+	                    	
+	//                    	coverage_coefficient=1;
+	//                    	dist_coefficient=1;
+	                        bw.write(Integer.toString(this.index_2_pos_dict.get(loc1))+":"+ 
+	                        		Integer.toString(this.index_2_pos_dict.get(loc2))+"|"
+	                        		+" "+this.ld_weights[loc1][loc2] * this.ld_matrix[loc1][loc2]* 
+	                        		coverage_coefficient*dist_coefficient *cross_region_weight + "");
+	                        for (int h = 0; h < this.potential_haps.num_global_hap; h++) {
+	
+	                            // TODO: [LEFTOVER]
+	                            // int hap_index=this.quanlified_hap_index[h];
+	
+	                            // TODO: DONE?(old) Lauren: please double-check whether Quan's line
+	                            // below is correct!!!!
+	                            // Below is the correlation, or co-occurrence of alternate alleles at
+	                            // loci 1 and 2 on the same haplotype.
+	                        	
+	                            bw.write(" "
+	//                                + (h + 1)
+	//                                + ":"
+	                                + this.ld_weights[loc1][loc2]
+	                                *cross_region_weight
+	                                * dist_coefficient
+	                                * coverage_coefficient
+	                                * this.potential_haps.global_haps[h][loc1]
+	                                * this.potential_haps.global_haps[h][loc2]);
+	
+	                        }
+	                        bw.write("\n");
+                    	}
                     }
                 }
             }
@@ -379,6 +650,7 @@ public class HapLASSO {
                 // The search may fail, so we don't know the length of the array.
                 ArrayList<Integer> indexes = new ArrayList<Integer>();
                 ArrayList<String> alleles = new ArrayList<String>();
+                ArrayList<Integer> positions = new ArrayList<Integer>();
                 for (int i = 0; i < location_alleles.length; i++) {
                     String[] tmp_loc_allele = location_alleles[i].split("=");
                     int the_location = Integer.parseInt(tmp_loc_allele[0]);
@@ -390,33 +662,48 @@ public class HapLASSO {
                     if (this.site_locations2index.containsKey(the_location)) {
                         indexes.add(this.site_locations2index.get(the_location));
                         alleles.add(tmp_loc_allele[1]);
+                        positions.add(the_location);
                     }
                 }
+                
+                
 
                 int num_avail_locs=indexes.size();
                 for (int site1 = 0; site1 < num_avail_locs; site1++) {
                     for (int site2 = site1 + 1; site2 < num_avail_locs; site2++) {
                         int index1 = indexes.get(site1);
                         int index2 = indexes.get(site2);
-                        if (index1 > index2) { // ld_matrix only record loc1 < loc2 entries
-                            int tmp = index1;
-                            index1 = index2;
-                            index2 = tmp;
-                        }
-                        //Chen:
-                        this.total_counts[index1][index2]++;
-                        this.total_ld_covered_reads_counts =
-                        		this.total_ld_covered_reads_counts+1;
-                        String tmp = Integer.toString(index1)+":"+ Integer.toString(index2);
-                        if (!pos_pairs_set.contains(tmp)) {
-                        	pos_pairs_set.add(tmp);
-                        	this.total_ld_covered_paired_alleles= 
-                        			this.total_ld_covered_paired_alleles+1;
-                        }
-                        // Both are "1".
-                        if (alleles.get(site1).equals("1") && alleles.get(site2).equals("1")) {
-                            local_matrix[index1][index2]++;  
-                        }
+//                        System.out.println(positions.get(site1) +"\t"+
+//                        		positions.get(site2));
+//                        System.out.println(this.pos_come_from_region.get(positions.get(site1)) +"\t"+
+//                        		this.pos_come_from_region.get(positions.get(site2)));
+                       if ((!this.sequencing_technology.equals("10X_linked_reads"))  ||
+                    		   ( !this.pos_come_from_region.get(positions.get(site1)).
+                    		   equals( this.pos_come_from_region.get(positions.get(site2)) ))  || 
+                       (this.num_regions_from==1)  || 
+                       (this.l0l1_regression_level==1)) {
+//                    	   System.out.println(this.pos_come_from_region.get(positions.get(site1)) +"\t"+
+//                           		this.pos_come_from_region.get(positions.get(site2)));
+	                        if (index1 > index2) { // ld_matrix only record loc1 < loc2 entries
+	                            int tmp = index1;
+	                            index1 = index2;
+	                            index2 = tmp;
+	                        }
+	                        //Chen:
+	                        this.total_counts[index1][index2]++;
+	                        this.total_ld_covered_reads_counts =
+	                        		this.total_ld_covered_reads_counts+1;
+	                        String tmp = Integer.toString(index1)+":"+ Integer.toString(index2);
+	                        if (!pos_pairs_set.contains(tmp)) {
+	                        	pos_pairs_set.add(tmp);
+	                        	this.total_ld_covered_paired_alleles= 
+	                        			this.total_ld_covered_paired_alleles+1;
+	                        }
+	                        // Both are "1".
+	                        if (alleles.get(site1).equals("1") && alleles.get(site2).equals("1")) {
+	                            local_matrix[index1][index2]++;  
+	                        }
+                       }
                     }
                 }
 
@@ -565,6 +852,7 @@ public class HapLASSO {
      * @throws FileNotFoundException
      */
     public void conduct_regression(String lasso_in, String lasso_out) throws FileNotFoundException {
+    	/*     turn off spark
         // Initiate the Spark session.
         PrintStream originalOut = System.out;
         PrintStream originalErr = System.err;
@@ -585,10 +873,11 @@ public class HapLASSO {
         Dataset<Row> training = spark.read().format("libsvm").load(lasso_in);
 
         // Create the regression object with L1 regularization and no intercept.
+  
         LinearRegression lr = new LinearRegression()
             .setMaxIter(10)
             .setRegParam(this.lambda)
-            .setElasticNetParam(1) // setElasticNetParam to 1 applies LASSO
+            .setElasticNetParam(1) 
             .setFitIntercept(false);
 
         // Fit the model.
@@ -614,6 +903,8 @@ public class HapLASSO {
         System.out.println("RMSE: " + trainingSummary.rootMeanSquaredError());
         System.out.println("r2: " + trainingSummary.r2());
         //this.r2 = trainingSummary.r2();
+         * 
+         */
     }
 
 
@@ -669,11 +960,73 @@ public class HapLASSO {
         this.setup_weights(weights);
 
         // Prepare file in libsvm format ready for Spark LASSO.
-        this.write_1_H_HH_to_file(this.prefix + ".lasso_in");
+        this.write_1_H_HH_to_file(this.prefix + ".regression_in");
 
         // Run LASSO to get the output hap frequencies.
-        this.conduct_regression(this.prefix + ".lasso_in", this.prefix + ".lasso_out");
+//        this.conduct_regression(this.prefix + ".lasso_in", this.prefix + ".lasso_out");
     }
+    
+    
+    
+    public void estimate_frequencies_lasso(
+            String vef_file,
+            String[] vef_files,
+            double[] weights,
+            String sequencing_tech, 
+            HashMap<Integer,String>  pos_come_from,
+            int  num_regions_come_from, 
+            HashMap<Integer,Integer>  index_2_pos, 
+            int l0l1_level)
+            		throws FileNotFoundException {
+    		this.sequencing_technology= sequencing_tech;
+    		this.pos_come_from_region = new HashMap<Integer,String> ();
+    		this.index_2_pos_dict = new HashMap<Integer, Integer> ();
+    		this.pos_come_from_region= pos_come_from;
+    		this.num_regions_from= num_regions_come_from;
+    		this.index_2_pos_dict= index_2_pos;
+    		this.l0l1_regression_level= l0l1_level+1;
+        	if (sequencing_tech.equals("10X_linked_reads")) {
+        		this.lasso_distance_max_weight=1;
+        	}
+        	
+            // First calculate Ys (MAF and LD) from pooled data.
+            if (vef_file != null && vef_files == null) { // there is a vef_file, indicating single pool
+                if (this.pool_index == -1) {
+                    System.out.println("ERROR: pool_index==-1 but we do have a VEF file");
+                }
+                this.get_MAF_single_pool();
+                this.setup_site_locations2index_map();
+                this.ld_matrix = calcualte_LD_matrix_single_pool(vef_file);
+            } else if (vef_file == null) { // multiple pools.
+                if (this.pool_index != -1) {
+                    System.out.println("ERROR: pool_index!=-1 but we don't have a VEF file");
+                }
+                this.calculate_MAF_multi_pool();
+                if(vef_files!=null) { // multiple VEF files supplied, indicating read-based
+                    this.calcualte_LD_matrix_multi_pool_reads(vef_files);
+
+                } else {  // no VEF files, indicating statistic-based
+                    this.calcualte_LD_matrix_multi_pool_stat();
+                }
+
+                // TODO: (old) in the future, we may have a version use both stat- and read-based
+                // ld_matrix and a parameter to structure their relative weights.
+
+            } else {
+                System.out.println("ERROR: Combination of parameters wrong!");
+            }
+
+            // Set up weights after calculating Ys.
+            // TODO: (old) note that setup_weights() should be implemented differently based on the
+            // type of calculating ld_matrix in the future.
+            this.setup_weights(weights);
+
+            // Prepare file in libsvm format ready for Spark LASSO.
+            this.write_1_H_HH_to_file(this.prefix + ".regression_in");
+
+            // Run LASSO to get the output hap frequencies.
+//            this.conduct_regression(this.prefix + ".lasso_in", this.prefix + ".lasso_out");
+        }
 
     public HapConfig hapOut(String[] pool_IDs) {
     	//String[] single_pool_IDs={pool_name};
@@ -687,8 +1040,8 @@ public class HapLASSO {
             this.potential_haps.hap_IDs,
             pool_IDs,
             this.potential_haps.est_ind_pool);
-
         // This gets rid of all haplotypes that have 0-frequency.
+        
         return raw_final_haps.filter(this.raw_hap_freq_cutoff);
 
         // TODO: [LEFTOVER]

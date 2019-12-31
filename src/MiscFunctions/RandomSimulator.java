@@ -4,6 +4,7 @@ import java.io.*;
 import java.util.*;
 
 import PoolHap.Entrance;
+import scala.concurrent.forkjoin.ThreadLocalRandom;
 
 /**
  * @author Chen Cao 2019-08
@@ -26,6 +27,8 @@ public class RandomSimulator {
 	int outer_dist;
 	int mut_each_generation;
 	double ave_coverage;
+	String read_type;
+	int X10_fragments;
 	/*	1	0	1	0	0	0	1
 	 * 	1	0	0	0	0	0	1
 	 * 	0	0	1	0	0	1	0
@@ -77,6 +80,7 @@ public class RandomSimulator {
 		this.var_pos = new int [this.num_vars];
 		Arrays.fill(array, Boolean.FALSE);
 		int count =0;
+		
 		while (count < this.num_vars) {
 			Random random = new Random(); 
 			int value   = random.nextInt(this.genome_len- 3*this.read_len-this.outer_dist)+ 
@@ -151,7 +155,7 @@ public class RandomSimulator {
         }
         pw.write( pw_line + "\n"); 
         for (int i = 0; i < this.hap_freq_inpool.length; i++) {
-        	pw_line = this.project_name+"p"+Integer.toString(i);
+        	pw_line = this.project_name+"_p"+Integer.toString(i);
         	for (int j = 0; j < this.hap_freq_inpool[i].length; j++) {
         		pw_line =pw_line +"\t"+  Double.toString(this.hap_freq_inpool[i][j]);
         	}
@@ -162,7 +166,7 @@ public class RandomSimulator {
         
        
         file_path= this.folder_path+"/"+ this.project_name+"/gold_standard/"+
-				this.project_name+ "_haps.inter_freq_haps.txt";
+				this.project_name+ "_haps.inter_freq_vars.txt";
         FileWriter mydata2 = new FileWriter(file_path,false);
         PrintWriter pw2 = new PrintWriter(mydata2); 
         pw_line = "Hap_ID";
@@ -180,7 +184,7 @@ public class RandomSimulator {
 		}
         pw2.write( pw_line + "\n"); 
         for (int j = 0; j < this.sim_genome[0].length; j++) {
-        	pw_line = "0:"+ Integer.toString(this.var_pos[j])+";"+  Integer.toString(this.var_pos[j])
+        	pw_line = "0;"+ Integer.toString(this.var_pos[j])+";"+  Integer.toString(this.var_pos[j])
     		+";0:1";
         	for (int i = 0; i < this.sim_genome.length; i++) {
         		pw_line=pw_line + "\t"+ Integer.toString(sim_genome[i][j]) ; 
@@ -193,71 +197,140 @@ public class RandomSimulator {
 	}
 	
 	public void VefSimulator() throws IOException {
-		new File(this.folder_path + "/"+this.project_name + "/intermediate/vef").mkdir();
-		for (int i = 0; i < this.num_pools; i++) { 
-			String file_path= this.folder_path+"/"+ this.project_name+"/"+
-					"intermediate/vef/"+ this.project_name+ "_p"+Integer.toString(i)+".vef" ;
-			
-			FileWriter mydata = new FileWriter(file_path,false);
-			PrintWriter pw = new PrintWriter(mydata); 
-			String pw_line ="";
-//			int[][] sim_genome;   // num_total_haps* num_vars
-//			double [][] hap_freq_inpool; // num_pools* num_total_haps
-			int [] hap_count = new int [this.num_total_haps ];
-			int roulette_total =0;
-			HashMap<Integer, Integer> hap_dict = new HashMap<Integer, Integer>(); 
-			for (int j = 0; j < this.num_total_haps; j++) { 
-				int count = (int) (hap_freq_inpool[i][j]*1000);
-				hap_count[j]= count ;	
-				for (int k = 0; k < count ; k++) {
-					hap_dict.put(roulette_total, j);
-					roulette_total++;
-				}
-			}
-			
-			int total_read = (int) ((this.ave_coverage* this.genome_len)/ (this.read_len*2 ));
-			for (int t = 0; t < total_read; t++) { 
-				Random random = new Random(); 
-//				System.out.println(roulette_total);
-				int value   = random.nextInt( roulette_total ) ;
-				int hap = hap_dict.get(value);
-				Random random_pos = new Random(); 
-				int pos =  random_pos.nextInt(this.genome_len ) ;
-//				@Haplotype_0_4618_4869_0_1_0_0_0:0:0_0:0:0_1c/1
-				int start_1=pos;
-				int end_1=pos+this.read_len;
-				int start_2=pos+ this.read_len+ this.outer_dist;
-				int end_2=pos+ 2*this.read_len+ this.outer_dist;
-				pw_line="@Haplotype_"+ Integer.toString(hap)+"_"+ Integer.toString(t)+"\t";
-				boolean flag= false;
-				HashMap<Integer, Integer> var_dict = new HashMap<Integer, Integer>();
-				for (int j = 0; j < this.num_vars; j++) { 
-					var_dict.put(var_pos[j],sim_genome[hap][j] );
-				}
-				for (int j = start_1; j < end_1 ; j++) {
-					if (var_dict.containsKey(j)) {
-						pw_line=pw_line+ Integer.toString(j)+"="+var_dict.get(j)+";";
-						flag=true;
+		if (this.read_type.equals("paired-end")) {
+			new File(this.folder_path + "/"+this.project_name + "/intermediate/vef").mkdir();
+			for (int i = 0; i < this.num_pools; i++) { 
+				String file_path= this.folder_path+"/"+ this.project_name+"/"+
+						"intermediate/vef/"+ this.project_name+ "_p"+Integer.toString(i)+".vef" ;
+				
+				FileWriter mydata = new FileWriter(file_path,false);
+				PrintWriter pw = new PrintWriter(mydata); 
+				String pw_line ="";
+	//			int[][] sim_genome;   // num_total_haps* num_vars
+	//			double [][] hap_freq_inpool; // num_pools* num_total_haps
+				int [] hap_count = new int [this.num_total_haps ];
+				int roulette_total =0;
+				HashMap<Integer, Integer> hap_dict = new HashMap<Integer, Integer>(); 
+				for (int j = 0; j < this.num_total_haps; j++) { 
+					int count = (int) (hap_freq_inpool[i][j]*1000);
+					hap_count[j]= count ;	
+					for (int k = 0; k < count ; k++) {
+						hap_dict.put(roulette_total, j);
+						roulette_total++;
 					}
 				}
-				for (int j = start_2; j < end_2 ; j++) {
-					if (var_dict.containsKey(j)) {
-						pw_line=pw_line+ Integer.toString(j)+"="+var_dict.get(j)+";";
-						flag=true;
+				
+				int total_read = (int) ((this.ave_coverage* this.genome_len)/ (this.read_len*2 ));
+				for (int t = 0; t < total_read; t++) { 
+					Random random = new Random(); 
+	//				System.out.println(roulette_total);
+					int value   = random.nextInt( roulette_total ) ;
+					int hap = hap_dict.get(value);
+					Random random_pos = new Random(); 
+					int pos =  random_pos.nextInt(this.genome_len ) ;
+	//				@Haplotype_0_4618_4869_0_1_0_0_0:0:0_0:0:0_1c/1
+					int start_1=pos;
+					int end_1=pos+this.read_len;
+					int start_2=pos+ this.read_len+ this.outer_dist;
+					int end_2=pos+ 2*this.read_len+ this.outer_dist;
+					pw_line="@Haplotype_"+ Integer.toString(hap)+"_"+ Integer.toString(t)+"\t";
+					boolean flag= false;
+					HashMap<Integer, Integer> var_dict = new HashMap<Integer, Integer>();
+					for (int j = 0; j < this.num_vars; j++) { 
+						var_dict.put(var_pos[j],sim_genome[hap][j] );
+					}
+					for (int j = start_1; j < end_1 ; j++) {
+						if (var_dict.containsKey(j)) {
+							pw_line=pw_line+ Integer.toString(j)+"="+var_dict.get(j)+";";
+							flag=true;
+						}
+					}
+					for (int j = start_2; j < end_2 ; j++) {
+						if (var_dict.containsKey(j)) {
+							pw_line=pw_line+ Integer.toString(j)+"="+var_dict.get(j)+";";
+							flag=true;
+						}
+					}
+					if (flag==true ) {
+						pw_line=pw_line+ "\t"+ "//\t"+ Integer.toString(start_1)+"\t"+ 
+								Integer.toString(end_1) +"\t"+
+								Integer.toString(start_2)+"\t"+Integer.toString(end_2);
+						pw.write( pw_line + "\n"); 
 					}
 				}
-				if (flag==true ) {
-					pw_line=pw_line+ "\t"+ "//\t"+ Integer.toString(start_1)+"\t"+ 
-							Integer.toString(end_1) +"\t"+
-							Integer.toString(start_2)+"\t"+Integer.toString(end_2);
-					pw.write( pw_line + "\n"); 
-				}
+				pw.flush();
+		        pw.close();
+				
 			}
-			pw.flush();
-	        pw.close();
+		}else if  (this.read_type.equals("10X")) {
+			this.X10_fragments= 10;
+			new File(this.folder_path + "/"+this.project_name + "/intermediate/vef").mkdir();
+			for (int i = 0; i < this.num_pools; i++) { 
+				String file_path= this.folder_path+"/"+ this.project_name+"/"+
+						"intermediate/vef/"+ this.project_name+ "_p"+Integer.toString(i)+".vef" ;
+				
+				FileWriter mydata = new FileWriter(file_path,false);
+				PrintWriter pw = new PrintWriter(mydata); 
+				String pw_line ="";
+				//			int[][] sim_genome;   // num_total_haps* num_vars
+				//			double [][] hap_freq_inpool; // num_pools* num_total_haps
+				int [] hap_count = new int [this.num_total_haps ];
+				int roulette_total =0;
+				HashMap<Integer, Integer> hap_dict = new HashMap<Integer, Integer>(); 
+				for (int j = 0; j < this.num_total_haps; j++) { 
+					int count = (int) (hap_freq_inpool[i][j]*1000);
+					hap_count[j]= count ;	
+					for (int k = 0; k < count ; k++) {
+						hap_dict.put(roulette_total, j);
+						roulette_total++;
+					}
+				}
+				int total_read = (int) ((this.ave_coverage* this.genome_len)/ 
+						(this.read_len*this.X10_fragments ));
+				for (int t = 0; t < total_read; t++) { 
+					Random random = new Random(); 
+					int value   = random.nextInt( roulette_total ) ;
+					int hap = hap_dict.get(value);
+					Random random_pos = new Random(); 
+					int pos =  random_pos.nextInt(this.genome_len ) ;
+					pw_line="@Haplotype_"+ Integer.toString(hap)+"_"+ Integer.toString(t)+"\t";
+					int [] start_vec = new int [ this.X10_fragments];
+					int [] end_vec = new int [ this.X10_fragments];
+					start_vec[0]= pos;
+					end_vec[0]= pos+this.read_len;
+					for (int p=1; p< start_vec.length;p++) {
+						start_vec[p]= end_vec[p-1]+ this.outer_dist;
+						end_vec[p]= start_vec[p]+ this.read_len;
+					}
+					boolean flag= false;
+					HashMap<Integer, Integer> var_dict = new HashMap<Integer, Integer>();
+					for (int j = 0; j < this.num_vars; j++) { 
+						var_dict.put(var_pos[j],sim_genome[hap][j] );
+					}
+					for (int f = 0; f < this.X10_fragments ; f++) {
+						for (int j=start_vec[f]; j<end_vec[f];j++) {
+							if (var_dict.containsKey(j)) {
+								pw_line=pw_line+ Integer.toString(j)+"="+var_dict.get(j)+";";
+								flag=true;
+							}
+						}
+					}
+					
+					if (flag==true ) {
+						pw_line=pw_line+ "\t"+ "//\t"+ Integer.toString(start_vec[0])+"\t"+ 
+								Integer.toString(end_vec[0]) +"\t"+
+								Integer.toString(start_vec[this.X10_fragments-1])+"\t"+
+									Integer.toString(end_vec[this.X10_fragments-1]);
+						pw.write( pw_line + "\n"); 
+					}
+				}
+				
+				
+				pw.flush();
+		        pw.close();
+			}
 			
 		}
-		
 	}
 	
 	public void VarFreqSimulator() throws IOException {
@@ -424,7 +497,7 @@ public class RandomSimulator {
 			
 		}
 		String file_path= this.folder_path+"/"+ this.project_name+"/"+
-				"output/"+ this.project_name+ "_gc.inter_freq_haps.txt" ;
+				"output/"+ this.project_name+ "_gc.inter_freq_vars.txt" ;
 		FileWriter mydata = new FileWriter(file_path,false);
 		PrintWriter pw = new PrintWriter(mydata); 
 		String pw_line ="Hap_ID";
@@ -483,7 +556,7 @@ public class RandomSimulator {
         			}
         		}
         	}
-        	bw.write(tmp_genome);
+        	bw.write( tmp_genome);
         	bw.close();
         	
         }
@@ -501,17 +574,14 @@ public class RandomSimulator {
         		}
         	}
         }
-        
-        
-        
-        
-        
 	}
 	
 	
-	
-	
 	public RandomSimulator(String[] args) throws IOException {
+		
+ 
+
+	
 		this.folder_path= args[0];
 		this.project_name= args[1];
 		this.num_pools = Integer.parseInt(args[2]);
@@ -523,6 +593,7 @@ public class RandomSimulator {
 		this.outer_dist = Integer.parseInt(args[8]);
 		this.ave_coverage= Double.parseDouble( args[9]);
 		this.mut_each_generation = Integer.parseInt(args[10]);
+		this.read_type= args[11];
 		new File(this.folder_path + "/"+this.project_name ).mkdir();
 		new File(this.folder_path + "/"+this.project_name + "/"+ "/gold_standard/").mkdir();
 		new File(this.folder_path + "/"+this.project_name + "/"+ "/input/").mkdir();
@@ -542,20 +613,52 @@ public class RandomSimulator {
 //		LassoSimulator();
 //		System.out.println(" Lasso Input File Simulation Finished!");
 		
-		
-		
-		
-		
+
 		
 	}
 	
 	
 
 	
-	public static  void main(String[] args) throws IOException {
-		String ss="0123456";
-		System.out.println(ss.substring(0,2)+ss.substring(3));
-//		System.exit(0);
+	public static  void main(String[] args) throws IOException, InterruptedException {
+		int [] hap_count = new int [51]; 
+		for (int i=0;i<1100;i++) {
+			int x= ThreadLocalRandom.current().nextInt(0, 50);
+			hap_count[x]++;
+//			System.out.println(ThreadLocalRandom.current().nextInt(0, 50));
+		}
+		for (int i=0;i<51;i++) {
+			System.out.println(i+"\t"+hap_count[i]);
+		}
+		
+//		String x="012345";
+//		String y="67890123";
+//		String z="4567890";
+//		String tmp =x+y;
+//		System.out.println(tmp.substring(0, 4) + z+ tmp.substring(4+7)) ;
+//		for (int h=0;h< 100;h++) {
+//			Random seedRandom = new Random( h);
+//	        int currPool = seedRandom.nextInt( 20);
+//	        System.out.println(currPool);
+//		}
+		
+//		Process ps = Runtime.getRuntime().exec("pwd ", null);
+//		Process ps = Runtime.getRuntime().exec("du -sh ", null);
+//		
+//        ps.waitFor();  
+//        BufferedReader br = new BufferedReader(new InputStreamReader(ps.getInputStream()));  
+//        StringBuffer sb = new StringBuffer();  
+//        String line;  
+//        while ((line = br.readLine()) != null) {  
+//            sb.append(line).append("\n");  
+//        }  
+//    	String result = sb.toString();  
+//    	System.out.println(result);  
+//    	br.close();
+		
+		
+		
+		//		System.exit(0);
 		// /home/chencao/Desktop  sim001	10	20	15	5000	50	150	50	100		5
 		//parameter 0: folder path
 		//parameter 1: project name
@@ -568,6 +671,7 @@ public class RandomSimulator {
 		//parameter 8: outer distance between the two ends for pairs
 		//parameter 9: average coverage
 		//parameter 10: number of mutations each generation
+		//parameter 11: 10X or paired-end
 		RandomSimulator rs = new RandomSimulator(args);
 	}
 	
