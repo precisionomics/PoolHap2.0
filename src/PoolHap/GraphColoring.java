@@ -1,10 +1,13 @@
 package PoolHap;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -12,6 +15,12 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Vector;
 import java.util.Random;
+
+/**
+ * @author Chen Cao 2019-07
+ * 
+ * 
+ */
 
 public class GraphColoring {
     // TODO: [ReconEP]:: refactor variable names to be more sensible (e.g. camelCase for Java).
@@ -22,8 +31,7 @@ public class GraphColoring {
 
     // The list of all possible genotypes, ArrayList<site=allele; ... site=allele;>
     public Vector<String> readinfo_arr_tmp;
-
-    public HashMap<String, Integer> output_ref_arr;
+    public HashMap<String, Integer> output_ref_arr ;
     public HashMap<String, String> conf_ref_arr;
     public int num_loci;
     public int num_pools;
@@ -32,6 +40,10 @@ public class GraphColoring {
     public int num_loci_window;
     public int max_num_gap;
     public String vef_file;
+    public double[][] loci_link_count; // (num_loci-1) x 4 (4:	0/0; 0/1/; 1/0; 1/1)
+    public double[][] loci_link_freq; // (num_loci-1) x 4 (4:	0/0; 0/1/; 1/0; 1/1) 
+    public HashMap<Integer, Integer> loci_index_dict;
+    public int bfs_mismatch_tolerance;
     
 
     // TODO: [LEFTOVER]
@@ -48,6 +60,145 @@ public class GraphColoring {
      *  @param out_file output file path string.
      *  @throws IOException on input error.
      */
+    
+    /**
+     * @author Chen Cao 2019-08
+     * Construct the frequency path for four possible ways: 0/0 0/1 1/0 1/1
+     * Using the frequency path to  Evaluate whether the haplotypes ( 2^N )exist 
+     * And Estimate the frequency of the haplotypes.
+     * The output is used as the initial matrix for AEM 
+     * 
+     */  
+    
+    
+    
+    public GraphColoring(String vef, String gs_var_pos, String out_file, int[][] regions_level_I
+    		) throws IOException {
+    	this.gc_solver(gs_var_pos, false);
+    	this.loci_link_count = new double[this.num_loci-1][4];
+    	this.loci_link_freq = new double [this.num_loci-1][4];
+    	for (int i = 0; i < this.loci_link_count.length; i++) {
+    		for (int j = 0; j < this.loci_link_count[i].length; j++) {
+    			this.loci_link_count[i][j] =0.0;
+    			this.loci_link_freq[i][j] = 0.0;
+    		}
+    	}
+
+    	BufferedReader bufferedreader = new BufferedReader(new FileReader(vef));
+        String line = "";
+        while ((line = bufferedreader.readLine()) != null) {
+            line = line.replace("\r", ""); // remove newline characters
+//            System.out.println( line);
+            String[] line_arr = line.split("\t"); // Read_Name\tPos=Allele;...\t//\tStart\tEnd
+            // If the read contains a segregating site (i.e.: has a distinguishing genotype)...
+            if (line_arr[1].contains("=")) {
+                String str1  = line_arr[1]; // the segregating site information column
+                String[] tmp_arr = str1.split(";"); 
+                if (tmp_arr.length> 1) {
+	                int[] loci_arr = new int[tmp_arr.length];
+	                int[] geno_arr = new int[tmp_arr.length] ;
+	                for (int i = 0; i < tmp_arr.length; i++) {
+	                	String str2  =  tmp_arr[i];
+	                	String[] tmp_arr2 = str2.split("=");
+	                	loci_arr[i]= Integer.parseInt(tmp_arr2[0] ) ;
+	                	geno_arr[i]= Integer.parseInt(tmp_arr2[1] ) ;
+	                }
+//	                for (int i = 0; i < (geno_arr.length); i++) {
+//	                	System.out.println( geno_arr[i]);
+//	                }
+	                for (int i = 0; i < (geno_arr.length-1); i++) {
+//	                	System.out.println( loci_arr[i]);
+//	                	System.out.println( loci_arr[i+1]);
+	                	if (loci_index_dict.containsKey(loci_arr[i+1]) && 
+	                			loci_index_dict.containsKey(loci_arr[i]) ) {
+		                	if ((loci_index_dict.get(loci_arr[i+1] ) - loci_index_dict.get(loci_arr[i] )) 
+		                		==1 ) {
+			                	if ((geno_arr[i]==0)  && (geno_arr[i+1]==0) ) {
+			                		this.loci_link_count [this.loci_index_dict.get(loci_arr[i] )][0] += 1.0;
+			               		}else if ((geno_arr[i]==0)  && (geno_arr[i+1]==1) ) {
+			               			this.loci_link_count [this.loci_index_dict.get(loci_arr[i] )][1] += 1.0;
+			               		}else if ((geno_arr[i]==1)  && (geno_arr[i+1]==0) ) {
+			               			this.loci_link_count [this.loci_index_dict.get(loci_arr[i] )][2] += 1.0;
+			               		}else if ((geno_arr[i]==1)  && (geno_arr[i+1]==1) ) {
+			               			this.loci_link_count [this.loci_index_dict.get(loci_arr[i] )][3] += 1.0;
+			               		}
+		                	}
+	                	}
+	                }
+                }
+            }
+        }
+        bufferedreader.close();
+        
+    	double lowest_freq_cutoff= 0.03;
+    	double loci_min_count = 25.0;
+    	
+    	for (int i = 0; i < this.loci_link_count.length; i++) {
+    		double total_count =0.0;
+    		for (int j = 0; j < this.loci_link_count[i].length; j++) {
+    			total_count +=   this.loci_link_count[i][j];
+    		}
+    		if (total_count > loci_min_count) {
+    			for (int j = 0; j < this.loci_link_count[i].length; j++) {
+    				if (( this.loci_link_count[i][j]/ total_count) >  lowest_freq_cutoff) {
+    					this.loci_link_freq[i][j]= this.loci_link_count[i][j]/ total_count;
+    				}else {
+    					this.loci_link_freq[i][j] = 0.0;
+    				}
+    			}
+    		}else {
+    			this.loci_link_freq[i][0] = this.loci_link_freq[i][1]=
+    					this.loci_link_freq[i][2]=this.loci_link_freq[i][3]=0.25;
+    		}
+    	}
+//    	for (int i = 0; i < this.loci_link_count.length; i++) {
+//    		System.out.print(this.loci_link_freq[i][0]
+//                    + "\t"
+//                    + this.loci_link_freq[i][1]
+//                    + "\t"
+//                    + this.loci_link_freq[i][2]
+//                    + "\t"
+//    				+ this.loci_link_freq[i][3]
+//                    + "\n"
+//    				);
+//    	}
+    }
+    
+    public GraphColoring(String vef, String gs_var_pos, String out_file) throws Exception {
+    	HashMap<Integer, Integer> pos_dict = new HashMap<Integer, Integer>();
+        Integer pos_index = 0;
+
+        BufferedReader br = new BufferedReader(new FileReader(gs_var_pos));
+        String currLine = br.readLine(); // skip header
+        currLine = br.readLine();
+
+        while (currLine != null) {
+            pos_dict.put(Integer.parseInt(currLine.split(";")[1]), pos_index);
+
+
+            pos_index++; // move to next variant position index
+            currLine = br.readLine(); // read next line
+        }
+        br.close();
+//        this.loci_index_dict = pos_dict;
+        this.num_loci = pos_dict.size(); 
+        
+        
+        BufferedWriter bw = new BufferedWriter(new FileWriter(out_file));
+        String tmp ="1";
+	    for (int i=0;i< (this.num_loci-1);i++) {
+	       		 tmp=tmp+"-1";
+	    }
+	    tmp=tmp+"\t1";
+	    bw.write(tmp+"\n");
+        bw.close();
+       	 
+        
+        
+    }
+    
+    
+    
     public GraphColoring(String vef, String gs_var_pos, String out_file, int num_pos_window, 
     		int num_gap_window) throws IOException {
         /*
@@ -72,7 +223,7 @@ public class GraphColoring {
 
         // The maximum number of times a genotype can be counted in a single pool.
         // TODO: (old) [Question]::  Why does this exist?
-        int max_num_geno = 32878;
+        int max_num_geno = 30000;
 
 
         /*
@@ -120,11 +271,863 @@ public class GraphColoring {
         /*
          *  Solve and produce haplotype configurations.
          */
-        this.gc_solver(gs_var_pos);
+        this.gc_solver(gs_var_pos, true);
         this.fileOut(out_file);
     }
+    
+	public static String link_str(String x, String y,ArrayList<Integer >  pos_arr  )
+			throws IOException {
+		String[] x_char = new String [x.length()];
+		String[] y_char = new String [y.length()];
+		for (int i=0; i< x_char.length;i++) {
+			x_char[i]= x.substring(i,i+1);
+		}
+		for (int i=0; i< y_char.length;i++) {
+			y_char[i]= y.substring(i,i+1);
+		}
+		for (int i=0; i< x_char.length;i++) {
+			for (int j=0; j< pos_arr.size();j++) {
+				if (i== pos_arr.get(j)) {
+					x_char[i] = y_char[j];
+				}
+			}
+		}
+		String tmp ="";
+		for (int i=0; i< x_char.length;i++) {
+			tmp=tmp+ x_char[i];
+		}
+		return tmp ;
+	}
+    /**
+     * @author Chen Cao 2019-09
+     * For the adjacent level I regions, mismatches tolerance (num of 
+     * mismatches bases ) is constructed regions linked in the process
+     * of breadth first search.
+     * 
+     */  	
+    
+    public String [] strmatch (String x, String y, String z, 
+    		int num, int num_mismatch_cutoff)  throws IOException {
+		
+    	ArrayList<Integer >  pos_arr = new ArrayList<Integer>();
+
+    	String overlap_x= x.substring(x.length()-num);
+    	String overlap_xz= z.substring(0, num);
+    	int distance=0; 
+    	
+    	for (int i = 0; i < overlap_x.length(); i++) {
+			if (overlap_x.charAt(i) != overlap_xz.charAt(i)) {
+				distance++;
+				pos_arr.add(x.length()- num+i);
+			}
+		}
+    	
+    	String overlap_y= y.substring(0, z.length()-num);
+    	String overlap_yz= z.substring( num);
+    	for (int i = 0; i < overlap_y.length(); i++) {
+			if (overlap_y.charAt(i) != overlap_yz.charAt(i)) {
+				distance++;
+				pos_arr.add(x.length()+ i);
+			}
+		}
+    	if (distance > num_mismatch_cutoff) {
+    		String[] com_str2 = new String [ 0];
+    		return com_str2;
+    	}else {
+    		int haps_2n = (int) Math.pow(2, distance); 
+        	String[] com_str = new String [ haps_2n];
+        	for (int h = 0; h < haps_2n; h++) {
+        		com_str[h]= x+y;
+        	}
+        	String[] sub_str = new String [ haps_2n];
+        	for (int h = 0; h < haps_2n; h++) {
+        		String curr_ID = "";
+            	String vc_str = Integer.toBinaryString(h);
+            	int l = vc_str.length();
+            	for (int locus = 0; locus < distance - l ; locus++) {
+            		vc_str = "0"+ vc_str;
+                }
+            	sub_str[h] = vc_str;
+        	}
+    		for (int h = 0; h < haps_2n; h++) {
+    			com_str[h]= link_str(com_str[h], sub_str[h], pos_arr );
+    		}
+    		return com_str;
+    	}
+    	
+    }
+    
+    
+    public boolean reg_strmatch (String x, String y, String z, 
+    		int num, int num_mismatch_cutoff)  throws IOException {
+		
+    	ArrayList<Integer >  pos_arr = new ArrayList<Integer>();
+
+    	String overlap_x= x.substring(x.length()-num);
+    	String overlap_xz= z.substring(0, num);
+    	int distance=0; 
+    	for (int i = 0; i < overlap_x.length(); i++) {
+			if (overlap_x.charAt(i) != overlap_xz.charAt(i)) {
+				distance++;
+				pos_arr.add(x.length()- num+i);
+			}
+		}
+    	String overlap_y= y.substring(0, z.length()-num);
+    	String overlap_yz= z.substring( num);
+    	for (int i = 0; i < overlap_y.length(); i++) {
+			if (overlap_y.charAt(i) != overlap_yz.charAt(i)) {
+				distance++;
+				pos_arr.add(x.length()+ i);
+			}
+		}
+    	if (distance > num_mismatch_cutoff) {
+    		return false;
+    	}else {
+    		return true;
+    	}
+    }
+    
+    public boolean strmatch (String x, String y,  int num) throws IOException {
+    	
+    	if (num <1) {
+    		return true;
+    	}
+    	String overlap_x= x.substring(x.length()-num);
+    	String overlap_y= y.substring(0, num);
+    	if (overlap_x.equals(overlap_y)) {
+    		return true;
+    	}else {
+    		return false;
+    	}
+    }
+    
+    
+    public String  strcombine (String x, String y, int num) throws IOException {
+    	if (num==0) {
+    		return x+y;
+    	} else {
+    		return x+y.substring(num);
+    	}
+    }
+    
+    public double  minvalue (double x, double y) throws IOException {
+    	if (x>= y) {
+    		return y;
+    	}else {
+    		return x;
+    	}
+    }
+    
+    public GraphColoring(int start, int end,  HapConfig[] level_1,  HapConfig[] level_2,  String gs_var_pos, 
+    		int [][] level_1_region , int [][] level_2_region , int mismatch_tolerance, int reg_ini_region,
+    		HashMap<Integer, String> index_var_prefix_dict , String prefix,int num_regeions_merge ) 
+    				throws IOException {
+    	this.bfs_mismatch_tolerance= mismatch_tolerance;
+    	int level_1_first =-1;
+    	int level_1_second =-1;
+    	for (int i=0; i< level_1_region.length; i++ ) {
+    		if (level_1_region[i][0]== start) {
+    			level_1_first = i;
+    		}
+    		if (level_1_region[i][1]== end) {
+    			level_1_second = i;
+    		}
+    	}
+    	
+    	if (( level_1_first == -1) ||  ( level_1_second == -1)  ){
+    		System.out.println("Can not detect the correct Level III regions to generate the initialized "
+    				+ "haplotypes for L0L1 regression.");
+    		System.exit(0);
+    	}	
+    	
+    	ArrayList<String >  bfs_haps= new ArrayList<String>();
+    	ArrayList<Integer >  haps_end_pos= new ArrayList<Integer>();
+    	int start_index =0;
+    	int end_index=0;
+    	for (int i = 0; i  < level_1[level_1_first].global_haps_string.length; i++) {
+    		String tmp = "";
+    		for (int j = 0; j  < level_1[level_1_first].global_haps_string[i].length; j++) {
+    			tmp=tmp+ level_1[level_1_first].global_haps_string[i][j];
+    		}
+    		bfs_haps.add(tmp);
+    		haps_end_pos.add(level_1_region[level_1_first][1]);
+    		end_index++;
+    	}
+    	
+    	
+    	for (int i = level_1_first ; i  <  level_1_second; i++) {   
+    		HashSet<String > hap_dict = new HashSet <String > ();
+    		
+    		
+    		ArrayList<String  >  seg_haps= new ArrayList<String >();
+    		int end_pos= haps_end_pos.get(end_index-1);
+    		int start_pos= level_1_region[i+1][0];
+    		int fix_end_index= end_index;
+    		
+    		for (int j = 0; j  < level_1[i+1].global_haps_string.length; j++) {
+    			String tmp = "";
+    			for (int k = 0; k  < level_1[i+1].global_haps_string[j].length; k++) {
+    				tmp=tmp+ level_1[i+1].global_haps_string[j][k];
+    			}
+    			seg_haps.add(tmp );
+    		}
+    		
+    		ArrayList<String  >  stick_haps= new ArrayList<String >();
+    		for (int j = 0; j  < level_2[i].global_haps_string.length; j++) {
+    			String tmp = "";
+    			start_pos= level_2_region[i][0];
+    			for (int k = 0; k  < level_2[i].global_haps_string[j].length; k++) {
+    				tmp=tmp+ level_2[i].global_haps_string[j][k];
+    			}
+    			stick_haps.add(tmp );
+    		}
+    		
+    		for (int j = start_index; j  < fix_end_index; j++) {
+    			for (int k = 0; k  < seg_haps.size(); k++) {
+    				for (int l = 0; l  < stick_haps.size(); l++) {
+    					if ( reg_strmatch(bfs_haps.get(j), seg_haps.get(k) ,stick_haps.get(l), 
+	    						end_pos- start_pos+1, this.bfs_mismatch_tolerance)) {
+    						String tmp_hap =   bfs_haps.get(j)+seg_haps.get(k);
+    						if (!hap_dict.contains(tmp_hap)) {
+    							hap_dict.add(tmp_hap);
+			    				bfs_haps.add( tmp_hap);
+			    				haps_end_pos.add(level_1_region[i+1][1]  ); 
+			    				end_index++;
+			    				break;
+    						}
+//    						tmp_hap = tmp_hap.substring(0,start_pos)+ stick_haps.get(l)
+//    							+tmp_hap.substring(start_pos  + stick_haps.get(l).length());
+//    						if (!hap_dict.contains(tmp_hap)) {
+//    							hap_dict.add(tmp_hap);
+//			    				bfs_haps.add( tmp_hap);
+//			    				haps_end_pos.add(level_1_region[i+1][1]  ); 
+//			    				end_index++;
+//    						}
+    						
+	    				}
+    				}
+    			}
+    		}
+    		start_index =fix_end_index;
+    		seg_haps.clear();
+    		stick_haps.clear();
+    	}
+    	
+    	
+    	ArrayList<String >  ini_haps= new ArrayList<String>();
+    	
+    	for (int i = start_index; i  < end_index; i++) {
+        	ini_haps.add(bfs_haps.get(i)); 
+        }
+
+    	String outfile = prefix+ "/regression_level_1_region_"+ Integer.toString(reg_ini_region)+
+    			".potential.haps";
+    	
+    	BufferedWriter bw = new BufferedWriter(new FileWriter(outfile));
+        bw.write("Hap_ID");
+        for (int h = 0; h < ini_haps.size(); h++) {
+            bw.write("\th" + Integer.toString(h));
+        }
+
+        bw.write("\nFreq");
+        for (int h = 0; h < ini_haps.size(); h++) {
+            bw.write("\t" + 1/ ((double )ini_haps.size() ) );
+        }
+        bw.write("\n");
+        for (int l = 0; l < end-start+1; l++) {
+            bw.write(index_var_prefix_dict.get(start+l) );
+            for (int h = 0; h < ini_haps.size(); h++) {
+                bw.write("\t" + ini_haps.get(h).substring(l,l+1));
+            }
+            bw.write("\n");
+        }
+        bw.close();
+    }
+    
+    /**
+     *  Chen: apply Breadth-First-Search (incluing Pruning )to replace gc.
+     *  TODO: [Javadoc]:: .
+     *
+     *  @param level_1 all level 1 haplotype configurations
+     *  @param level_2 all level 2 haplotype configurations
+     *  @param gs_var_pos (required) gold standard variant positions file path string
+     *  @param virtual_cov_link_gc // Do not need this parameter any more. 
+     *  @throws IOException on input error.
+     *  Adjacent level I regions are linked using the info comes from
+     *  level II.
+     *  For the adjacent level I regions, mismatches tolerance (num of 
+     * 	mismatches bases ) is constructed regions linked in the process
+     * 	of breadth first search.
+     */
+    
+// Regression Initialization     
+    public GraphColoring(int start, int end,  HapConfig[] level_1,  HapConfig[] level_2,  String gs_var_pos, 
+    		int [][] level_1_region , int [][] level_2_region , int mismatch_tolerance, int reg_ini_region,
+    		HashMap<Integer, String> index_var_prefix_dict , String prefix) throws IOException {
+    	this.bfs_mismatch_tolerance= mismatch_tolerance;
+    	int level_1_first =-1;
+    	int level_1_second =-1;
+    	int level_2_paste =-1;
+    	for (int i=0; i< level_1_region.length; i++ ) {
+    		if (level_1_region[i][0]== start) {
+    			level_1_first = i;
+    		}
+    		if (level_1_region[i][1]== end) {
+    			level_1_second = i;
+    		}
+    	}
+    	for (int i=0; i< level_2_region.length; i++ ) {
+    		if ((level_2_region[i][0]<= level_1_region[level_1_first][1] ) 
+    				&& (level_2_region[i][1]>= level_1_region[level_1_second][0] )) {
+    			level_2_paste =i;
+    		}
+    	}
+    	if (( level_1_first == -1) ||  ( level_1_second == -1) || ( level_2_paste==-1 ) ){
+    		System.out.println("Can not detect the correct Level III regions to generate the initialized "
+    				+ "haplotypes for L0L1 regression.");
+    		System.exit(0);
+    	}	
+    	
+    	ArrayList<String >  ini_haps= new ArrayList<String>();
+    	if ( level_1_first == level_1_second) {
+    		
+    		String [] first_haps = new String [level_1[level_1_first].global_haps_string.length];
+    		for (int i=0; i<first_haps.length;i++ ) {
+    			String tmp = "";
+    			for (int j =0; j <level_1[level_1_first].global_haps_string[i].length;j++ ) {
+    				tmp=tmp+ level_1[level_1_first].global_haps_string[i][j]; 
+    			}
+    			ini_haps.add(tmp);
+    		}
+    		
+    	}else {
+//    		System.out.println("len:\t"+ level_1[level_1_first].global_haps_string.length);
+    		String [] first_haps = new String [level_1[level_1_first].global_haps_string.length];
+    		String [] second_haps = new String [level_1[level_1_second].global_haps_string.length];
+    		String [] paste_haps = new String [level_2[level_2_paste].global_haps_string.length];
+    		for (int i=0; i<first_haps.length;i++ ) {
+    			String tmp = "";
+    			for (int j =0; j <level_1[level_1_first].global_haps_string[i].length;j++ ) {
+    				tmp=tmp+ level_1[level_1_first].global_haps_string[i][j]; 
+    			}
+    			
+    			first_haps[i] = tmp;
+    			
+    		}
+    		
+    		for (int i=0; i<second_haps.length;i++ ) {
+    			String tmp = "";
+    			for (int j =0; j <level_1[level_1_second].global_haps_string[i].length;j++ ) {
+    				tmp=tmp+ level_1[level_1_second].global_haps_string[i][j]; 
+    			}
+    			second_haps[i] = tmp;
+//    			System.out.println("sec\t"+ tmp);
+    		}
+    		
+    		for (int i=0; i<paste_haps.length;i++ ) {
+    			String tmp = "";
+    			for (int j =0; j <level_2[level_2_paste].global_haps_string[i].length;j++ ) {
+    				tmp=tmp+ level_2[level_2_paste].global_haps_string[i][j]; 
+    			}
+    			paste_haps[i] = tmp;
+//    			System.out.println("paste\t"+ tmp);
+    		}
+    		int overlap = level_1_region[level_1_first][1] -level_2_region[level_2_paste][0] +1;
+    		for (int i=0; i<first_haps.length;i++ ) {
+    			for (int j =0; j <second_haps.length;j ++ ) {
+    				boolean ok_paste =false;
+    				for (int k =0; k <paste_haps.length;k++ ) {
+//    					System.out.println("?????\t"+ first_haps[i]+"\t"+overlap );
+    					if (reg_strmatch( first_haps[i], second_haps[j], paste_haps[k], 
+    							overlap,this.bfs_mismatch_tolerance )) {
+    						ok_paste =true;
+    						break;
+    					}
+    				}
+    				if (ok_paste) {
+    					ini_haps.add(first_haps[i]+ second_haps[j]);
+    				}
+    			}
+    		}
+    	}
+    	
+    	
+    	
+
+    	String outfile = prefix+ "/regression_level_1_region_"+ Integer.toString(reg_ini_region)+
+    			".potential.haps";
+    	
+    	BufferedWriter bw = new BufferedWriter(new FileWriter(outfile));
+        bw.write("Hap_ID");
+        for (int h = 0; h < ini_haps.size(); h++) {
+            bw.write("\th" + Integer.toString(h));
+        }
+
+        bw.write("\nFreq");
+        for (int h = 0; h < ini_haps.size(); h++) {
+            bw.write("\t" + 1/ ((double )ini_haps.size() ) );
+        }
+        bw.write("\n");
+        for (int l = 0; l < end-start+1; l++) {
+            bw.write(index_var_prefix_dict.get(start+l) );
+            for (int h = 0; h < ini_haps.size(); h++) {
+                bw.write("\t" + ini_haps.get(h).substring(l,l+1));
+            }
+            bw.write("\n");
+        }
+        
+        bw.close();
+    }
+    
+    public GraphColoring( int curr_start, int curr_end, int [][] upper_level,   HapConfig[] level_2, 
+    		String gs_var_pos, int [][] level_2_region , int mismatch_tolerance, int reg_region,
+    		int regression_level,  HashMap<Integer, String> index_var_prefix_dict , String prefix, 
+    		int num_regeions_merge, int number_maximum_selected_haplotypes) 
+    				throws IOException {
+    	int upper_level_first =-1;
+    	int upper_level_second =-1;
+    	
+    	
+    	for (int i=0; i< upper_level.length; i++ ) {
+    		if (upper_level[i][0]== curr_start ) {
+    			upper_level_first = i;
+    		}
+    		if (upper_level[i][1]== curr_end ) {
+    			upper_level_second = i;
+    		}
+    	}
+    	int [] level_2_paste = new int [upper_level_second- upper_level_first ];
+    	
+    	for (int u=upper_level_first; u< upper_level_second;u++ ) {
+	    	for (int i=0; i< level_2_region.length; i++ ) {
+	    		
+	    		if ((level_2_region[i][0]<= upper_level[u][1] ) 
+	    				&& (level_2_region[i][1]>= upper_level[u+1][0] )) {
+	    			level_2_paste[u-upper_level_first ] =i;
+	    		}
+	    	}
+    	}
+    	
+
+    	if (( upper_level_first == -1) ||  ( upper_level_second == -1) ){
+    		System.out.println("Can not detect the correct level "+  Integer.toString(regression_level)
+    				+ " regression region: "  + 
+    				Integer.toString(reg_region)+"\n");
+    		System.exit(0);
+    	}	
+    	
+    	
+    	ArrayList<String >  upper_level_haps= new ArrayList<String>();
+    	ArrayList<Double >  upper_level_haps_freq= new ArrayList<Double >();
+    	ArrayList<String >  combine_haps= new ArrayList<String>();
+    	ArrayList<String >  tmp_combine_haps= new ArrayList<String>();
+    	combine_haps.add("");
+    	for (int u= upper_level_first; u<=  upper_level_second;u++ ) {
+    		upper_level_haps.clear();
+    		upper_level_haps_freq.clear();
+    		tmp_combine_haps.clear();
+        	String upper_level_first_file = prefix+ "/regression_level_"+ Integer.toString(regression_level-1)+
+        			"_region_"+Integer.toString(u+1)+".regression_out";
+        	BufferedReader bufferedreader1 = new BufferedReader(new FileReader(upper_level_first_file));
+        	String line = "";
+            while ((line = bufferedreader1.readLine()) != null) {
+            	if (!line.substring(0, 1).equals("#")) {
+	            	line= line.replace("\n", "").replace("\r", "");
+	//            	System.out.println(line);
+	            	String[] tmp = line.split("\t");
+	            	if (Double.parseDouble(tmp[1]) >0 ) {
+	            		upper_level_haps.add(tmp[2]); 
+	            		upper_level_haps_freq.add(Double.parseDouble(tmp[1])); 
+	            	}
+            	}
+            }
+            bufferedreader1.close();
+            double [] tmp_freq =new double [upper_level_haps_freq.size()];
+            for (int i=0 ;i < tmp_freq.length; i++) {
+            	tmp_freq[i]= upper_level_haps_freq.get(i);
+            }
+            for (int i=0 ;i < tmp_freq.length; i++) {
+            	for (int j=i ;j < tmp_freq.length; j++) {
+            		if (tmp_freq[i]< tmp_freq[j]) {
+            			double tmp_double= tmp_freq[i];
+            			tmp_freq[i] = tmp_freq[j];
+            			tmp_freq[j]= tmp_double;
+            		}
+            	}
+            }
+            double freq_cutoff= 0.0;
+            if (tmp_freq.length > number_maximum_selected_haplotypes) {
+            	freq_cutoff= tmp_freq[number_maximum_selected_haplotypes-1];
+            }
+//            System.out.println(freq_cutoff);
+            for (int i=0;i< combine_haps.size();i++) {
+            	tmp_combine_haps.add(combine_haps.get(i))  ;
+            }
+            combine_haps.clear();
+            for (int i=0; i< tmp_combine_haps.size();i++) {
+            	for (int j =0; j < upper_level_haps.size();j++) {
+            		if (upper_level_haps_freq.get(j) >= freq_cutoff) {
+            			boolean flag= false;
+            			if (u== upper_level_first ) {
+            				flag =true;
+            			}else {
+            				int l2_index = level_2_paste[u-upper_level_first-1 ];
+            				for (int l2=0; l2< level_2[l2_index].global_haps_string.length;l2++) {
+            					String tmp_str="";
+            					for (int k=0;k<level_2[l2_index].global_haps_string[l2].length;k++) {
+            						tmp_str = tmp_str+ level_2[l2_index].global_haps_string[l2][k];
+            					}
+            					
+            					int overlap = upper_level[u-1][1] -level_2_region[l2_index][0] +1;
+//            					System.out.println(upper_level[u][0]+"\t"+upper_level[u][1]+"\t"+overlap);
+            					if (reg_strmatch(tmp_combine_haps.get(i),  upper_level_haps.get(j), 
+            							tmp_str,overlap, mismatch_tolerance) ) {
+            						flag=true;
+            						break;
+            					}
+            					
+            				}
+            			}
+            			if (flag){
+            				combine_haps.add(tmp_combine_haps.get(i)+upper_level_haps.get(j) );
+//            			System.out.println(tmp_combine_haps.get(i)+upper_level_haps.get(j));
+            			}
+            		}
+            	}
+            }
+            
+    	}
+//    	System.out.println(combine_haps.size() );
+
+    	String outfile = prefix+ "/regression_level_"+ Integer.toString(regression_level)+
+    			"_region_"+ Integer.toString(reg_region)+ ".potential.haps";
+    	
+    	BufferedWriter bw = new BufferedWriter(new FileWriter(outfile));
+        bw.write("Hap_ID");
+        for (int h = 0; h < combine_haps.size(); h++) {
+            bw.write("\th" + Integer.toString(h));
+        }
+
+        bw.write("\nFreq");
+        for (int h = 0; h < combine_haps.size(); h++) {
+            bw.write("\t" + 1/ ((double )combine_haps.size() ) );
+        }
+        bw.write("\n");
+        for (int l = 0; l < curr_end-curr_start+1; l++) {
+            bw.write(index_var_prefix_dict.get(curr_start+l) );
+            for (int h = 0; h < combine_haps.size(); h++) {
+                bw.write("\t" + combine_haps.get(h).substring(l,l+1));
+            }
+            bw.write("\n");
+        }
+        bw.close();
+    }
+    
+    
+    
+    
+    public GraphColoring(int curr_start, int curr_end, int [][] upper_level,   HapConfig[] level_2, 
+    		String gs_var_pos, int [][] level_2_region , int mismatch_tolerance, int reg_region,
+    		int regression_level,  HashMap<Integer, String> index_var_prefix_dict , String prefix) 
+    				throws IOException {
+    	int upper_level_first =-1;
+    	int upper_level_second =-1;
+    	int level_2_paste =-1;
+    	for (int i=0; i< upper_level.length; i++ ) {
+    		if (upper_level[i][0]== curr_start ) {
+    			upper_level_first = i;
+    		}
+    		if (upper_level[i][1]== curr_end ) {
+    			upper_level_second = i;
+    		}
+    	}
+    	
+    	for (int i=0; i< level_2_region.length; i++ ) {
+    		if ((level_2_region[i][0]<= upper_level[upper_level_first][1] ) 
+    				&& (level_2_region[i][1]>= upper_level[upper_level_second][0] )) {
+    			level_2_paste =i;
+    		}
+    	}
+    	
+
+    	if (( upper_level_first == -1) ||  ( upper_level_second == -1) || ( level_2_paste==-1 ) ){
+    		System.out.println("Can not detect the correct level "+  Integer.toString(regression_level)
+    				+ " regression region: "  + 
+    				Integer.toString(reg_region)+"\n");
+    		System.exit(0);
+    	}	
+    	
+    	
+    	ArrayList<String >  final_haps= new ArrayList<String>();
+    	ArrayList<String >  upper_level_first_haps= new ArrayList<String>();
+    	ArrayList<String > upper_level_second_haps= new ArrayList<String>();
+    	String upper_level_first_file = prefix+ "/regression_level_"+ Integer.toString(regression_level-1)+
+    			"_region_"+Integer.toString(upper_level_first+1)+".regression_out";
+    	String upper_level_second_file = prefix+ "/regression_level_"+ Integer.toString(regression_level-1)+
+    			"_region_"+Integer.toString(upper_level_second+1)+".regression_out";
+    	BufferedReader bufferedreader1 = new BufferedReader(new FileReader(upper_level_first_file));
+    	String line = "";
+        while ((line = bufferedreader1.readLine()) != null) {
+        	line= line.replace("\n", "").replace("\r", "");
+        	String[] tmp = line.split("\t");
+        	if (Double.parseDouble(tmp[1]) >0 ) {
+        		upper_level_first_haps.add(tmp[2]); 
+        	}
+        }
+        bufferedreader1.close();
+        BufferedReader bufferedreader2 = new BufferedReader(new FileReader(upper_level_second_file));
+        while ((line = bufferedreader2.readLine()) != null) {
+        	line= line.replace("\n", "").replace("\r", "");
+        	String[] tmp = line.split("\t");
+        	if (Double.parseDouble(tmp[1]) >0 ) {
+        		upper_level_second_haps.add(tmp[2]); 
+        	}
+        }
+        bufferedreader2.close();
+    	if ( upper_level_first == upper_level_second) {	
+    		for (int i=0; i<upper_level_first_haps.size();i++ ) {	
+    			final_haps.add(upper_level_first_haps.get(i));
+    		}
+    		
+    	}else {
+//    		System.out.println("len:\t"+ level_1[level_1_first].global_haps_string.length);
+    		String [] paste_haps = new String [level_2[level_2_paste].global_haps_string.length];
+    		for (int i=0; i<paste_haps.length;i++ ) {
+    			String tmp = "";
+    			for (int j =0; j <level_2[level_2_paste].global_haps_string[i].length;j++ ) {
+    				tmp=tmp+ level_2[level_2_paste].global_haps_string[i][j]; 
+    			}
+    			paste_haps[i] = tmp;
+//    			System.out.println("paste\t"+ tmp);
+    		}
+    		int overlap = upper_level[upper_level_first][1] -level_2_region[level_2_paste][0] +1;
+    		for (int i=0; i<upper_level_first_haps.size();i++ ) {
+    			for (int j =0; j <upper_level_second_haps.size();j ++ ) {
+    				boolean ok_paste =false;
+    				for (int k =0; k <paste_haps.length;k++ ) {
+//    					System.out.println("?????\t"+ first_haps[i]+"\t"+overlap );
+    					if (reg_strmatch( upper_level_first_haps.get(i), upper_level_second_haps.get(j),
+    							paste_haps[k], overlap, mismatch_tolerance )) {
+    						ok_paste =true;
+    						break;
+    					}
+    				}
+    				if (ok_paste) {
+    					final_haps.add(upper_level_first_haps.get(i)+ 
+    							upper_level_second_haps.get(j));
+    				}
+    			}
+    		}
+    	}
+    	
+    	
+    	
+
+    	String outfile = prefix+ "/regression_level_"+ Integer.toString(regression_level)+
+    			"_region_"+ Integer.toString(reg_region)+ ".potential.haps";
+    	
+    	BufferedWriter bw = new BufferedWriter(new FileWriter(outfile));
+        bw.write("Hap_ID");
+        for (int h = 0; h < final_haps.size(); h++) {
+            bw.write("\th" + Integer.toString(h));
+        }
+
+        bw.write("\nFreq");
+        for (int h = 0; h < final_haps.size(); h++) {
+            bw.write("\t" + 1/ ((double )final_haps.size() ) );
+        }
+        bw.write("\n");
+        for (int l = 0; l < curr_end-curr_start+1; l++) {
+            bw.write(index_var_prefix_dict.get(curr_start+l) );
+            for (int h = 0; h < final_haps.size(); h++) {
+                bw.write("\t" + final_haps.get(h).substring(l,l+1));
+            }
+            bw.write("\n");
+        }
+        
+        bw.close();
+    }
+    
+    
+    
+    
+
+    public GraphColoring(HapConfig[] level_1,  HapConfig[] level_2,  String gs_var_pos, 
+    		int [][] level_1_region , int [][] level_2_region , int mismatch_tolerance
+            ) throws IOException {
+    	this.bfs_mismatch_tolerance= mismatch_tolerance;
+    	ArrayList<String >  bfs_haps= new ArrayList<String>();
+    	ArrayList<Double >  haps_min_freq= new ArrayList<Double>();
+    	ArrayList<Integer >  haps_end_pos= new ArrayList<Integer>();
+    	ArrayList<Integer >  haps_score= new ArrayList<Integer>();
+    	int start_index =0;
+    	int end_index=0;
+    	double aver_freq= 1/ (double) level_1[0].global_haps_freq.length;
+    	for (int i = 0; i  < level_1[0].global_haps_string.length; i++) {
+    		String tmp = "";
+    		for (int j = 0; j  < level_1[0].global_haps_string[i].length; j++) {
+    			tmp=tmp+ level_1[0].global_haps_string[i][j];
+    		}
+    		bfs_haps.add(tmp);
+    		haps_min_freq.add(level_1[0].global_haps_freq[i]);
+    		haps_end_pos.add(level_1_region[0][1]);
+    		if (level_1[0].global_haps_freq[i]>= aver_freq) {
+    			haps_score.add(0);
+    		}else {
+    			haps_score.add(-1);
+    		}
+    		end_index++;
+    	}
+    	
+    	boolean  one_one_search= true;
+//Chen:     Breadth-First-Search
+    	//Search Strategy: Level I 1 -> Level I 2 -> Level I 3 -> Level I 4...
+    	if (one_one_search) {
+	    	for (int i = 0; i  < (level_1_region.length -1); i++) {   
+//	    		System.out.println( i );
+//	    		System.out.println( end_index-start_index  ); 
+	    		ArrayList<String  >  seg_haps= new ArrayList<String >();
+	    		ArrayList<Double  >  seg_freq= new ArrayList<Double >();
+	    		int end_pos= haps_end_pos.get(end_index-1);
+	    		int start_pos= level_1_region[i+1][0];
+	    		int fix_end_index= end_index;
+	    		
+	    		for (int j = 0; j  < level_1[i+1].global_haps_string.length; j++) {
+	    			String tmp = "";
+	    			for (int k = 0; k  < level_1[i+1].global_haps_string[j].length; k++) {
+	    				tmp=tmp+ level_1[i+1].global_haps_string[j][k];
+	    			}
+	    			seg_haps.add(tmp );
+	    			seg_freq.add(level_1[i+1].global_haps_freq[j]); 
+	    		}
+	    		
+	    		ArrayList<String  >  stick_haps= new ArrayList<String >();
+	    		for (int j = 0; j  < level_2[i].global_haps_string.length; j++) {
+	    			String tmp = "";
+	    			start_pos= level_2_region[i][0];
+	    			for (int k = 0; k  < level_2[i].global_haps_string[j].length; k++) {
+	    				tmp=tmp+ level_2[i].global_haps_string[j][k];
+	    			}
+	    			stick_haps.add(tmp );
+	    		}
+	    		
+	    		for (int j = start_index; j  < fix_end_index; j++) {
+	    			for (int k = 0; k  < seg_haps.size(); k++) {
+	    				for (int l = 0; l  < stick_haps.size(); l++) {
+	    					String [] com_str = strmatch(bfs_haps.get(j), seg_haps.get(k) ,stick_haps.get(l), 
+		    						end_pos- start_pos+1, this.bfs_mismatch_tolerance);
+		    				if ((com_str.length!= 0)  && (haps_score.get(j)> -2)){
+		    					for (int h = 0; h  < com_str.length; h++) {
+			    					bfs_haps.add( com_str[h]);
+			    					haps_min_freq.add(minvalue(haps_min_freq.get(j), seg_freq.get(k) )  ); 
+			    					haps_end_pos.add(level_1_region[i+1][1]  ); 
+			    					end_index++;
+			    					if (seg_freq.get(k) >= (1/ (double) seg_haps.size())) {
+			    						haps_score.add(haps_score.get(j)  );
+			    					}else {
+			    						haps_score.add(haps_score.get(j)-1);
+			    					}
+		    					}
+		    				}
+	    				}
+	    			}
+	    		}
+	    		start_index =fix_end_index;
+	    		seg_haps.clear();
+	    		seg_freq.clear();
+	    		stick_haps.clear();
+	    	}
+    	}
+    	
+    	//Search Strategy: Level I 1 -> Level II 1 -> Level I 1 -> Level II 2...
+    	if (!one_one_search) {
+	    	for (int i = 0; i  < level_2_region.length; i++) {   
+	    		ArrayList<String  >  seg_haps= new ArrayList<String >();
+	    		ArrayList<Double  >  seg_freq= new ArrayList<Double >();
+	    		for (int j = 0; j  < level_2[i].global_haps_string.length; j++) {
+	    			String tmp = "";
+	    			for (int k = 0; k  < level_2[i].global_haps_string[j].length; k++) {
+	    				tmp=tmp+ level_2[i].global_haps_string[j][k];
+	    			}
+	    			seg_haps.add(tmp );
+	    			seg_freq.add(level_2[i].global_haps_freq[j]); 
+	    		}
+	    		int end_pos= haps_end_pos.get(end_index-1);
+	    		int start_pos= level_2_region[i][0];
+	    		int fix_end_index= end_index;
+	    		for (int j = start_index; j  < fix_end_index; j++) {
+	    			for (int k = 0; k  < seg_haps.size(); k++) {
+	    				if ((strmatch(bfs_haps.get(j), seg_haps.get(k) ,end_pos- start_pos+1)) 
+	        					&& (haps_score.get(j) > (-1*(i+2) ) ) ){
+	    					bfs_haps.add( strcombine ( bfs_haps.get(j), seg_haps.get(k) ,end_pos- start_pos+1) );
+	    					haps_min_freq.add(minvalue(haps_min_freq.get(j), seg_freq.get(k) )  ); 
+	    					haps_end_pos.add(level_2_region[i][1]  ); 
+	    					if (seg_freq.get(k) >= (1/ (double) seg_haps.size())) {
+	    						haps_score.add(haps_score.get(j)  );
+	    					}else {
+	    						haps_score.add(haps_score.get(j)-1);
+	    					}
+	    					end_index++;
+	    				}
+	    			}
+	    		}
+	    		
+	    		start_index =fix_end_index;
+	    		seg_haps.clear();
+	    		seg_freq.clear();
+	    		for (int j = 0; j  < level_1[i+1].global_haps_string.length; j++) {
+	    			String tmp = "";
+	    			for (int k = 0; k  < level_1[i+1].global_haps_string[j].length; k++) {
+	    				tmp=tmp+ level_1[i+1].global_haps_string[j][k];
+	    			}
+	    			seg_haps.add(tmp );
+	    			seg_freq.add(level_1[i+1].global_haps_freq[j]); 
+	    		}
+	
+	    		end_pos= haps_end_pos.get(end_index-1);
+	    		start_pos= level_1_region[i+1][0];
+	    		fix_end_index= end_index;
+	    		for (int j = start_index; j  < fix_end_index; j++) {
+	    			for (int k = 0; k  < seg_haps.size(); k++) {
+	    				if ((strmatch(bfs_haps.get(j), seg_haps.get(k) ,end_pos- start_pos+1)) 
+	    					&& (haps_score.get(j) >  (-1*(i+2) ) ) ){
+	    					bfs_haps.add( strcombine ( bfs_haps.get(j), seg_haps.get(k) ,end_pos- start_pos+1) );
+	    					haps_min_freq.add(minvalue(haps_min_freq.get(j), seg_freq.get(k) )  ); 
+	    					haps_end_pos.add(level_1_region[i+1][1]  ); 
+	    					if (seg_freq.get(k) >= (1/ (double) seg_haps.size())) {
+	    						haps_score.add(haps_score.get(j)  );
+	    					}else {
+	    						haps_score.add(haps_score.get(j)-1);
+	    					}
+	    					end_index++;
+	    				}
+	    			}
+	    		}
+	    		start_index =fix_end_index;
+	    	}
+    	}
+    	
+
+        this.output_ref_arr = new HashMap<String,Integer>();
+        ArrayList<String>  hap_list = new ArrayList<String>(); 
+        
+        for (int i = start_index; i  < end_index; i++) {
+        	if ( (i%1)==0) {
+        		hap_list.add(bfs_haps.get(i)); 
+        	}
+        }
 
 
+        for (int i = 0; i  < hap_list.size(); i++) {
+        	this.output_ref_arr.put(hap_list.get(i) , 1); 
+        }
+//        
+          
+        this.gc_solver(gs_var_pos, false);
+//    	System.exit(0);
+    }
+    
+    
     /**
      *  2nd round of graph coloring for global haplotype through region linking.
      *  TODO: [Javadoc]:: improve description of this 2nd GC round constructor.
@@ -190,7 +1193,7 @@ public class GraphColoring {
         System.out.println("There are " + count
             + " individual fragments (reads or regional haplotypes) in the dataset.");
 
-        this.gc_solver(gs_var_pos);
+        this.gc_solver(gs_var_pos, true);
     }
 
 
@@ -206,7 +1209,9 @@ public class GraphColoring {
      *  @param gs_var_pos (required) gold standard variant positions file path string.
      *  @throws IOException on input error.
      */
-    public void gc_solver(String gs_var_pos) throws IOException {
+    
+    
+    public void gc_solver(String gs_var_pos , boolean run_gc) throws IOException {
         /*
          *  Initialize variables.
          */
@@ -236,10 +1241,10 @@ public class GraphColoring {
             pos_index++; // move to next variant position index
             currLine = br.readLine(); // read next line
         }
-
         br.close();
+        this.loci_index_dict = pos_dict;
         this.num_loci = pos_dict.size(); // number of loci in gold standard variants file
-
+        
 
         /*
          *  Read through gold standard variant positions file again to load loci info into a matrix.
@@ -254,8 +1259,7 @@ public class GraphColoring {
         this.num_pools = currLine.split("\t").length - 1;
         this.locusInfo = new LocusAnnotation[this.num_loci];
         this.inpool_site_freqs = new double[this.num_loci][this.num_pools];
-
-        // Read through file.
+        
         while (currLine != null) {
             String[] tmp = currLine.split("\t");
 
@@ -270,6 +1274,14 @@ public class GraphColoring {
             loci_index++; // move to next locus index
             currLine = br.readLine(); // read next line
         }
+        
+        
+        if (  run_gc ==false) {
+        	return;
+        }
+
+        // Read through file.
+       
 
         br.close();
 
@@ -311,7 +1323,7 @@ public class GraphColoring {
 
         // index_arr_tmp, list, and index_arr are copies of this.readindex_arr_tmp so far.
         // Shuffle read index ArrayList.
-        Collections.shuffle(list);
+        Collections.shuffle(list,new Random(19880122));
 
         // Now, index_arr_tmp, index_arr are copies of this.readindex_arr_tmp. List is now a
         // randomized version of this.readindex_arr_tmp.
@@ -563,18 +1575,28 @@ public class GraphColoring {
         // System.out.println(ss.substring(1, ss.length()));
 
         //
+//        for (int i = 0; i < read_pos_2D_arr.size(); i++) {
+//        	for (int j = 0; j < read_pos_2D_arr.get(i).size(); j++) {
+//        		System.out.print(read_pos_2D_arr.get(i).get(j)+"\t");
+//        		
+//        	}
+//        	System.out.println();
+//        }
+        
         for (int i = 0; i < read_color_arr.size(); i++) {
             int i_color = read_color_arr.get(i);
             for (int j = 0; j < read_pos_2D_arr.get(i).size(); j++) {
+//            	System.out.println(read_pos_2D_arr.get(i).get(j).toString());
 
                 // TODO: [LEFTOVER]
                    // System.out.println(read_pos_2D_arr.get(i).get(j).toString());
-
-                int p = read_pos_2D_arr.get(i).get(j);
-                p++;
-                ref_arr[i_color] = ref_arr[i_color].substring(0, (p - 1))
-                    + read_geno_2D_arr.get(i).get(j).toString()
-                    + ref_arr[i_color].substring(p, ref_arr[i_color].length());
+            	if (read_pos_2D_arr.get(i).get(j)!=null ) { 
+	                int p = read_pos_2D_arr.get(i).get(j);
+	                p++;
+	                ref_arr[i_color] = ref_arr[i_color].substring(0, (p - 1))
+	                    + read_geno_2D_arr.get(i).get(j).toString()
+	                    + ref_arr[i_color].substring(p, ref_arr[i_color].length());
+            	}
             }
 
             //
@@ -649,12 +1671,12 @@ public class GraphColoring {
         		for (int j=ref_reg_2D_arr.get(i).size();j< max_size;j++) {
         			int max_index = ref_reg_2D_arr.get(i).size();
         			if (max_index>0 ) {
-		        	    Random random = new Random();
+		        	    Random random = new Random(j);
 		        	    int s = random.nextInt(max_index)%(max_index+1);
 		        	    ref_reg_2D_arr.get(i).add(ref_reg_2D_arr.get(i).get(s));
 		        	    conf_reg_2D_arr.get(i).add(conf_reg_2D_arr.get(i).get(s));
         			}else {
-        				System.out.println("ERROR: Can not reconstruct haplotype for" + this.vef_file+ " using graph "
+        				System.out.println("ERROR: Can not reconstruct haplotype for" + this.vef_file+ "using graph "
         						+ "coloring.\nPlease decrease the Num_Pos_Window or increase Num_Gap_Window!");
         	        	System.exit(0);
         			}
@@ -710,11 +1732,20 @@ public class GraphColoring {
 	            }
 	        }
         }
+        
+        
 
         // TODO: [LEFTOVER]
-        // if (this.conf_ref_arr.isEmpty()) {
-        //
-        // }
+         if (this.conf_ref_arr.isEmpty()) {
+        	 String tmp_ref= "1";
+        	 String tmp_conf= "";
+        	 for (int i=0;i< (this.num_loci-1);i++) {
+        		 tmp_ref=tmp_ref+"1";
+        		 tmp_conf=tmp_conf+"-";
+        	 }
+        	 this.conf_ref_arr.put(tmp_ref,  tmp_conf);
+        	 this.output_ref_arr.put(tmp_ref, 1);
+         }
 
     }
 
@@ -791,7 +1822,6 @@ public class GraphColoring {
         for (int h = 0; h < num_global_hap; h++) {
             global_haps_freq[h] = (double) global_haps_ct[h] / (double) tot_hap_ct;
         }
-
         return new HapConfig(
             global_haps_string,
             global_haps_freq,

@@ -49,7 +49,7 @@ Outer_Dist = 400
 ##########   
  */
 
-public class PoolSimulator_SLiM {
+public class PoolSimulator_SLiM_10X {
 	
     String input_dir;
     String inter_dir;
@@ -100,13 +100,13 @@ public class PoolSimulator_SLiM {
     double var_burden_avg;
     boolean is_bacteria =false;
     int num_haps_pool;
-    int random_var=1  ;
+    int random_var=1;
+    int amplify = 100; 
     
-	public PoolSimulator_SLiM(String parameter_file) throws IOException {
+	public PoolSimulator_SLiM_10X(String parameter_file) throws IOException {
 	    InputStream is = new FileInputStream(parameter_file);
         Properties prop = new Properties();
         prop.load(is);
-        
         this.input_dir = prop.getProperty("Input_Dir")+"/";
         this.inter_dir = prop.getProperty("Intermediate_Dir")+"/";
         this.gs_dir = prop.getProperty("Gold-Standard_Dir")+"/";
@@ -138,7 +138,6 @@ public class PoolSimulator_SLiM {
         this.weak_length = Integer.parseInt(prop.getProperty("Weak_Length"));
         this.num_haps_pool = Integer.parseInt(prop.getProperty("Num_Haps_Pool"));
         is.close();
- 
 	}
 	
 	/**
@@ -173,9 +172,12 @@ public class PoolSimulator_SLiM {
 			currLine = br.readLine();
 			while(!tmpcurrpos[0].equals("Mutations:")) { // Read those lines before "Mutations:"
 				HashMap<String, Integer> hapforpool= new HashMap<String, Integer>();
-				this.pool2allhapList.add(hapforpool);
+				if (this.pool2allhapList.size()< this.num_pools) {
+					this.pool2allhapList.add(hapforpool);
+				}
 				currLine = br.readLine();
 				tmpcurrpos = currLine.split(" ");
+				
 			}
 			currLine = br.readLine();
 			tmpcurrpos = currLine.split(" ");
@@ -186,10 +188,15 @@ public class PoolSimulator_SLiM {
 		int front_cutoff = weak_length;
 		int end_cutoff = this.ref_seq_len -weak_length;
 		ArrayList<String> var_pos_list = new ArrayList<String>(); 
+//		System.out.println("start");
 		while(!tmpcurrpos[0].equals("Genomes:")&&!tmpcurrpos[0].equals("Individuals:")) {
 			//Read those lines under the "Mutations" section
+			int y = Integer.parseInt(tmpcurrpos[3]);
+			y= y*this.amplify;
+			tmpcurrpos[3]= Integer.toString(y);
 			if(Integer.parseInt(tmpcurrpos[3])>front_cutoff && Integer.parseInt(tmpcurrpos[3])<end_cutoff ) {
 				if(!var_pos_list.contains(tmpcurrpos[3])) {
+					
 					var_pos_list.add(tmpcurrpos[3]);
 					index2varpos.add(tmpcurrpos[0]+"_"+tmpcurrpos[3]);
 				}
@@ -201,10 +208,11 @@ public class PoolSimulator_SLiM {
 		this.num_var_pos=index2varpos.size();
 		this.sim_var_pos=new int[num_var_pos];
 		int[] sim_var_index=new int[num_var_pos];
+		
 		for(int p=0;p<num_var_pos;p++) {
 			String[] index2varposarray = index2varpos.get(p).split("_");
 			sim_var_index[p]=Integer.parseInt(index2varposarray[0]);
-			sim_var_pos[p]=Integer.parseInt(index2varposarray[1]);
+			sim_var_pos[p]= Integer.parseInt(index2varposarray[1]);
 
 		}
 		// sort both sim_var_index[] and sim_var_pos[] at the same time according to the sim_var_pos[]
@@ -220,6 +228,7 @@ public class PoolSimulator_SLiM {
 				}
 			}
 		}
+		
 
 		if(!tmpcurrpos[0].equals("Genomes:")) {
 			while(!tmpcurrpos[0].equals("Genomes:")) {
@@ -239,14 +248,15 @@ public class PoolSimulator_SLiM {
 		while(currLine!=null) {
 			tmpcurrpos = currLine.split(" ");
 			int curr_pool_index= Integer.parseInt(tmpcurrpos[0].split(":")[0].split("p")[1])-1;
-			if ((curr_pool_index<= this.num_pools) || (is_single_population) ){
+			if (curr_pool_index< this.num_pools) {
+//				System.out.println(curr_pool_index);
 				if(tmpcurrpos.length>2) {
 					num_hap++;
 					
 					ArrayList<Integer> currvarpos = new ArrayList<Integer>();
 					String curr_hap="";
 					for (int p=2;p<tmpcurrpos.length;p++){
-						currvarpos.add(Integer.parseInt(tmpcurrpos[p]));
+						currvarpos.add( Integer.parseInt(tmpcurrpos[p]));
 					}
 					for(int p=0;p<num_var_pos;p++) {
 						int curr_var_index=sim_var_index[p];
@@ -380,7 +390,7 @@ public class PoolSimulator_SLiM {
             for (int p = 0; p < num_var_pos; p++) {
                 int tmpAllele = Integer.parseInt(tmpHapComp[p]); 
                 this.hap2varcomp[hap][p] = tmpAllele; 
-                if (tmpAllele == 1) {
+                if (tmpAllele == 1)  {
                     true_var_pos[p] = 1;    
                     // If this variant position is represented by at least one alternate allele, 
                     // then it's a true variant position.
@@ -391,7 +401,10 @@ public class PoolSimulator_SLiM {
             hap2cts[hap] = hapsHS.get(h);
             hap++; 
         }
+        
         this.actual_num_vars = SimpleMath.sum(true_var_pos); 
+//        this.actual_num_vars = true_var_pos.length; 
+        
         this.var_burden_avg = var_burden_ct / (double) actual_num_haps; 
 	}
 
@@ -513,7 +526,8 @@ public class PoolSimulator_SLiM {
             
         }else if(is_single_population==false) {
         	if(this.num_pools!=pool2allhapList.size()) {
-        		System.out.println("Number of pools in property file is not consistent with the SLiM output");
+        		System.out.println("Number of pools in property file is not "
+        				+ "consistent with the SLiM output:"+"\t" + this.num_pools+"\t" + pool2allhapList.size());
         	}
         	this.haps_per_pop_arr= new int[this.num_pools];
         	for(int p=0;p<haps_per_pop_arr.length;p++) {
@@ -546,8 +560,9 @@ public class PoolSimulator_SLiM {
         			}
         		}
         	}
+//        	System.out.println("------"+ sim_var_pos.length+"\t"+ var2infreqs.length);
         	for(int p=0;p<num_pools;p++) {
-        		for(int v=0;v<sim_var_pos.length;v++) {
+        		for(int v=0;v<var2infreqs.length;v++) {
         			var2infreqs[v][p] = (double)var2incts[v][p]/(double)haps_per_pop_arr[p];
         		}
         	}
@@ -742,7 +757,7 @@ public class PoolSimulator_SLiM {
                 	String curr_hap = actual_hap_list.get(h);
                 	if(pool2allhapList.get(p).containsKey(curr_hap)) {
                 		for(int currhap_num=0;currhap_num<pool2allhapList.get(p).get(curr_hap);currhap_num++) {
-                    		pw.append(">Haplotype_" + h   + " \n");
+                    		pw.append(">Haplotype_" + h   + "_"+ currhap_num   + " \n");
                     		for (String s : allSimHaps[h]) pw.append(s);
                     		pw.append("\n\n");
                 		}
@@ -752,6 +767,7 @@ public class PoolSimulator_SLiM {
         	}
         }
         
+        System.exit(0);
         System.out.println("\nStep 3D: Simulate all of the pool FastQ files, given the distribution"
                 + " of haplotypes in step 3.\n");
         
@@ -901,6 +917,7 @@ public class PoolSimulator_SLiM {
 	}
 	  
 	public static void main(String[] args) throws IOException, InterruptedException {
+		System.out.println("PoolhapX for human simulation:");
 		String parameter= args[0];//"D:\\PhD-Studying\\Informatics\\Project\\HIV_project\\PoolHapX_testing\\SLiM\\input\\PoolSimulator.properties";//
 		InputStream is = new FileInputStream(parameter);
         Properties prop = new Properties();
@@ -910,7 +927,7 @@ public class PoolSimulator_SLiM {
         Boolean is_ms_output = Boolean.parseBoolean("Is_Ms_Output");
         is.close();
         //1st: Read the property file
-		PoolSimulator_SLiM ps=new PoolSimulator_SLiM(parameter);
+		PoolSimulator_SLiM_10X ps=new PoolSimulator_SLiM_10X(parameter);
 		//2nd:Processing SLiM output
 		if(is_ms_output==false) {
 			ps.processing_standard_outcome(is_single_population);

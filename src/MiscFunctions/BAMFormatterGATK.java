@@ -36,9 +36,66 @@ public class BAMFormatterGATK {
 	 * @param pool_IDs
 	 * @throws IOException
 	 */
+	
+	String sequencing_technology;
+	
+	public static void rewrite_inter_vars(String gold_stand_vars, String inter_vars) throws IOException {
+		
+		BufferedReader VarsReader = new BufferedReader(new FileReader(inter_vars));
+		String currLine ="";
+		String header="";
+		HashMap<String , String> pos_dict = new HashMap<String, String>(); 
+		int count =0;
+		while ((currLine = VarsReader.readLine()) != null) {
+			currLine = currLine.replace(" ", "");
+			if (count ==0) {
+				header =currLine;
+			}else {
+				String tmp = currLine;
+				String[] fullLine = currLine.split("\t");
+				pos_dict.put(fullLine[0], tmp); 
+			}
+			count++;
+			
+		}
+		VarsReader.close();
+		count =0;
+//		for (String entry : pos_dict.keySet()) {
+//			System.out.println(pos_dict.get(entry));
+//		}
+		
+		BufferedWriter bw = new BufferedWriter(new FileWriter(inter_vars));
+		bw.write(header+"\n");
+		BufferedReader GoldReader = new BufferedReader(new FileReader(gold_stand_vars));
+		
+		while ((currLine = GoldReader.readLine()) != null) {
+			currLine = currLine.replace(" ", "");
+			if (count>0) {
+				String[] fullLine = currLine.split("\t");
+//				System.out.println(fullLine[0]);
+				if (pos_dict.containsKey(fullLine[0])) {
+					bw.write(pos_dict.get(fullLine[0])+"\n");
+				} else {
+					String tmp = fullLine[0];
+					for (int i=1; i< fullLine.length; i++) {
+						tmp =tmp+"\t"+  "0";
+					}
+					bw.write(tmp+"\n");
+				}
+			}
+			count++;
+		}
+		
+		GoldReader.close();
+		bw.close();
+		
+		return ;
+	}
+			
+	
 	public static void generate_vef_varfreq(String input_dir, String inter_dir, 
 			String project_name, String[] sam_files, 
-			HashMap<String, Integer> pool_name2index) throws IOException {
+			HashMap<String, Integer> pool_name2index, String seq_tech) throws IOException {
 		
 		Boolean simmode = false; // Boolean.parseBoolean(args[3]);
 		HashSet<Integer> trueVarPos = new HashSet<Integer>(); 
@@ -62,7 +119,8 @@ public class BAMFormatterGATK {
 		for (int p = 0; p < numPts; p++) {
 			String raw_vef=inter_dir+"/vef_raw/" + pool_IDs[p] + ".raw.vef";
 			String linked_vef=inter_dir+"/vef/" + pool_IDs[p] + ".vef";
-			VEFMaker(sam_files[p], raw_vef, variantEncoder);
+//			System.out.println(seq_tech);
+			VEFMaker(sam_files[p], raw_vef, variantEncoder, seq_tech);
 			PairedReadLinker.link_paired_vef(raw_vef, linked_vef);
 		//	VEFList.println(outdir + prefix + "_p" + p + ".vef"); 
 		}
@@ -161,8 +219,8 @@ public class BAMFormatterGATK {
 			pool_IDs[index]=pool_id;
 		}
 		BufferedWriter br = new BufferedWriter(new FileWriter(out_put_vars_freq_file));
-		br.write("Pool_ID\t"); 
-		for(int p=0;p<numPts;p++) br.write(pool_IDs[p] + "\t");
+		br.write("Pool_ID"); 
+		for(int p=0;p<numPts;p++) br.write("\t"+pool_IDs[p] );
 		for(int a=0;a<variant_index;a++) {
 			br.write("\n0;" + posTracker.get(a) + ";" + posTracker.get(a) + ";0:1"); 
 			// TODO This only allows for biallelic simple loci (single alternate allele) for now. 
@@ -174,7 +232,7 @@ public class BAMFormatterGATK {
 	}
 	
 	public static void VEFMaker(String input_SAM, String output_vef_raw,
-			HashMap<Integer,HashMap<String,VarObj>> variantEncoder) 
+			HashMap<Integer,HashMap<String,VarObj>> variantEncoder, String seq_tech) 
 			throws FileNotFoundException {
 		Set<Integer> keyMATCH, keyINS, keyDEL, variantKS = variantEncoder.keySet(), tempSet, indelKS; 
 		SortedSet<Integer> variantSS = new TreeSet<Integer>();
@@ -204,13 +262,16 @@ public class BAMFormatterGATK {
 			hmVarCount.put(i,0);
 		}
 		int readCount = 0; */
-		
 		//PrintWriter VEFFile = new PrintWriter(BAMPrefix + ".raw.vef");// replaced with the line below
 		PrintWriter VEFFile = new PrintWriter(output_vef_raw);
-		
 		while (BAMScanner.hasNextLine()) {
 			// readCount++; 
-			QNAME = BAMScanner.next().replace(":", "");
+			QNAME = BAMScanner.next();
+			String QNAME_tmp = QNAME;
+			if (seq_tech.equals("10X_linked_reads")) {
+//				System.out.println(seq_tech);
+				QNAME="";
+			}
 			// System.out.println(QNAME);
 			FLAG = BAMScanner.nextInt();
 			if (FLAG > 163) {
@@ -356,15 +417,50 @@ public class BAMFormatterGATK {
 			}
 			// System.out.println(readInfo.toString());
 			if (readInfo.toString().isEmpty()) {
-				BAMScanner.nextLine(); 	// Skip the QUAL.
+				BAMScanner.nextLine(); 	// 
 				hmMATCH.clear();
 				hmINS.clear();
 				hmDEL.clear(); 
 				continue;
 			}
 			// System.out.println(readInfo);
-			VEFFile.println(QNAME + ":\t" + readInfo + "\t//\t" + startPOS + "\t" + endPOS); 
-			BAMScanner.nextLine(); 	// Skip the QUAL.
+			int flag=0;
+			if (seq_tech.equals("10X_linked_reads")) {
+			
+
+				String DM= "";
+				
+//				OM:i:60 XM:Z:0  TQ:Z:>@>>=?@    TR:Z:TAGGGTT    AS:i:0  XS:i:-70        XT:i:0  BX:Z:TGTCACCAGGGTACGT-1 
+				String tmp ="";
+				String BX="";
+				
+				for (int s = 0; s < 14; s++) {
+					tmp = BAMScanner.next(); 	
+					if ((tmp.length()>4) && (tmp.substring(0, 3).equals("BX:")) ) {
+						BX= tmp;
+						flag++;
+					}
+					if ((tmp.length()>4) && (tmp.substring(0, 3).equals("DM:")) ) {
+						DM= tmp;
+						flag++;
+					}
+					if (flag==2) {
+						break;
+					}
+				}
+				QNAME=DM.replace("\n", "")+":"+ BX.replace("\n", "");
+//				System.out.println(QNAME);
+			}
+			if (flag==2 ) {
+				String[] x_arr =  QNAME_tmp.split("_");
+				String hap = x_arr[0]+"_"+ x_arr[1]+ "_"+ x_arr[2];
+				VEFFile.println(QNAME+"_"+hap + ":\t" + readInfo +"\t"+QNAME_tmp+ "\t"+ startPOS+"\t" + endPOS);
+			} 
+			if (!seq_tech.equals("10X_linked_reads")) {
+				VEFFile.println(QNAME + ":\t" + readInfo +"\t"+QNAME_tmp+ "\t"+ startPOS+"\t" + endPOS);
+			}
+			
+			BAMScanner.nextLine(); 	// 
 			hmMATCH.clear();
 			hmINS.clear();
 			hmDEL.clear(); 

@@ -15,55 +15,12 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 
-/*
- * The properties_file looks like this:
- * 
-FullSimulator2 Parameters
-##########
-# General: Commands and file locations
-Input_Dir = /export/home/jhe/project/Viral_reconstruction/PoolHapX_test/25_pools/PHX_perfect_10
-Intermediate Dir =
-Gold-Standard_Dir =
-Proj_Name = 0_1
-slim = 
-ms = /export/home/jhe/download/msdir/ms
-DWGSIM = /export/home/jhe/download/DWGSIM-master/dwgsim
-##########
-# ms: Generates populations of genotypes under a variety of neutral models to investige their statistical properties.  
-Haps_Per_Pool = 20
-Num_Pools = 25
-Est_Ind_Per_Pool = 1000000
-Mutaton_Rate_Per_Base = 0.00001
-Segregating_Sites = 10
-Ref_Seq_Len = 9719
-##########
-# dwgsim: Simulating a variety of next- and third-generation sequencing reads from input genetic sequences.
-Reference_Seq = /export/home/jhe/project/Viral_reconstruction/PoolHapX_test/50_pools/PHX_perfect_10/input/HIV_HXB2.fa
-Is_Perfect = true
-## non_perfect:0.001, perfect:0
-Error_Rate_Per_Base = 0.0 
-Coverage = 100
-Read_Len = 150
-Outer_Dist = 400
-##########            
- * 
- * To be notice:
- * This code will generate input/ intermediate/ gold_standard/ directories under main/
- * And fasta/ fastq/ under input/ and vef/ under intermediate (For perfect data)
- * For non_perfect_data, it will also generate vcf/ sam/ bam/ under input/
- * The "Ref_Seq_Len" now is the full_path to Reference_sequence
- * For perfect data, it will put _vars.intra_freq.txt under intermediate/
- */
-
 // For generating VEFs directly.
 public class PoolSimulator {
 	
     // directories and project name
-//    String main_dir;
     String input_dir;
-    String inter_dir;
     String gs_dir;
-    String vef_dir;
     String fastq_folder;
     String fasta_folder;
     String vef_folder;
@@ -81,8 +38,7 @@ public class PoolSimulator {
     double mutation_rate ;
     int num_var_pos ;
     int ref_seq_len ;
-    String ref_seq_file_path; // full file path.     
-    boolean is_perfect;
+    String ref_seq_file_path; // full file path.      
     double error_rate ;
     int coverage ;
     int read_len ;
@@ -91,7 +47,7 @@ public class PoolSimulator {
     // intermediate global variables that are needed in the simulation.
     int actual_num_haps = 0; 
     int actual_num_vars = 0; 
-    int[] sim_var_pos; 
+    int[] sim_var_pos = new int[num_var_pos]; 
     int[] hap2cts; // NOTE: This is also global count!
     double[] hap2allfreqs;  // # haps
     double[][] hap2infreqs; // # haps x # pools
@@ -106,17 +62,14 @@ public class PoolSimulator {
 	    InputStream is = new FileInputStream(simulation_property_file);
         Properties prop = new Properties();
         prop.load(is);
-
         this.input_dir = prop.getProperty("Input_Dir")+"/";
-        this.inter_dir = prop.getProperty("Intermediate_Dir")+"/";
-        this.gs_dir = prop.getProperty("Gold-Standard_Dir")+"/";
-        new File(input_dir+"fasta/").mkdir();
-        new File(input_dir+"fastq/").mkdir();
-        new File(inter_dir+"vef/").mkdir();
-        this.fasta_folder=this.input_dir + "fasta/";
-        this.fastq_folder=this.input_dir + "fastq/";
-        this.vef_folder=this.inter_dir+"vef/";
+        this.fasta_folder=this.input_dir+"fasta/";
+        this.fastq_folder=this.input_dir+"fastq/";
+        this.vef_folder=this.input_dir+"vef/";
         this.project_name=prop.getProperty("Proj_Name");
+ //       this.inter_dir = prop.getProperty("Intermediate_Dir");
+        this.gs_dir = prop.getProperty("Gold-Standard_Dir")+"/";
+        
         this.msCMDLine = prop.getProperty("ms"); 
         this.slimCMDLine = prop.getProperty("slim"); 
         this.dwgsimCMDLine = prop.getProperty("DWGSIM"); 
@@ -128,18 +81,11 @@ public class PoolSimulator {
         this.num_var_pos = Integer.parseInt(prop.getProperty("Segregating_Sites"));
         this.ref_seq_len = Integer.parseInt(prop.getProperty("Ref_Seq_Len"));
         this.ref_seq_file_path = prop.getProperty("Reference_Seq"); 
-        this.is_perfect = Boolean.parseBoolean(prop.getProperty("Is_Perfect"));
-        if (is_perfect == false) {
-            new File(input_dir+"sam/").mkdir();
-            new File(input_dir+"bam/").mkdir();
-            new File(input_dir+"vcf/").mkdir();
-        }
-        this.error_rate = Double.parseDouble(prop.getProperty("Error_Rate_Per_Base"));
         
+        this.error_rate = Double.parseDouble(prop.getProperty("Error_Rate_Per_Base"));
         this.coverage = Integer.parseInt(prop.getProperty("Coverage"));
         this.read_len = Integer.parseInt(prop.getProperty("Read_Len"));
         this.outer_dist = Integer.parseInt(prop.getProperty("Outer_Dist"));
-        this.sim_var_pos = new int[num_var_pos];
         is.close();
         
         // Initialize variables that need to be available:
@@ -152,7 +98,7 @@ public class PoolSimulator {
 	 */
 	public void simulate_backwards_ms() throws IOException, InterruptedException{	 
         System.out.print("Step 1: Simulate all-pool haplotypes using ms.\nCommand: ");
-        this.all_pool_haps = haps_per_pool  * num_pools;
+        all_pool_haps = haps_per_pool  * num_pools;
         double theta = 2 * est_ind_pool * mutation_rate; // Population-wide mutation rate per base for haploids
         double rho = theta / 2; // Population-wide recombination rate for haploids
         ProcessBuilder CMDLine = new ProcessBuilder(msCMDLine, 
@@ -162,8 +108,9 @@ public class PoolSimulator {
             "-s", Integer.toString(num_var_pos), 
             "-r", Double.toString(rho), Integer.toString(ref_seq_len));
         System.out.println(String.join(" ", CMDLine.command()));
+        System.out.println();
         CMDLine.redirectErrorStream(true);
-        File logFile = new File(gs_dir + project_name + ".ms.txt");
+        File logFile = new File(gs_dir + "/"+ project_name + ".ms.txt");
         CMDLine.redirectOutput(logFile);
         Process CMDProcess = CMDLine.start();  
         CMDProcess.waitFor();
@@ -177,22 +124,18 @@ public class PoolSimulator {
 	 * @throws IOException
 	 */
 	public void processing_ms_outcome() throws IOException{
-	  System.out.println("Step 2A: Figure out i) the number of types of haplotypes and ii) "
-		    + "the non-degenerate variant positions.\n");
-	    BufferedReader br = new BufferedReader(new FileReader(gs_dir + project_name + ".ms.txt")); 
-	    String currLine = br.readLine(); // header
-	    for (int i = 2; i <= 8; i++) {
-	        currLine = br.readLine(); // other extraneous lines
-	    }
-	    String[] tmpVarPos = currLine.split(" "); // positions
-	    for (int p = 1; p <= num_var_pos; p++) {
-	        sim_var_pos[p - 1] = (int) Math.floor(Double.parseDouble(tmpVarPos[p])
-	         	* ref_seq_len);
-	         // If there isn't enough of a difference between adjacent fractions generated by ms.
-	        if (p > 1 && sim_var_pos[p - 1] == sim_var_pos[p - 2]) {
-	             sim_var_pos[p - 1]++;
-	        }
-	    }
+	    System.out.println("Step 2A: Figure out i) the number of types of haplotypes and ii) "
+	        + "the non-degenerate variant positions.\n");
+        BufferedReader br = new BufferedReader(new FileReader(gs_dir + project_name + ".ms.txt")); 
+        String currLine = br.readLine();
+        for (int i = 2; i < 8; i++) currLine = br.readLine();
+        currLine = br.readLine();
+        String[] tmpVarPos = currLine.split(" "); 
+        for (int p = 1; p < num_var_pos + 1; p++) {
+            sim_var_pos[p - 1] = (int) Math.floor(Double.parseDouble(tmpVarPos[p]) * ref_seq_len);
+            if (p > 1 && sim_var_pos[p - 1] == sim_var_pos[p - 2]) sim_var_pos[p - 1]++; 
+            // If there isn't enough of a difference between adjacent fractions generated by ms.
+        }
         currLine = br.readLine();
         HashMap<String, Integer> hapsHS = new HashMap<String, Integer>(); 
         for (int h = 0; h < all_pool_haps; h++) {
@@ -203,22 +146,22 @@ public class PoolSimulator {
         }
         br.close();
         actual_num_haps = hapsHS.size();
-        this.hap2varcomp = new int[actual_num_haps][num_var_pos]; 
-        this.hap2cts = new int[actual_num_haps]; 
+        hap2varcomp = new int[actual_num_haps][num_var_pos]; 
+        hap2cts = new int[actual_num_haps]; 
         int hap = 0; 
         double var_burden_ct = 0.0; 
         int[] true_var_pos = new int[num_var_pos];
         for (String h : hapsHS.keySet()) {
             String[] tmpHapComp = h.split("");
-            this.hap2varpos.add(new ArrayList<Integer>());
+            hap2varpos.add(new ArrayList<Integer>());
             for (int p = 0; p < num_var_pos; p++) {
                 int tmpAllele = Integer.parseInt(tmpHapComp[p]); 
-                this.hap2varcomp[hap][p] = tmpAllele; 
+                hap2varcomp[hap][p] = tmpAllele; 
                 if (tmpAllele == 1) {
                     true_var_pos[p] = 1;    
                     // If this variant position is represented by at least one alternate allele, 
                     // then it's a true variant position.
-                    this.hap2varpos.get(hap).add(sim_var_pos[p]);
+                    hap2varpos.get(hap).add(sim_var_pos[p]);
                 }
                 var_burden_ct += (double) tmpAllele; 
             }
@@ -226,7 +169,7 @@ public class PoolSimulator {
             hap++; 
         }
         actual_num_vars = SimpleMath.sum(true_var_pos); 
-        this.var_burden_avg = var_burden_ct / (double) actual_num_haps; 
+        var_burden_avg = var_burden_ct / (double) actual_num_haps; 
 	}
      
 	/**
@@ -239,7 +182,7 @@ public class PoolSimulator {
             + "to check if they're acceptable.");
         int[] pwDifference = new int[actual_num_haps * (actual_num_haps - 1) / 2];
         int compare = 0; 
-        this.hap2allfreqs = new double[actual_num_haps]; 
+        hap2allfreqs = new double[actual_num_haps]; 
         for (int h = 0; h < actual_num_haps; h++) {
             for (int i = h + 1; i < actual_num_haps; i++) {
                 for (int p = 0; p < num_var_pos; p++)
@@ -304,24 +247,24 @@ public class PoolSimulator {
         System.out.println("\nStep 3A: Assign each haplotype individual to a patient, "
             + "and write all of the gold standard files.\n");
         int[][] hap2incts = new int[actual_num_haps][num_pools];
-        this.hap2infreqs = new double[actual_num_haps][num_pools];
+        hap2infreqs = new double[actual_num_haps][num_pools];
         int[][] var2incts = new int[actual_num_vars][num_pools];
         boolean[] poolFull = new boolean[num_pools]; 
-        
         for (int h = 0; h < actual_num_haps; h++) {
             while (hap2cts[h] != 0) {
                 int currPool = ThreadLocalRandom.current().nextInt(0, num_pools);
-                if (!this.pool2hapcomp.containsKey(currPool)) this.pool2hapcomp.put(currPool, new ArrayList<Integer>());
+                if (!pool2hapcomp.containsKey(currPool)) pool2hapcomp.put(currPool, new ArrayList<Integer>());
                 if (poolFull[currPool]) continue; 
-                this.pool2hapcomp.get(currPool).add(h);
+                pool2hapcomp.get(currPool).add(h);
                 hap2incts[h][currPool]++; 
                 for (int v = 0; v < num_var_pos; v++) var2incts[v][currPool] += hap2varcomp[h][v];
                 hap2cts[h]--; 
-                if (this.pool2hapcomp.get(currPool).size() == haps_per_pool) poolFull[currPool] = true;
+                if (pool2hapcomp.get(currPool).size() == haps_per_pool) poolFull[currPool] = true;
             }
             for(int p = 0; p < num_pools; p++)
                 hap2infreqs[h][p] = (double) hap2incts[h][p] / haps_per_pool;
         }
+
         BufferedWriter bw = new BufferedWriter(new FileWriter(gs_dir + project_name + 
             "_haps.inter_freq_vars.txt"));
         bw.write("Hap_ID");
@@ -344,7 +287,7 @@ public class PoolSimulator {
             bw.write("\t" + "h"+h);
         bw.write("\n");
         for(int p = 0; p < num_pools; p++){
-            bw.write(project_name + "_p"+p);
+            bw.write("p"+p);
             for(int h = 0; h < actual_num_haps; h++)
                 bw.write("\t" + hap2infreqs[h][p]);
             bw.write("\n");
@@ -355,14 +298,10 @@ public class PoolSimulator {
         for(int p = 0; p < num_pools; p++)
             for(int v = 0; v < actual_num_vars; v++)
                 var2infreqs[v][p] = (double) var2incts[v][p] / haps_per_pool;
-        if(is_perfect == true) {
-        	bw = new BufferedWriter(new FileWriter(inter_dir + project_name + "_vars.intra_freq.txt"));
-        }else {
-        	bw = new BufferedWriter(new FileWriter(gs_dir + project_name + "_vars.intra_freq.txt"));
-        }
+        bw = new BufferedWriter(new FileWriter(gs_dir + project_name + "_vars.intra_freq.txt"));
         bw.write("Pool_ID");
         for (int p = 0; p < num_pools; p++)
-            bw.write("\t" + project_name + "_p" + p); 
+            bw.write("\t" + "p" + p); 
         bw.write("\n");
         for (int v = 0; v < actual_num_vars; v++){
             bw.write("0;" + sim_var_pos[v] + ";" + sim_var_pos[v] + ";0:1");
@@ -396,7 +335,7 @@ public class PoolSimulator {
 //        }
 //        br.close();
 
-        BufferedReader br = new BufferedReader(new FileReader(ref_seq_file_path));
+        BufferedReader br = new BufferedReader(new FileReader(input_dir + ref_seq_file_path));
         String[] refSequence = new String[ref_seq_len];
         String currLine = br.readLine();
         int i = 0;
@@ -412,6 +351,7 @@ public class PoolSimulator {
             currLine = br.readLine();
         }
         br.close();
+        
         // Step 5a) Simulate single nucleotide polymorphisms on the reference sequence.
         System.out.println(
             "\nStep 5a) Simulate single nucleotide polymorphisms on the reference sequence.\n");
@@ -452,7 +392,7 @@ public class PoolSimulator {
         for (int p = 0; p < num_pools; p++) {
             PrintWriter pw = new PrintWriter(fasta_folder + project_name + "_p" + p + ".fa");
             for (int h = 0; h < haps_per_pool; h++) {
-                int currHap = this.pool2hapcomp.get(p).get(h);
+                int currHap = pool2hapcomp.get(p).get(h);
                 pw.append(">Haplotype_" + currHap + " \n");
                 for (String s : allSimHaps[currHap]) pw.append(s);
                 pw.append("\n\n");
@@ -522,7 +462,7 @@ public class PoolSimulator {
                 for (int v = 0; v < actual_num_vars; v++) {
                     if ((startOne <= sim_var_pos[v] && sim_var_pos[v] <= endOne) || 
                         (startTwo <= sim_var_pos[v] && sim_var_pos[v] <= endTwo)) {
-                        if (this.hap2varpos.get(currID).contains(sim_var_pos[v])) {
+                        if (hap2varpos.get(currID).contains(sim_var_pos[v])) {
                             readOutput.append(sim_var_pos[v] + "=1;");
                         } else {
                             readOutput.append(sim_var_pos[v] + "=0;");
@@ -565,26 +505,6 @@ public class PoolSimulator {
 	}
 	  
 	public static void main(String[] args) throws IOException, InterruptedException {
-		String parameter= args[0];
-		InputStream is = new FileInputStream(parameter);
-        Properties prop = new Properties();
-        prop.load(is);
-        Boolean is_perfect = Boolean.parseBoolean(prop.getProperty("Is_Perfect"));
-        is.close();
-        	    //1st step: Read the property file
-		PoolSimulator ps=new PoolSimulator(parameter);
-	    //2nd step: Simulate all pool haplotypes using ms, and write outcome
-	    ps.simulate_backwards_ms();
-	    ps.processing_ms_outcome();
-	    //3rd step: Report the properties of the simulated haplotypes
-	    ps.ms_reports();
-	    //4th step: Assign haplotypes to individuals
-	    ps.assign_haps_to_pools();
-	    //5th step: Generate FASTA and FASTQ files
-	    ps.generate_fastq();
-	    //6th step: Only if is_perfect=true, run the 6th step
-	    if(is_perfect==true) {
-	    	ps.generate_VEF();
-	    }
+	    
 	}
 }
