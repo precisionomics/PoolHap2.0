@@ -52,6 +52,8 @@ public class Parameters {
     public int aem_hapset_size_max;
     public int aem_hapset_size_min;
     public int aem_maximum_level;
+    public double if_0_0;
+    public double if_Denominator_0;
    
     // LASSO parameters    
     // global
@@ -119,7 +121,7 @@ public class Parameters {
         this.gold_dir= prop.getProperty("Gold_Dir")+"/";
         this.num_pos_window = Integer.parseInt(prop.getProperty("Num_Pos_Window"));
         this.num_gap_window = Integer.parseInt(prop.getProperty("Num_Gap_Window"));
-        this.num_pos_job= Integer.parseInt(prop.getProperty("Num_Pos_Job")); 
+        this.num_pos_job= 1000; 
         // Divide and conquer 
         
         this.gap_inpool_cutoff = Double.parseDouble(
@@ -133,24 +135,28 @@ public class Parameters {
  //       this.min_level_I_last_size = Integer.parseInt(
  //           prop.getProperty("Level_1_Last_Region_Min"));
         this.min_level_II_region_size = Integer.parseInt(
-            prop.getProperty("Level_2_Region_Size_Min"));
+            prop.getProperty("Level_1T_Region_Size_Min"));
         this.max_level_II_region_size = Integer.parseInt(
-            prop.getProperty("Level_2_Region_Size_Max"));
+            prop.getProperty("Level_1T_Region_Size_Max"));
         this.est_ind_pool = Integer.parseInt(prop.getProperty("Est_Ind_PerPool"));
+        this.if_0_0 = Double.parseDouble
+        		(prop.getProperty("IF_0_0")); 
+        
+        this.if_Denominator_0 = Double.parseDouble
+        		(prop.getProperty("IF_Denominator_0")); 
         
         this.level_III_IV_region_mismatch_tolerance = Integer.parseInt(
-                prop.getProperty("Level_3_4_Region_Mismatch_Tolerance"));
+                prop.getProperty("Level_1_2_Region_Mismatch_Tolerance"));
         this.level_V_VI_region_mismatch_tolerance = Integer.parseInt(
-                prop.getProperty("Level_5_6_Region_Mismatch_Tolerance"));
+                prop.getProperty("Level_2_3_Region_Mismatch_Tolerance"));
         this.level_VII_VIII_region_mismatch_tolerance = Integer.parseInt(
-                prop.getProperty("Level_7_8_Region_Mismatch_Tolerance"));
+                prop.getProperty("Level_3_4_Region_Mismatch_Tolerance"));
         this.bfs_mismatch_tolerance = Integer.parseInt(
                 prop.getProperty("BFS_Mismatch_Tolerance"));
         
         // GC Link regions:
 //        this.virtual_cov_link_gc = Integer.parseInt(prop.getProperty("Virtual_Coverage_Link_GC"));
-        this.hc_similarity_cutoff = Double.parseDouble(
-                prop.getProperty("Hc_Similarity_Cutoff"));
+        this.hc_similarity_cutoff = 0.95;
         
         // LASSO
 //        this.lasso_global_lambda = Double.parseDouble(prop.getProperty("LASSO_Global_Lambda_Penalty"));
@@ -159,8 +165,8 @@ public class Parameters {
 //        this.lasso_regional_memory = prop.getProperty("LASSO_Regional_Memoery");
         this.lasso_weights = new double[] {
             Double.parseDouble(prop.getProperty("Regression_One_Vector_Weight")),
-            Double.parseDouble(prop.getProperty("Regression_Hap_VC_Weight")),
-            Double.parseDouble(prop.getProperty("Regression_Hap_11_Weight"))};
+            Double.parseDouble(prop.getProperty("Regression_Hap_MAF_Weight")),
+            Double.parseDouble(prop.getProperty("Regression_Hap_LD_Weight"))};
         
         this.lasso_coverage_weight = Double.parseDouble(
                 prop.getProperty("Regression_Coverage_Weight"));
@@ -190,9 +196,7 @@ public class Parameters {
         this.est_ind_pool = Integer.parseInt(prop.getProperty("Est_Ind_PerPool"));
         this.aem_epsilon = Double.parseDouble(prop.getProperty("AEM_Convergence_Cutoff"));
         this.aem_zero_cutoff = Double.parseDouble(prop.getProperty("AEM_Zero_Cutoff"));
-        this.aem_maximum_level = Integer.parseInt(prop.getProperty("AEM_Maximum_Level"));
-        
-        
+        this.aem_maximum_level = Integer.parseInt(prop.getProperty("AEM_Maximum_Level"))*2-1;
         this.aem_regional_cross_pool_freq_cutoff = Double.parseDouble(
             //prop.getProperty("Regional_Global_Freq_Min"));
             prop.getProperty("AEM_Regional_Cross_Pool_Freq_Cutoff"));
@@ -200,14 +204,13 @@ public class Parameters {
             prop.getProperty("AEM_Regional_HapSetSize_Max"));
         this.aem_hapset_size_min = Integer.parseInt(
             prop.getProperty("AEM_Regional_HapSetSize_Min"));
-        this.mcc_freq_cutoff =Double.parseDouble
-        		(prop.getProperty("MCC_Freq_Cutoff"));
+        this.mcc_freq_cutoff = 0.01;
+        
         this.regression_gamma_max=Double.parseDouble
 		(prop.getProperty("Regression_Gamma_Max"));
         this.regression_gamma_min=Double.parseDouble
 		(prop.getProperty("Regression_Gamma_Min"));
-        this.regression_hapset_size_max= Integer.parseInt(
-                prop.getProperty("Regression_Regional_HapSetSize_Max"));
+        this.regression_hapset_size_max= 20;
         this.rscript_path= prop.getProperty("Rscript_path");
         this.ngammas= Integer.parseInt(
                 prop.getProperty("Regression_n_Gamma"));
@@ -215,24 +218,19 @@ public class Parameters {
                 prop.getProperty("Regression_Mismatch_Tolerance"));
         this.regression_hapset_size_min=  this.aem_hapset_size_max/2;
 //        Integer.parseInt(prop.getProperty("Regression_Regional_HapSetSize_Min"));
-        
        this.regression_maximum_regions=
                 Integer.parseInt(prop.getProperty("Regression_Maximum_Regions"));
        
-       this.regression_maximum_selected_haplotypes=
-               Integer.parseInt(prop.getProperty("Regression_Regional_HapSetSize_Max"));
-       
+       this.regression_maximum_selected_haplotypes= 20;
        this.sequencing_technology= prop.getProperty("Sequencing_Technology");
-       
        this.num_threads= Integer.parseInt(prop.getProperty("Number_Threads"));
-       this.species= prop.getProperty("Species");
-       if (this.species.equals("bacteria")) {
-    	   this.lasso_weights[0] = this.lasso_weights[0] *2.5;
-       }
-
-       
+//       this.species= prop.getProperty("Species");
+//       
+//       if (this.species.equals("bacteria")) {
+//    	   this.lasso_weights[0] = this.lasso_weights[0] *2.5;
+//       }
+       this.species= "virus";
  //      this.aem_hapset_size_rand = Integer.parseInt(prop.getProperty("AEM_HapSetSize_Rand"));
-
  //      this.adhoc_freq_cutoff = Integer.parseInt(prop.getProperty("Adhoc_Freq_Cutoff"));
         is.close(); // close input stream         
               

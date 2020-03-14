@@ -38,6 +38,9 @@ public class RegionEMSolver {
     public Parameters gp;
     public int region;
     
+    public double if_0_0;
+    public double if_Denominator_0;
+    
     
     
 
@@ -62,6 +65,8 @@ public class RegionEMSolver {
         this.fixed_diff = diff;
         this.region = reg;
         analyze_a_region_aem(parameter_file);
+        
+      
         
         // analyze_a_region_mcmc(parameter_file);
     }
@@ -190,6 +195,7 @@ public class RegionEMSolver {
         			compare_freq[index]);
         	total_mismatches  += max_mismatch;
         }
+    	
     	
     	total_mismatches=0;
     	for (int j = 0; j < gold_haps.size(); j++) {
@@ -347,6 +353,7 @@ public class RegionEMSolver {
     	this.aem_min_diff =1.0;
         Parameters aem_parameters = new Parameters(parameter_file);
         this.gp = aem_parameters;
+        
         this.hc_cufoff= aem_parameters.hc_similarity_cutoff;
         // The current estimate of global haplotype frequencies.
         double[] freq = this.initial_Haps.global_haps_freq.clone();
@@ -463,8 +470,8 @@ public class RegionEMSolver {
                 
 //                rh2= outlier_rh(rh2);
 //                Algebra.normalize_ditribution(rh2);
-                double rh_min= 0.1;
-                double rh_max= 10.0 ;
+                double rh_min = this.gp.if_0_0;
+                double rh_max = this.gp.if_Denominator_0 ;
                 double rh2_mean = Algebra.mean(rh2);
                 if ( (Double.isInfinite( rh2_mean))   
                 		||  (rh2_mean> rh_max)  ){
@@ -504,7 +511,7 @@ public class RegionEMSolver {
             double delta = Algebra.sum(Algebra.abs(Algebra.minus(Rh, IF))); // sum(abs(Rh - IF)
             
             // sum(abs(IF / Rh - 1))
-            double delta1 = Algebra.sum(Algebra.abs(Algebra.add(Algebra.divide(Rh, IF), -1)));
+            double delta1 = Algebra.sum(Algebra.abs(Algebra.add(Algebra.divide(Rh,  IF), -1)));
             
             double sum = Algebra.sum(IF);// debug by Chen 2019-10
             double freq_inpool=0.0;

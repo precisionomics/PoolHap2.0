@@ -7,9 +7,11 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
+import java.io.*;
 
 import PoolHap.Parameters;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -157,7 +159,8 @@ public class Entrance {
          * Input arguments.
          */
     	String[] supported_functions_array = {"non_perfect", "format", "gc", "aem", "lasso", 
-    			"split" ,"clustering", "evaluate", "analysis", "l0l1"};
+    			"split" ,"clustering", "evaluate", "analysis", "l0l1", "Comparison_bacteria", 
+    			"Comparison_metagenomics", "Comparison_human", "hippo", "complete_analysis"};
     	HashSet<String> supported_functions = new HashSet<String>();
         for (int k = 0; k < supported_functions_array.length; k++) {
              supported_functions.add(supported_functions_array[k]);
@@ -531,6 +534,7 @@ public class Entrance {
                     gp.gold_dir+"/"+gp.project_name+"_haps.inter_freq_vars.txt", 
                  		gp.inter_dir+"/aem/");
             }
+           
             if (dc_maker.final_level >=5 ) {
             	level_V_config = dc_maker.level_V_regional_AEM( 
             		Entrance.names_array,
@@ -784,7 +788,6 @@ public class Entrance {
             
         	double mcc_total =0;
         	for (int pool_index = 0; pool_index < Entrance.num_pools; pool_index++) {
-//            	new File(gp.out_dir + Entrance.names_array[pool_index]).mkdir();
         		eva.MCCEvaluate(gp.gold_dir +"/"+ gp.project_name+"_haps.inter_freq_vars.txt",
         				gp.gold_dir +"/"+ gp.project_name+"_haps.intra_freq.txt",
         			gp.out_dir+"/"+ Entrance.names_array[pool_index]+"/final_freq_haps.txt",
@@ -802,17 +805,7 @@ public class Entrance {
             		+ " pools:\t"+ mcc_total/ (double) Entrance.num_pools+"\n");
         	bw_mcc.close();
         	
-//        	System.exit(0);
-//        	   eva.GcAemEvaluate("/home/chencao/Desktop/sim001/gold_standard/sim001_haps.txt", 
-//           			"/home/chencao/Desktop/sim001/output/sim001_hc.inter_freq_haps.txt");
-        	// Chen:	MCC
-//        		eva.MCCEvaluate(gp.gold_dir +"/"+ gp.project_name+"_haps.inter_freq_haps.txt",
-//        				gp.gold_dir +"/"+ gp.project_name+"_haps.intra_freq.txt",
-//        			gp.out_dir+"/"+gp.project_name+".inter_freq_haps.txt",
-//        			gp.out_dir+"/"+gp.project_name+".intra_freq_haps.txt",
-//        			gp.out_dir+"/"+gp.project_name+".MCC.txt",
-//        			gp.mcc_freq_cutoff);
-        	// Chen:	JSD
+
         	
         	BufferedWriter bw_jsd = new BufferedWriter(new FileWriter(gp.out_dir+"/JSD.result"));
         	
@@ -1024,7 +1017,6 @@ public class Entrance {
            		gp.lasso_weights[1], gp.species);
            
        for (int r=0; r< reg_dc_maker.regession_level[regression_level].length;r++) {
-           	
            	if ((reg_dc_maker.regession_level[regression_level][r][0]!=-1 ) && 
            			(reg_dc_maker.regession_level[regression_level][r][1]!=-1 )) {
            		regression_rscript.run_L0L1learn( Entrance.names_array,
@@ -1054,9 +1046,753 @@ public class Entrance {
            		gp.out_dir  + Entrance.names_array[pool_index]+ "/final_freq_haps.txt" ,
            		index_var_prefix_dict);
        }
-       
        System.out.println("PoolHapX Successfully Finished, Enjoy!\n");
        
-      }
-    }
+      
+      }else if (function.equals("Comparison_bacteria")) { 
+    	  String[] vef_files =
+                  Entrance.get_filepaths(name_file, gp.inter_dir + "vef", "vef", false);
+    	  
+    	  String dc_out_file = gp.inter_dir + gp.project_name + "_dc_plan.txt"; 
+         
+          String[] gcf_files = 
+                  Entrance.get_filepaths(name_file, gp.inter_dir + "gcf", "gcf", false);     
+          DivideConquer dc_maker = new DivideConquer();
+          
+          HashMap<Integer, String> index_var_prefix_dict = dc_maker.gs_map(gs_var_pos);
+    	  
+    	  BufferedWriter bw_bhap_mcc = new BufferedWriter(new FileWriter(gp.out_dir+"/MCC_bhap.result"));
+
+//--------------------------------BHAP--------------------------------------------------   	
+
+    	  
+    	  double mcc_total =0;
+      	  for (int pool_index = 0; pool_index < Entrance.num_pools; pool_index++) {
+      		  	String[] tmp = Entrance.names_array[pool_index].split("p");
+      		  	String pool_index_name = tmp[tmp.length-1];
+      		  	
+      		  	eva.GenerateFinal_BHap (gp.gold_dir +"/"+ gp.project_name+"_vars.intra_freq.txt",
+      		  	gp.out_dir+"/bhap_pool_"+pool_index_name+  "/finalPredictions",
+      			gp.out_dir+"/"+ Entrance.names_array[pool_index]+"/bhap_final_freq_haps.txt",
+      			index_var_prefix_dict,
+      			Entrance.names_array[pool_index]);
+      		  	
+      			eva.MCCEvaluate(gp.gold_dir +"/"+ gp.project_name+"_haps.inter_freq_vars.txt",
+      			gp.gold_dir +"/"+ gp.project_name+"_haps.intra_freq.txt",
+      			gp.out_dir+"/"+ Entrance.names_array[pool_index]+"/bhap_final_freq_haps.txt",
+      			gp.out_dir+"/"+Entrance.names_array[pool_index]+"/bhap_MCC.txt",
+      			gp.mcc_freq_cutoff, 
+      			Entrance.names_array[pool_index]);
+      			bw_bhap_mcc.write("MCC for " +Entrance.names_array[pool_index] + 
+      				" is:\t" + eva.mcc_value +"\n");
+      			mcc_total+= eva.mcc_value;
+          }
+      	
+      	  System.out.println("Average bhap MCC for all "+ Entrance.num_pools
+      			  + " pools:\t"+ mcc_total/ (double) Entrance.num_pools );
+      	  bw_bhap_mcc.write("Average bhap MCC for all "+ Entrance.num_pools
+      			  + " pools:\t"+ mcc_total/ (double) Entrance.num_pools+"\n");
+      	  
+      	  bw_bhap_mcc.close();
+      	  
+ 	  
+      	BufferedWriter bw_bhap_jsd = new BufferedWriter(new FileWriter(gp.out_dir+"/bhap_JSD.result"));
+    	
+    	double jsd_total =0;
+    	for (int pool_index = 0; pool_index < Entrance.num_pools; pool_index++) {
+        	eva.JSDEvaluate(gp.gold_dir +"/"+ gp.project_name+"_haps.inter_freq_vars.txt",
+        				gp.gold_dir +"/"+ gp.project_name+"_haps.intra_freq.txt",
+        			gp.out_dir+"/"+ Entrance.names_array[pool_index]+"/bhap_final_freq_haps.txt",
+        			Entrance.names_array[pool_index],
+        			gp.out_dir+"/"+Entrance.names_array[pool_index]+"/bhap_JSD.txt");
+        	jsd_total+= eva.jsd_value;
+        	bw_bhap_jsd.write("JSD for " +Entrance.names_array[pool_index] + 
+    				" is:\t" + eva.jsd_value +"\n");
+    	}
+    	
+    	System.out.println("Average bhap JSD for all "+ Entrance.num_pools
+    			+ " pools:\t"+ jsd_total/ (double) Entrance.num_pools );
+    	
+    	bw_bhap_jsd.write("Average bhap JSD for all "+ Entrance.num_pools
+    			+ " pools:\t"+ jsd_total/ (double) Entrance.num_pools+"\n" );;
+    	
+    	bw_bhap_jsd.close();
+    	
+
+//--------------------------------EVORHA--------------------------------------------------   	
+      	  	  
+      	  
+      	BufferedWriter bw_evorha_mcc = new BufferedWriter(new FileWriter(gp.out_dir+"/MCC_evorha.result"));
+  	  
+      	mcc_total =0;
+    	  for (int pool_index = 0; pool_index < Entrance.num_pools; pool_index++) {
+    		  	String[] tmp = Entrance.names_array[pool_index].split("p");
+    		  	String pool_index_name = tmp[tmp.length-1];
+    		  	
+    		  	eva.GenerateFinal_EVORHA (gp.gold_dir +"/"+ gp.project_name+"_mutations.txt",
+    		  	gp.out_dir+"/evorha_pool_"+pool_index_name+  "/evorha.global.hapfreq",
+    			gp.out_dir+"/"+ Entrance.names_array[pool_index]+"/evorha_final_freq_haps.txt",
+    			index_var_prefix_dict,
+    			Entrance.names_array[pool_index]);
+    		  	
+    			eva.MCCEvaluate(gp.gold_dir +"/"+ gp.project_name+"_haps.inter_freq_vars.txt",
+    			gp.gold_dir +"/"+ gp.project_name+"_haps.intra_freq.txt",
+    			gp.out_dir+"/"+ Entrance.names_array[pool_index]+"/evorha_final_freq_haps.txt",
+    			gp.out_dir+"/"+Entrance.names_array[pool_index]+"/evorha_MCC.txt",
+    			gp.mcc_freq_cutoff, 
+    			Entrance.names_array[pool_index]);
+    			bw_evorha_mcc.write("MCC for " +Entrance.names_array[pool_index] + 
+    				" is:\t" + eva.mcc_value +"\n");
+    			mcc_total+= eva.mcc_value;
+    			
+        }
+    	  System.out.println("Average evorha MCC for all "+ Entrance.num_pools
+    			  + " pools:\t"+ mcc_total/ (double) Entrance.num_pools );
+    	  bw_evorha_mcc.write("Average evorha MCC for all "+ Entrance.num_pools
+    			  + " pools:\t"+ mcc_total/ (double) Entrance.num_pools+"\n");
+    	bw_evorha_mcc.close();
+    	
+    	BufferedWriter bw_evorha_jsd = new BufferedWriter(new FileWriter(gp.out_dir+"/evorha_JSD.result")); 
+    	jsd_total =0;
+      	for (int pool_index = 0; pool_index < Entrance.num_pools; pool_index++) {
+          	eva.JSDEvaluate(gp.gold_dir +"/"+ gp.project_name+"_haps.inter_freq_vars.txt",
+          		gp.gold_dir +"/"+ gp.project_name+"_haps.intra_freq.txt",
+          		gp.out_dir+"/"+ Entrance.names_array[pool_index]+"/evorha_final_freq_haps.txt",
+          		Entrance.names_array[pool_index],
+          			gp.out_dir+"/"+Entrance.names_array[pool_index]+"/evorha_JSD.txt");
+          	jsd_total+= eva.jsd_value;
+          	bw_evorha_jsd.write("JSD for " +Entrance.names_array[pool_index] + 
+      				" is:\t" + eva.jsd_value +"\n");
+      	}
+      	System.out.println("Average evorha JSD for all "+ Entrance.num_pools
+      			+ " pools:\t"+ jsd_total/ (double) Entrance.num_pools );
+      	bw_evorha_jsd.write("Average evorha JSD for all "+ Entrance.num_pools
+      			+ " pools:\t"+ jsd_total/ (double) Entrance.num_pools+"\n" );;
+      	bw_evorha_jsd.close();
+      	
+      }	else if (function.equals("Comparison_metagenomics")) {
+    	  String[] vef_files =
+                  Entrance.get_filepaths(name_file, gp.inter_dir + "vef", "vef", false);
+    	  String dc_out_file = gp.inter_dir + gp.project_name + "_dc_plan.txt"; 
+          String[] gcf_files = 
+                  Entrance.get_filepaths(name_file, gp.inter_dir + "gcf", "gcf", false);     
+          DivideConquer dc_maker = new DivideConquer();
+          HashMap<Integer, String> index_var_prefix_dict = dc_maker.gs_map(gs_var_pos);
+    	  BufferedWriter bw_strainest_mcc = new BufferedWriter(new FileWriter(gp.out_dir+"/MCC_strainest.result"));
+
+//--------------------------------StrainEst--------------------------------------------------   	
+    	  double mcc_total =0;
+      	  for (int pool_index = 0; pool_index < Entrance.num_pools; pool_index++) {
+      		  	String[] tmp = Entrance.names_array[pool_index].split("p");
+      		  	String pool_index_name = tmp[tmp.length-1];
+      		  	eva.GenerateFinal_Strainest (gp.gold_dir +"/"+ gp.project_name+"_vars.intra_freq.txt",
+      			gp.out_dir+"/"+ Entrance.names_array[pool_index]+"/strainest_final_freq_haps.txt",
+      			index_var_prefix_dict,
+      			Entrance.names_array[pool_index]);
+      		  	
+      			eva.MCCEvaluate(gp.gold_dir +"/"+ gp.project_name+"_haps.inter_freq_vars.txt",
+      			gp.gold_dir +"/"+ gp.project_name+"_haps.intra_freq.txt",
+      			gp.out_dir+"/"+ Entrance.names_array[pool_index]+"/strainest_final_freq_haps.txt",
+      			gp.out_dir+"/"+Entrance.names_array[pool_index]+"/strainest_MCC.txt",
+      			gp.mcc_freq_cutoff, 
+      			Entrance.names_array[pool_index]);
+      			bw_strainest_mcc.write("MCC for " +Entrance.names_array[pool_index] + 
+      				" is:\t" + eva.mcc_value +"\n");
+      			mcc_total+= eva.mcc_value;
+          }
+      	
+      	  System.out.println("Average strainest MCC for all "+ Entrance.num_pools
+      			  + " pools:\t"+ mcc_total/ (double) Entrance.num_pools );
+      	  bw_strainest_mcc.write("Average strainest MCC for all "+ Entrance.num_pools
+      			  + " pools:\t"+ mcc_total/ (double) Entrance.num_pools+"\n");
+      	  
+      	  bw_strainest_mcc.close();  
+      	
+      	BufferedWriter bw_strainest_jsd = new BufferedWriter(new FileWriter(gp.out_dir+"/strainest_JSD.result"));
+    	double jsd_total =0;
+    	for (int pool_index = 0; pool_index < Entrance.num_pools; pool_index++) {
+        	eva.JSDEvaluate(gp.gold_dir +"/"+ gp.project_name+"_haps.inter_freq_vars.txt",
+        				gp.gold_dir +"/"+ gp.project_name+"_haps.intra_freq.txt",
+        			gp.out_dir+"/"+ Entrance.names_array[pool_index]+"/strainest_final_freq_haps.txt",
+        			Entrance.names_array[pool_index],
+        			gp.out_dir+"/"+Entrance.names_array[pool_index]+"/strainest_JSD.txt");
+        	jsd_total+= eva.jsd_value;
+        	bw_strainest_jsd.write("JSD for " +Entrance.names_array[pool_index] + 
+    				" is:\t" + eva.jsd_value +"\n");
+    	}
+    	
+    	System.out.println("Average strainest JSD for all "+ Entrance.num_pools
+    			+ " pools:\t"+ jsd_total/ (double) Entrance.num_pools );
+    	
+    	bw_strainest_jsd.write("Average strainest JSD for all "+ Entrance.num_pools
+    			+ " pools:\t"+ jsd_total/ (double) Entrance.num_pools+"\n" );;
+    	
+    	bw_strainest_jsd.close();
+    	
+    	
+
+//--------------------------------GRETEL--------------------------------------------------   	
+      	BufferedWriter bw_gretel_mcc = new BufferedWriter(new FileWriter(gp.out_dir+"/MCC_gretel.result"));
+      	mcc_total =0;
+      	double real_num_pools= 0.00001; 
+    	for (int pool_index = 0; pool_index < Entrance.num_pools; pool_index++) {
+    		  	String[] tmp = Entrance.names_array[pool_index].split("p");
+    		  	String pool_index_name = tmp[tmp.length-1];
+    		  	File file = new File(gp.out_dir+"/gretel_pool_"+pool_index_name+  "/snp.fasta");
+    			
+    			if (file.exists()) {
+    				real_num_pools +=1.0;
+	    		  	eva.GenerateFinal_Gretel (gp.gold_dir +"/"+ gp.project_name+"_mutations.txt",
+	    		  	gp.out_dir+"/gretel_pool_"+pool_index_name+  "/gretel.vcf",
+	    		  	gp.out_dir+"/gretel_pool_"+pool_index_name+  "/snp.fasta",
+	    			gp.out_dir+"/"+ Entrance.names_array[pool_index]+"/gretel_final_freq_haps.txt",
+	    			index_var_prefix_dict,
+	    			Entrance.names_array[pool_index]);
+	    		  	
+	    			eva.MCCEvaluate(gp.gold_dir +"/"+ gp.project_name+"_haps.inter_freq_vars.txt",
+	    			gp.gold_dir +"/"+ gp.project_name+"_haps.intra_freq.txt",
+	    			gp.out_dir+"/"+ Entrance.names_array[pool_index]+"/gretel_final_freq_haps.txt",
+	    			gp.out_dir+"/"+Entrance.names_array[pool_index]+"/gretel_MCC.txt",
+	    			gp.mcc_freq_cutoff, 
+	    			Entrance.names_array[pool_index]);
+	    			bw_gretel_mcc.write("MCC for " +Entrance.names_array[pool_index] + 
+	    				" is:\t" + eva.mcc_value +"\n");
+	    			mcc_total+= eva.mcc_value;
+    			}
+        }
+    	  System.out.println("Average gretel MCC for all "+ Entrance.num_pools
+    			  + " pools:\t"+ mcc_total/ real_num_pools );
+    	  bw_gretel_mcc.write("Average gretel MCC for all "+ Entrance.num_pools
+    			  + " pools:\t"+ mcc_total/ real_num_pools+"\n");
+    	  bw_gretel_mcc.close();
+    	
+    	BufferedWriter bw_gretel_jsd = new BufferedWriter(new FileWriter(gp.out_dir+"/gretel_JSD.result")); 
+    	
+    	jsd_total =0;
+      	for (int pool_index = 0; pool_index < Entrance.num_pools; pool_index++) {
+      		String[] tmp = Entrance.names_array[pool_index].split("p");
+		  	String pool_index_name = tmp[tmp.length-1];
+		  	File file = new File(gp.out_dir+"/gretel_pool_"+pool_index_name+  "/snp.fasta");
+			if (file.exists()) {
+	          	eva.JSDEvaluate(gp.gold_dir +"/"+ gp.project_name+"_haps.inter_freq_vars.txt",
+	          		gp.gold_dir +"/"+ gp.project_name+"_haps.intra_freq.txt",
+	          		gp.out_dir+"/"+ Entrance.names_array[pool_index]+"/gretel_final_freq_haps.txt",
+	          		Entrance.names_array[pool_index],
+	          			gp.out_dir+"/"+Entrance.names_array[pool_index]+"/gretel_JSD.txt");
+	          	jsd_total+= eva.jsd_value;
+	          	bw_gretel_jsd.write("JSD for " +Entrance.names_array[pool_index] + 
+	      				" is:\t" + eva.jsd_value +"\n");
+			}
+			
+      	}
+      	System.out.println("Average gretel JSD for all "+ Entrance.num_pools
+      			+ " pools:\t"+ jsd_total/real_num_pools );
+      	bw_gretel_jsd.write("Average gretel JSD for all "+ Entrance.num_pools
+      			+ " pools:\t"+ jsd_total/ real_num_pools+"\n" );;
+      	bw_gretel_jsd.close();
+          
+
+
+      	
+      } else if (function.equals("Comparison_human")) {
+    	  int default_sel_haps = 50;
+    	  
+    	  String[] vef_files =
+                  Entrance.get_filepaths(name_file, gp.inter_dir + "vef", "vef", false);
+    	  String dc_out_file = gp.inter_dir + gp.project_name + "_dc_plan.txt"; 
+         String[] gcf_files = 
+                  Entrance.get_filepaths(name_file, gp.inter_dir + "gcf", "gcf", false);     
+          DivideConquer dc_maker = new DivideConquer();
+          HashMap<Integer, String> index_var_prefix_dict = dc_maker.gs_map(gs_var_pos);
+          
+    	  double freq_cutoff =0.0;
+    	  if ((index_var_prefix_dict.size()>8) &&  (index_var_prefix_dict.size()< 12) ) {
+    		  freq_cutoff =0.02;
+    	  }
+    	  if ((index_var_prefix_dict.size()>13) &&  (index_var_prefix_dict.size()< 17) ) {
+    		  freq_cutoff =0.015;
+    	  }
+    	  if ((index_var_prefix_dict.size()>23) &&  (index_var_prefix_dict.size()< 27) ) {
+    		  freq_cutoff =0.01;
+    	  }
+    	  if ((index_var_prefix_dict.size()>100) &&  (index_var_prefix_dict.size()< 10000) ) {
+    		  freq_cutoff =0.0;
+    		  default_sel_haps= 500;
+    	  }
+    	  
+    	  String freq_fil = gp.gold_dir+ gp.project_name+ "_haps.inter_freq_vars.txt";
+    	  String [] tmp_arr1 = freq_fil.split("/");
+    	  String  folder_prefix = tmp_arr1[tmp_arr1.length-6];
+    	  String [] tmp_arr2 = folder_prefix.split("_");
+    	  String  folder = tmp_arr2[0]+"_10";
+    	  String new_freq_fil = tmp_arr1[0] ;
+    	  for (int i=1;i<tmp_arr1.length;i++ ) {
+    		  if (i!= (tmp_arr1.length-6)) {
+    			  new_freq_fil=new_freq_fil+ "/"+ tmp_arr1[i];
+    		  }else {
+    			  new_freq_fil=new_freq_fil+ "/"+ folder;
+    		  }
+    	  }
+    	  System.out.println(new_freq_fil);
+    	  
+    	  String godl_freq_file =  new_freq_fil;
+    	  
+    	  BufferedReader br_g = new BufferedReader(new FileReader(godl_freq_file));
+    	  String g_line;
+    	  int num_sel_hap = 0;
+    	  while ((g_line = br_g.readLine()) != null) {
+    		  g_line =g_line.replace("\n", "").replace("\r", "");
+    		  String[] tmp = g_line.split("\t");
+    		  num_sel_hap= tmp.length;
+    	  }
+    	  br_g.close();
+    	  num_sel_hap=num_sel_hap-1;
+    	  ArrayList<String >  haps= new ArrayList<String>();
+          ArrayList<Double >  haps_freq= new ArrayList<Double>();
+          ArrayList<String >  tmp_haps= new ArrayList<String>();
+          ArrayList<Double >  tmp_haps_freq= new ArrayList<Double>();
+    	  
+    	  
+    	  
+          BufferedReader bufferedreader4 = 
+        		  new BufferedReader(new FileReader(gp.gold_dir +"/"+ gp.project_name+"_haps.inter_freq_vars.txt"));
+          String line;
+          ArrayList<ArrayList<String >>  geno0_2D = new ArrayList<ArrayList<String>>();
+          while ((line = bufferedreader4.readLine()) != null) {
+          	line =line.replace("\n", "").replace("\r", "");
+          	if (line.startsWith("Hap_ID")) {
+          		String[] tmp = line.split("\t");
+          		
+          	}
+          	if (line.startsWith("Freq")) {
+          		String[] tmp = line.split("\t");
+          		for (int i = 1; i < tmp.length; i++) {
+          			tmp_haps_freq.add(Double.parseDouble(tmp[i]));
+          		}
+          	}
+          			
+          	if ((!line.startsWith("Hap_ID")) &&  (!line.startsWith("Freq") )){
+          		String[] tmp = line.split("\t");
+          		
+          		ArrayList<String> tmp_arr = new ArrayList<String>();
+          		for (int i = 1; i < tmp.length; i++) {
+          			tmp_arr.add(tmp[i]);
+          		}
+          		geno0_2D.add(tmp_arr);
+          	}
+          }
+          
+          for (int j = 0; j < geno0_2D.get(0).size(); j++) {
+          	String tmp_str="";
+          	for (int i = 0; i < geno0_2D.size(); i++) {
+          		tmp_str=tmp_str+ geno0_2D.get(i).get(j);
+          	}
+          	tmp_haps.add(tmp_str);
+          }
+          bufferedreader4.close();
+          
+          for (int i=0; i< tmp_haps_freq.size(); i++) { 
+        	  for (int j=i; j< tmp_haps_freq.size(); j++) { 
+        		  if (tmp_haps_freq.get(i) < tmp_haps_freq.get(j)) {
+        			  double tmp_freq = tmp_haps_freq.get(i);
+        			  tmp_haps_freq.set(i,   tmp_haps_freq.get(j) );
+        			  tmp_haps_freq.set(j, tmp_freq   );
+        			  String ss = tmp_haps.get(i);
+        			  tmp_haps.set(i, tmp_haps.get(j));
+        			  tmp_haps.set(j, ss);
+        		  }
+        	  }
+          }	
+          
+          double total_freq =0.00000001; 
+          for (int i=0; i< num_sel_hap; i++) { 
+        	  if (i< tmp_haps_freq.size()) {
+        		  total_freq+= tmp_haps_freq.get(i);
+        		  haps.add(tmp_haps.get(i));
+        		  haps_freq.add(tmp_haps_freq.get(i));  
+        	  }
+          }
+          for (int i=0 ;i< haps_freq.size();i++) {
+        	  haps_freq.set(i, haps_freq.get(i)/ total_freq); 
+          }
+          
+          
+          BufferedWriter bw_gold =
+        		  new BufferedWriter(new FileWriter(gp.gold_dir +"/"+ gp.project_name+"_haps.inter_freq_vars.txt.snp10"));
+          bw_gold.write("Hap_ID");
+          for (int h = 0; h < haps.size(); h++) {
+        	  bw_gold.write("\th" + Integer.toString(h));
+          }
+
+          bw_gold.write("\nFreq");
+          for (int h = 0; h < haps.size(); h++) {
+        	  bw_gold.write("\t" + haps_freq.get(h) );
+          }
+          bw_gold.write("\n");
+          for (int l = 0; l < haps.get(0).length(); l++) {
+        	  bw_gold.write(index_var_prefix_dict.get(l) );
+              for (int h = 0; h < haps.size(); h++) {
+            	  bw_gold.write("\t" + haps.get(h).substring(l,l+1));
+              }
+              bw_gold.write("\n");
+          }
+          
+          bw_gold.close();
+          haps.clear();
+          haps_freq.clear();
+          tmp_haps.clear();
+          tmp_haps_freq.clear();
+    	  
+          
+//--------------------------------PoolHapx--------------------------------------------------
+          
+          
+          BufferedWriter bw_poolhapx_hap = new BufferedWriter(new FileWriter(gp.out_dir+"/poolhapx.haps"));
+          
+          
+          if (index_var_prefix_dict.size() > 50 ) {
+	          for (int pool_index = 0; pool_index < Entrance.num_pools; pool_index++) {
+	        	  ArrayList<ArrayList<String >>  geno_2D = new ArrayList<ArrayList<String>>();
+	        	  String freq_out_file =  gp.out_dir+"/"+ Entrance.names_array[pool_index]+"/final_freq_haps.txt";
+	        	  System.out.println(freq_out_file );
+	        	  BufferedReader bufferedreader = new BufferedReader(new FileReader(freq_out_file));
+	              
+	              boolean break_but =false;
+	              while ((line = bufferedreader.readLine()) != null) {
+	              	line =line.replace("\n", "").replace("\r", "");
+	              	
+	              	
+	              	if (line.startsWith("Freq")) {
+	              		break_but =false;
+	              		String[] tmp = line.split("\t");
+	              		for (int i = 1; i < tmp.length; i++) {
+	              			if (Double.parseDouble(tmp[i])> 1.0 ) {
+	              				break_but =true;
+	              			}
+	              		}
+	              		if (break_but ) {
+	              			bufferedreader.close();
+	              			break;
+	              		}
+	              		for (int i = 1; i < tmp.length; i++) {
+	              			tmp_haps_freq.add(Double.parseDouble(tmp[i]));	
+	              		}
+	              	}
+	              	if ((!line.startsWith("Hap_ID")) &&  (!line.startsWith("Freq") )){
+	              		String[] tmp = line.split("\t");
+	              		ArrayList<String> tmp_arr = new ArrayList<String>();
+	              		for (int i = 1; i < tmp.length; i++) {
+	              			tmp_arr.add(tmp[i]);
+	              		}
+	              		geno_2D.add(tmp_arr);
+	              	}
+	              }
+	              
+	              if (!break_but ) {
+		              for (int j = 0; j < geno_2D.get(0).size(); j++) {
+		              	String tmp_str="";
+		              	for (int i = 0; i < geno_2D.size(); i++) {
+		              		tmp_str=tmp_str+ geno_2D.get(i).get(j);
+		              	}
+		              	tmp_haps.add(tmp_str);
+		              }
+	              }
+	              bufferedreader.close();
+	              
+	              for (int i=0; i< tmp_haps_freq.size(); i++) { 
+    	        	  for (int j=i; j< tmp_haps_freq.size(); j++) { 
+    	        		  if (tmp_haps_freq.get(i) < tmp_haps_freq.get(j)) {
+    	        			  double tmp_freq = tmp_haps_freq.get(i);
+    	        			  tmp_haps_freq.set(i,   tmp_haps_freq.get(j) );
+    	        			  tmp_haps_freq.set(j, tmp_freq   );
+    	        			  String ss = tmp_haps.get(i);
+    	        			  tmp_haps.set(i, tmp_haps.get(j));
+    	        			  tmp_haps.set(j, ss);
+    	        		  }
+    	        	  }
+    	       }
+    	          
+    	          total_freq =0.00000001; 
+    	          for (int i=0; i< default_sel_haps; i++) { 
+    	        	  if (i< tmp_haps_freq.size()) {
+    	        		  total_freq+= tmp_haps_freq.get(i);
+    	        		  haps.add(tmp_haps.get(i));
+    	        		  haps_freq.add(tmp_haps_freq.get(i));  
+    	        	  }
+    	          }
+    	          for (int i=0 ;i< haps_freq.size();i++) {
+    	        	  haps_freq.set(i, haps_freq.get(i)/ total_freq); 
+    	          }
+    	          
+    	          
+	          }
+          } else {
+        	  String freq_out_file =  gp.inter_dir+"/aem/"+ gp.project_name+ "_level_3_region_0.inter_freq_haps.txt";
+        	  if (index_var_prefix_dict.size() > 20) { 
+        		  freq_out_file =  gp.inter_dir+"/aem/"+ gp.project_name+ "_level_5_region_0.inter_freq_haps.txt";
+        	  }
+        	  
+        	  BufferedReader bufferedreader = new BufferedReader(new FileReader(freq_out_file));
+        	  
+        	  ArrayList<ArrayList<String >>  geno_2D = new ArrayList<ArrayList<String>>();
+        	  while ((line = bufferedreader.readLine()) != null) {
+                	line =line.replace("\n", "").replace("\r", "");
+                	
+                	
+                	if (line.startsWith("Freq")) {
+//                		break_but =false;
+                		String[] tmp = line.split("\t");
+                		
+                		for (int i = 1; i < tmp.length; i++) {
+                			tmp_haps_freq.add(Double.parseDouble(tmp[i]));	
+                		}
+                	}
+                	if ((!line.startsWith("Hap_ID")) &&  (!line.startsWith("Freq") )){
+                		String[] tmp = line.split("\t");
+                		ArrayList<String> tmp_arr = new ArrayList<String>();
+                		for (int i = 1; i < tmp.length; i++) {
+                			tmp_arr.add(tmp[i]);
+                		}
+                		geno_2D.add(tmp_arr);
+                	}
+                }
+                
+                
+    	        for (int j = 0; j < geno_2D.get(0).size(); j++) {
+    	              	String tmp_str="";
+    	              	for (int i = 0; i < geno_2D.size(); i++) {
+    	              		tmp_str=tmp_str+ geno_2D.get(i).get(j);
+    	              	}
+    	              	tmp_haps.add(tmp_str);
+    	       }
+    	       bufferedreader.close();
+    	       
+    	       for (int i=0; i< tmp_haps_freq.size(); i++) { 
+    	        	  for (int j=i; j< tmp_haps_freq.size(); j++) { 
+    	        		  if (tmp_haps_freq.get(i) < tmp_haps_freq.get(j)) {
+    	        			  double tmp_freq = tmp_haps_freq.get(i);
+    	        			  tmp_haps_freq.set(i,   tmp_haps_freq.get(j) );
+    	        			  tmp_haps_freq.set(j, tmp_freq   );
+    	        			  String ss = tmp_haps.get(i);
+    	        			  tmp_haps.set(i, tmp_haps.get(j));
+    	        			  tmp_haps.set(j, ss);
+    	        		  }
+    	        	  }
+    	       }
+    	          
+    	          total_freq =0.00000001; 
+    	          for (int i=0; i< default_sel_haps; i++) { 
+    	        	  if (i< tmp_haps_freq.size()) {
+    	        		  total_freq+= tmp_haps_freq.get(i);
+    	        		  haps.add(tmp_haps.get(i));
+    	        		  haps_freq.add(tmp_haps_freq.get(i));  
+    	        	  }
+    	          }
+    	          for (int i=0 ;i< haps_freq.size();i++) {
+    	        	  haps_freq.set(i, haps_freq.get(i)/ total_freq); 
+    	          }
+          }
+          
+          
+          
+          
+          
+          bw_poolhapx_hap.write("Hap_ID");
+          for (int h = 0; h < haps.size(); h++) {
+        	  bw_poolhapx_hap.write("\th" + Integer.toString(h));
+          }
+
+          bw_poolhapx_hap.write("\nFreq");
+          for (int h = 0; h < haps.size(); h++) {
+        	  bw_poolhapx_hap.write("\t" + haps_freq.get(h) );
+          }
+          bw_poolhapx_hap.write("\n");
+          for (int l = 0; l < haps.get(0).length(); l++) {
+        	  bw_poolhapx_hap.write(index_var_prefix_dict.get(l) );
+              for (int h = 0; h < haps.size(); h++) {
+            	  bw_poolhapx_hap.write("\t" + haps.get(h).substring(l,l+1));
+              }
+              bw_poolhapx_hap.write("\n");
+          }
+          bw_poolhapx_hap.close();
+          
+          
+          
+          eva.AEM_MCCEvaluate(gp.gold_dir +"/"+ gp.project_name+"_haps.inter_freq_vars.txt.snp10",
+        		  gp.out_dir+"/poolhapx.haps", freq_cutoff, gp.out_dir+"/poolhapx.MCC.result");
+          
+//          eva.AEM_MCCEvaluate(gp.gold_dir +"/"+ gp.project_name+"_haps.inter_freq_vars.txt",
+//        		  gp.out_dir+"/poolhapx.haps", 0.03, gp.out_dir+"/poolhapx.MCC.result");
+          
+          eva.AEM_JSDEvaluate(gp.gold_dir +"/"+ gp.project_name+"_haps.inter_freq_vars.txt.snp10",
+        		  gp.out_dir+"/poolhapx.haps", 0, gp.out_dir+"/poolhapx.JSD.result");
+          
+          
+//-------------------------------AEM--------------------------------------------------    
+//top 50
+          haps.clear();
+          haps_freq.clear();
+          tmp_haps.clear();
+          tmp_haps_freq.clear();
+          
+          
+    	  
+    	  
+    	  boolean do_aem=true;
+    	  File file = new File(gp.out_dir+"/aem.txt");
+			
+		  if (!file.exists()) {
+			  	System.out.println(gp.out_dir+"/aem.txt" );
+				do_aem= false;
+		  } 
+		  if (do_aem) { 
+			  BufferedReader bufferedreader = new BufferedReader(new FileReader(gp.out_dir+"/aem.txt"));
+	          while ((line = bufferedreader.readLine()) != null) {
+	            	line =line.replace("\n", "").replace("\r", "");
+	            	String[] tmp = line.split(" ");
+	            	String tmp_str="";
+	            	if (!tmp[tmp.length-1].equals("NA") ) { 
+		            	double freq = Double.parseDouble ( tmp[tmp.length-1] ); 
+		            	if (freq>0.000000001) {
+			            	for (int i=0; i< (tmp.length-1); i++) {
+			            		tmp_str= tmp_str+ tmp[i];
+			            	}
+			            	tmp_haps.add(tmp_str); 
+			            	tmp_haps_freq.add(freq);
+		            	}
+	            	}else {
+	            		do_aem=false;
+	            	}
+	          }
+	          bufferedreader.close();
+		  }
+         
+          
+          if (do_aem) {
+	          for (int i=0; i< tmp_haps_freq.size(); i++) { 
+	        	  for (int j=i; j< tmp_haps_freq.size(); j++) { 
+	        		  if (tmp_haps_freq.get(i) < tmp_haps_freq.get(j)) {
+	        			  double tmp_freq = tmp_haps_freq.get(i);
+	        			  tmp_haps_freq.set(i,   tmp_haps_freq.get(j) );
+	        			  tmp_haps_freq.set(j, tmp_freq   );
+	        			  String ss = tmp_haps.get(i);
+	        			  tmp_haps.set(i, tmp_haps.get(j));
+	        			  tmp_haps.set(j, ss);
+	        		  }
+	        	  }
+	          }
+	          
+	          total_freq =0.00000001; 
+	          for (int i=0; i< default_sel_haps; i++) { 
+	        	  if (i< tmp_haps_freq.size()) {
+	        		  total_freq+= tmp_haps_freq.get(i);
+	        		  haps.add(tmp_haps.get(i));
+	        		  haps_freq.add(tmp_haps_freq.get(i));  
+	        	  }
+	          }
+	          for (int i=0 ;i< haps_freq.size();i++) {
+	        	  haps_freq.set(i, haps_freq.get(i)/ total_freq); 
+	          }
+	          
+	          
+	          BufferedWriter bw_aem_hap = new BufferedWriter(new FileWriter(gp.out_dir+"/aem.haps"));
+	          
+	          bw_aem_hap.write("Hap_ID");
+	          for (int h = 0; h < haps.size(); h++) {
+	        	  bw_aem_hap.write("\th" + Integer.toString(h));
+	          }
+	
+	          bw_aem_hap.write("\nFreq");
+	          for (int h = 0; h < haps.size(); h++) {
+	        	  bw_aem_hap.write("\t" + haps_freq.get(h) );
+	          }
+	          bw_aem_hap.write("\n");
+	          for (int l = 0; l < haps.get(0).length(); l++) {
+	        	  bw_aem_hap.write(index_var_prefix_dict.get(l) );
+	              for (int h = 0; h < haps.size(); h++) {
+	            	  bw_aem_hap.write("\t" + haps.get(h).substring(l,l+1));
+	              }
+	              bw_aem_hap.write("\n");
+	          }
+	          bw_aem_hap.close();
+	          
+	          eva.AEM_MCCEvaluate(gp.gold_dir +"/"+ gp.project_name+"_haps.inter_freq_vars.txt.snp10",
+	        		  gp.out_dir+"/aem.haps", freq_cutoff/2.0, gp.out_dir+"/aem.MCC.result");
+	          
+	          eva.AEM_JSDEvaluate(gp.gold_dir +"/"+ gp.project_name+"_haps.inter_freq_vars.txt.snp10",
+	        		  gp.out_dir+"/aem.haps",0.005, gp.out_dir+"/aem.JSD.result");          
+          }
+          
+          
+//-------------------------------HIPPO-------------------------------------------------  
+          
+          haps.clear();
+          haps_freq.clear();
+          tmp_haps.clear();
+          tmp_haps_freq.clear();
+          
+          
+    	  
+    	  BufferedReader bufferedreader3 = new BufferedReader(new FileReader(gp.out_dir+"/hippo/results.out"));
+    	  
+          
+          while ((line = bufferedreader3.readLine()) != null) {
+            	line =line.replace("\n", "").replace("\r", "");
+            	String[] tmp = line.split(" ");
+            	
+            	double freq = Double.parseDouble (tmp[1]); 
+            	if (freq>0.000000000001) {
+	            	String tmp_str = tmp[0];
+	            	tmp_haps.add(tmp_str); 
+	            	tmp_haps_freq.add(freq);
+            	}
+          }
+          for (int i=0; i< tmp_haps_freq.size(); i++) { 
+        	  for (int j=i; j< tmp_haps_freq.size(); j++) { 
+        		  if (tmp_haps_freq.get(i) < tmp_haps_freq.get(j)) {
+        			  double tmp_freq = tmp_haps_freq.get(i);
+        			  tmp_haps_freq.set(i,   tmp_haps_freq.get(j) );
+        			  tmp_haps_freq.set(j, tmp_freq   );
+        			  String ss = tmp_haps.get(i);
+        			  tmp_haps.set(i, tmp_haps.get(j));
+        			  tmp_haps.set(j, ss);
+        		  }
+        	  }
+          }
+          for (int i=0; i< default_sel_haps; i++) { 
+        	  if (i< tmp_haps_freq.size()) {
+        		  haps.add(tmp_haps.get(i));
+        		  haps_freq.add(tmp_haps_freq.get(i));  
+        	  }
+          }
+          bufferedreader3.close();
+          
+          BufferedWriter bw_hippo_hap = new BufferedWriter(new FileWriter(gp.out_dir+"/hippo.haps"));
+          
+          bw_hippo_hap.write("Hap_ID");
+          for (int h = 0; h < haps.size(); h++) {
+        	  bw_hippo_hap.write("\th" + Integer.toString(h));
+          }
+
+          bw_hippo_hap.write("\nFreq");
+          for (int h = 0; h < haps.size(); h++) {
+        	  bw_hippo_hap.write("\t" + haps_freq.get(h) );
+          }
+          bw_hippo_hap.write("\n");
+          for (int l = 0; l < haps.get(0).length(); l++) {
+        	  bw_hippo_hap.write(index_var_prefix_dict.get(l) );
+              for (int h = 0; h < haps.size(); h++) {
+            	  bw_hippo_hap.write("\t" + haps.get(h).substring(l,l+1));
+              }
+              bw_hippo_hap.write("\n");
+          }
+          bw_hippo_hap.close();
+          
+          eva.AEM_MCCEvaluate(gp.gold_dir +"/"+ gp.project_name+"_haps.inter_freq_vars.txt.snp10",
+        		  gp.out_dir+"/hippo.haps", 0, gp.out_dir+"/hippo.MCC.result");
+          
+          eva.AEM_JSDEvaluate(gp.gold_dir +"/"+ gp.project_name+"_haps.inter_freq_vars.txt",
+        		  gp.out_dir+"/hippo.haps", 0, gp.out_dir+"/hippo.JSD.result");          
+      }    
+    } 
 }

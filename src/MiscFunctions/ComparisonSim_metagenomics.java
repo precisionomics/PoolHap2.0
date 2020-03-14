@@ -11,9 +11,9 @@ public class ComparisonSim_metagenomics {
 	int[] pools = new  int [] {25, 50};
 //	double[] mut_rates = new  double [] { 1e-6, 1e-7, 1e-8, 1e-9};
 //	int[] depths = new  int  [] { 250, 500, 1000, 2000};
-	int[] depths = new  int  [] {  50, 100, 250  };
+	int[] depths = new  int  [] {  25 };
 	
-	int [] freq_cutoff =new  int  [] {0};
+	int [] freq_cutoff =new  int  [] {0, 2};
 	
 	
 //	int[] num_haps = new  int  [] { 15, 30};
