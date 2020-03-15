@@ -105,12 +105,12 @@ public class Entrance {
                 for (String name : Entrance.name2index.keySet()) {
                     Entrance.names_array[Entrance.name2index.get(name)] = name;
                 }
-                // check the correctness in the target folder.
+                // check the correctness in the target folder. 
                 if (Entrance.num_pools != files.length) { // first, number must be correct.
                     System.out.println("ERROR: No. of files in " + folder + " is " + files.length 
                         + ", NOT consistent to the No. of lines in the " + name_file + ": "
                         + Entrance.num_pools);
-                    System.exit(0);
+                    System.exit(0); 
                 }
                 filepaths = new String[files.length];
                 // observed_files are the files in the folder, may or may not align the names
