@@ -107,7 +107,7 @@ public class Entrance {
                 }
                 // check the correctness in the target folder.
                 if (Entrance.num_pools != files.length) { // first, number must be correct.
-                    System.out.println("ERROR: No. of files in " + folder + " is " + files.length
+                    System.out.println("ERROR: No. of files in " + folder + " is " + files.length 
                         + ", NOT consistent to the No. of lines in the " + name_file + ": "
                         + Entrance.num_pools);
                     System.exit(0);
