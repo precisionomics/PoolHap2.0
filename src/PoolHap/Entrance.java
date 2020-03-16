@@ -100,7 +100,7 @@ public class Entrance {
                     line = br.readLine();
                 }
                 br.close();
-                Entrance.num_pools = p_index;
+                Entrance.num_pools = p_index; 
                 Entrance.names_array = new String[Entrance.num_pools];
                 for (String name : Entrance.name2index.keySet()) {
                     Entrance.names_array[Entrance.name2index.get(name)] = name;
