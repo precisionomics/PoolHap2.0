@@ -11,9 +11,9 @@ public class ScriptForTool {
 	
 	int[] pools = new  int [] {25, 50};
 //	double[] mut_rates = new  double [] { 1e-6, 1e-7, 1e-8, 1e-9};
-	int[] depths = new  int  [] { 50, 100, 250, 500};
+	int[] depths = new  int  [] {1000};
 //	int[] num_haps = new  int  [] { 15, 30};
-	int[] freq_cutoff = new int [] {1,2,4,8};
+	int[] freq_cutoff = new int [] {0,2};
 	
 	String slim_script; 
 	
@@ -28,7 +28,7 @@ public class ScriptForTool {
 		for (int i =0; i< this.pools.length; i++) {
 			for (int j =0; j< this.depths.length; j++) {
 				for(int h=0;h<this.freq_cutoff.length;h++) {
-					for (int k=1;k<7;k++) {
+					for (int k=1;k<15;k++) {
 				
 				
 				String project_name = "freq_"+this.freq_cutoff[h]+"_pool_"+ Integer.toString(this.pools[i])
@@ -100,9 +100,9 @@ public class ScriptForTool {
 				+ "_d_"+ Integer.toString(this.depths[j])+"_"+k+".error\n" );
 				bw.write("#SBATCH --output=p_"+Integer.toString(this.pools[i])
 				+ "_d_"+ Integer.toString(this.depths[j])+"_"+k+".out\n" );
-				bw.write("#SBATCH --mem=30gb\n");
+				bw.write("##SBATCH --mem=30gb\n");
 				bw.write("#SBATCH --ntasks=1\n");
-				bw.write("#SBATCH --cpus-per-task=6\n");
+				bw.write("#SBATCH --cpus-per-task=8\n");
 				bw.write("#SBATCH --time=99-00:00:00\n");
 				bw.write("#SBATCH --nodes=1\n");
 				
@@ -152,7 +152,7 @@ public class ScriptForTool {
 						bw.write("$python /export/home/jhe/download/TenSQR/TenSQR-master/TenSQR.py $prefix\\.config\n");
 						
 					}else if(tool_name.equals("CliqueSNV")) {
-						bw.write("$java -Xmx20G -jar /export/home/jhe/project/Viral_reconstruction/"
+						bw.write("$java -Xmx30G -jar /export/home/jhe/project/Viral_reconstruction/"
 								+ "CliqueSNV/clique-snv.jar -m snv-illumina -tf "
 								+ "0.000000001 -in $inbam -log\n");
 					}else if(tool_name.equals("PredictHaplo")) {

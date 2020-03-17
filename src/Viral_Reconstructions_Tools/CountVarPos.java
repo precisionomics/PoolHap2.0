@@ -14,7 +14,7 @@ public class CountVarPos {
 		String outfile = "varcount.out";
 		BufferedWriter bw = new BufferedWriter(new FileWriter(outfile));
 		for(int f=1;f<=num_file;f++) {
-			String infile = "0_"+f+"_"+model+"_haploid.out";
+			String infile = "1_"+f+"_"+model+"_haploid.out";
 			BufferedReader br = new BufferedReader(new FileReader(infile)); 
 			String currLine = br.readLine(); // header
 			String[] tmpcurrpos = currLine.split(" "); 

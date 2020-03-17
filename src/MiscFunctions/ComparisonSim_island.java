@@ -15,15 +15,14 @@ public class ComparisonSim_island {
 	
 	int[] pools = new  int [] {25,50};
 //	double[] mut_rates = new  double [] { 1e-6, 1e-7, 1e-8, 1e-9};
-	int[] depths = new  int  [] { 50, 100, 250, 500};
+	int[] depths = new  int  [] {100,250,1000};
 //	int[] num_haps = new  int  [] { 15, 30};
-	int[] freq_cutoff = new int [] {1,2,4,8};
+	int[] freq_cutoff = new int [] {0,2};
 	
 	String slim_script; 
 	
 	int genome_len = 9719;
-	String genome_path ="/export/home/jhe/project/"
-			+ "Viral_reconstruction/SLiM/SLiM/Reference/HIV_HXB2.fa"; 
+	String genome_path ="/export/home/jhe/project/Viral_reconstruction/SLiM/SLiM/Reference/HIV_HXB2.fa"; 
 	
 	
 	public ComparisonSim_island(String prefix_folder, String slimout_folder) throws IOException {
@@ -32,7 +31,7 @@ public class ComparisonSim_island {
 		for (int i =0; i< this.pools.length; i++) {
 			for (int j =0; j< this.depths.length; j++) {
 				for(int h=0;h<this.freq_cutoff.length;h++) {
-					for (int k=1;k<7;k++) {
+					for (int k=1;k<14;k++) {
 
 				
 				
@@ -106,7 +105,7 @@ public class ComparisonSim_island {
 				bw.write("#SBATCH --error="+project_name+".error\n" );
 				bw.write("#SBATCH --output="+project_name+".out\n" );
 				bw.write("#SBATCH --ntasks=1\n");
-				bw.write("#SBATCH --cpus-per-task=6\n");
+				bw.write("#SBATCH --cpus-per-task=12\n");
 				bw.write("#SBATCH --time=99-00:00:00\n");
 				bw.write("#SBATCH --nodes=1\n");
 				

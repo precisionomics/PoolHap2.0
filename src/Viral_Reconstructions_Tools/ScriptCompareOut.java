@@ -11,9 +11,9 @@ public class ScriptCompareOut {
 	
 	int[] pools = new  int [] {25, 50};
 //	double[] mut_rates = new  double [] { 1e-6, 1e-7, 1e-8, 1e-9};
-	int[] depths = new  int  [] { 50, 100, 250, 500};
+	int[] depths = new  int  [] { 1000};
 //	int[] num_haps = new  int  [] { 15, 30};
-	int[] freq_cutoff = new int [] {1,2,4,8};
+	int[] freq_cutoff = new int [] {0,2};
 	
 	String slim_script; 
 	
@@ -23,17 +23,17 @@ public class ScriptCompareOut {
 	
 	
 	public ScriptCompareOut(String prefix_folder, String phx_folder_prefix, String tool_name) throws IOException {
-		
+		new File(prefix_folder + "/cmd_out/").mkdir();
 		for (int i =0; i< this.pools.length; i++) {
 			for (int j =0; j< this.depths.length; j++) {
 				for(int h=0;h<this.freq_cutoff.length;h++) {
-					for (int k=1;k<7;k++) {
+					for (int k=1;k<15;k++) {
 				
 				
-				String project_name = "pool_"+ Integer.toString(this.pools[i])
+				String project_name = "freq_"+this.freq_cutoff[h]+"_pool_"+ Integer.toString(this.pools[i])
 				+ "_dep_"+ Integer.toString(this.depths[j])+"_"+k;
 				
-				BufferedWriter bw = new BufferedWriter(new FileWriter(prefix_folder + "/cmd/"+project_name+".cmd"));
+				BufferedWriter bw = new BufferedWriter(new FileWriter(prefix_folder + "/cmd_out/"+project_name+".cmd"));
 //				#!/bin/sh
 //				#SBATCH --job-name=Qpne50_500c
 //				#SBATCH --workdir=/export/home/jhe/project/Viral_reconstruction/QuasiRecomb/output/SLiM/negative_fitness/50_pool/non_migration/50_loci/500_cov
@@ -48,13 +48,13 @@ public class ScriptCompareOut {
 //				#SBATCH --nodes=1
 //				#SBATCH --exclude=node[029-033]
 				bw.write("#!/bin/bash\n");
-				bw.write("#SBATCH --job-name="+ tool_name + project_name+"\n");
+				bw.write("#SBATCH --job-name=CO"+ tool_name + project_name+"\n");
 				bw.write("#SBATCH --workdir="+ prefix_folder + "/"+ project_name +"\n");
 				bw.write("#SBATCH --error="+ "finalout.error\n" );
 				bw.write("#SBATCH --output="+"finalout.out\n" );
-				bw.write("#SBATCH --mem=20gb\n");
+				bw.write("##SBATCH --mem=20gb\n");
 				bw.write("#SBATCH --ntasks=1\n");
-				bw.write("#SBATCH --cpus-per-task=6\n");
+				bw.write("#SBATCH --cpus-per-task=1\n");
 				bw.write("#SBATCH --time=99-00:00:00\n");
 				bw.write("#SBATCH --nodes=1\n");
 				
@@ -69,21 +69,23 @@ public class ScriptCompareOut {
 					String pool_name = project_name +"_p"+p;
 					String pool_folder = prefix_folder + "/"+ project_name +"/"+pool_name+"/";
 						if(tool_name.equals("QuasiRecomb")) {
-							BufferedReader br = new BufferedReader(new FileReader(pool_folder 
-								+ "quasispecies.fasta"));
-							String currline = br.readLine(); 
-							int line_count=1;
-							while(currline!=null) {
-								currline = br.readLine(); 
-								line_count++;
-							}
-							int num_file = line_count/100 + 1;
-							br.close();
+//							BufferedReader br = new BufferedReader(new FileReader(pool_folder 
+//								+ "quasispecies.fasta"));
+//							String currline = br.readLine(); 
+//							int line_count=1;
+//							while(currline!=null||line_count<=100) {
+//								currline = br.readLine(); 
+//								line_count++;
+//							}
+//							int num_file = line_count/100 + 1;
+//							br.close();
 							bw.write("$java -jar /export/home/jhe/project/Viral_reconstruction/Other_Tools/programs/TransferToFasta.jar "+ pool_folder+pool_name+"_O2R.properties"+"\n");
-							for (int f=0;f<num_file;f++) {
-								bw.write("$clustalo -i "+ pool_folder+pool_name+"_"+f+".fasta -o "+ 
-										pool_folder+pool_name+"_"+f+".fa\n");
-							}
+							bw.write("/export/home/jhe/.local/bin/clustalo -i "+ pool_folder+pool_name+".fasta -o "+ 
+									pool_folder+pool_name+".fa --force"+"\n");
+//							for (int f=0;f<num_file;f++) {
+//								bw.write("$clustalo -i "+ pool_folder+pool_name+"_"+f+".fasta -o "+ 
+//										pool_folder+pool_name+"_"+f+".fa\n");
+//							}
 							bw.write("$java -Xmx20g -jar /export/home/jhe/project/Viral_reconstruction/Other_Tools/programs/Transfer_Output.jar "+ pool_folder+pool_name+"_O2R.properties"+"\n");
 						}else {
 							bw.write("$java -jar /export/home/jhe/project/Viral_reconstruction/Other_Tools/programs/TransferToFasta.jar "+ pool_folder+pool_name+"_O2R.properties"+"\n");
@@ -148,7 +150,8 @@ public class ScriptCompareOut {
 					bw_properties.write("Regression_Maximum_Regions = 3\n");
 					bw_properties.write("Maximum_Selected_HapSet = 15\n");
 					bw_properties.write("Sequencing_Technology = paired-end reads\n");
-					bw_properties.write("Number_Threads = 5\n");											
+					bw_properties.write("Number_Threads = 5\n");
+					bw_properties.write("Species = virus\n");
 					bw_properties.close();
 					
 					bw.write("properties="+prefix_folder + "/"+project_name+"/PHX.properties\n");

@@ -13,7 +13,7 @@ public class ScriptCompareOut_arc {
 //	double[] mut_rates = new  double [] { 1e-6, 1e-7, 1e-8, 1e-9};
 	int[] depths = new  int  [] { 50, 100, 250, 500};
 //	int[] num_haps = new  int  [] { 15, 30};
-	int[] freq_cutoff = new int [] {1,2,4,8};
+	int[] freq_cutoff = new int [] {0,1,2,4};
 	
 	String slim_script; 
 	
@@ -23,16 +23,17 @@ public class ScriptCompareOut_arc {
 	
 	public ScriptCompareOut_arc(String prefix_folder, String phx_folder_prefix, String tool_name) throws IOException {
 		
+		new File(prefix_folder + "/cmd_out/").mkdir();
 		for (int i =0; i< this.pools.length; i++) {
 			for (int j =0; j< this.depths.length; j++) {
 				for(int h=0;h<this.freq_cutoff.length;h++) {
-					for (int k=1;k<7;k++) {
+					for (int k=1;k<15;k++) {
 				
 				
-				String project_name = "pool_"+ Integer.toString(this.pools[i])
+				String project_name = "freq_"+this.freq_cutoff[h]+"_pool_"+ Integer.toString(this.pools[i])
 				+ "_dep_"+ Integer.toString(this.depths[j])+"_"+k;
 				
-				BufferedWriter bw = new BufferedWriter(new FileWriter(prefix_folder + "/cmd/"+project_name+".cmd"));
+				BufferedWriter bw = new BufferedWriter(new FileWriter(prefix_folder + "/cmd_out/"+project_name+".cmd"));
 //				#!/bin/sh
 //				#SBATCH --job-name=Qpne50_500c
 //				#SBATCH --workdir=/export/home/jhe/project/Viral_reconstruction/QuasiRecomb/output/SLiM/negative_fitness/50_pool/non_migration/50_loci/500_cov
@@ -47,13 +48,13 @@ public class ScriptCompareOut_arc {
 //				#SBATCH --nodes=1
 //				#SBATCH --exclude=node[029-033]
 				bw.write("#!/bin/bash\n");
-				bw.write("#SBATCH --job-name="+ tool_name + project_name+"\n");
+				bw.write("#SBATCH --job-name=CO"+ tool_name + project_name+"\n");
 				bw.write("#SBATCH --workdir="+ prefix_folder + "/"+ project_name +"\n");
 				bw.write("#SBATCH --error="+ "finalout.error\n" );
 				bw.write("#SBATCH --output="+"finalout.out\n" );
-				bw.write("#SBATCH --mem=20gb\n");
+				bw.write("##SBATCH --mem=20gb\n");
 				bw.write("#SBATCH --ntasks=1\n");
-				bw.write("#SBATCH --cpus-per-task=6\n");
+				bw.write("#SBATCH --cpus-per-task=1\n");
 				bw.write("#SBATCH --time=3-0\n");
 				bw.write("#SBATCH --nodes=1\n");
 				
@@ -148,6 +149,7 @@ public class ScriptCompareOut_arc {
 					bw_properties.write("Maximum_Selected_HapSet = 15\n");
 					bw_properties.write("Sequencing_Technology = paired-end reads\n");
 					bw_properties.write("Number_Threads = 5\n");											
+					bw_properties.write("Species = virus\n");
 					bw_properties.close();
 					
 					bw.write("properties="+prefix_folder + "/"+project_name+"/PHX.properties\n");

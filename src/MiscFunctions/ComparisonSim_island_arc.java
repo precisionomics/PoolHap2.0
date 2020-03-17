@@ -17,7 +17,7 @@ public class ComparisonSim_island_arc {
 //	double[] mut_rates = new  double [] { 1e-6, 1e-7, 1e-8, 1e-9};
 	int[] depths = new  int  [] { 50, 100, 250, 500};
 //	int[] num_haps = new  int  [] { 15, 30};
-	int[] freq_cutoff = new int [] {1,2,4,8};
+	int[] freq_cutoff = new int [] {0,1,2,4};
 	
 	String slim_script; 
 	
@@ -32,7 +32,7 @@ public class ComparisonSim_island_arc {
 		for (int i =0; i< this.pools.length; i++) {
 			for (int j =0; j< this.depths.length; j++) {
 				for(int h=0;h<this.freq_cutoff.length;h++) {
-					for (int k=1;k<7;k++) {
+					for (int k=1;k<16;k++) {
 
 				
 				
@@ -246,9 +246,9 @@ public class ComparisonSim_island_arc {
 				bw_properties.write("All-pool_Gap_Support_Min = 1\n");
 				
 				bw_properties.write("Level_1_Region_Size_Min = 10\n");
-				bw_properties.write("Level_1_Region_Size_Max = 12\n");
+				bw_properties.write("Level_1_Region_Size_Max = 13\n");
 				bw_properties.write("Level_2_Region_Size_Min = 10\n");
-				bw_properties.write("Level_2_Region_Size_Max = 12\n");
+				bw_properties.write("Level_2_Region_Size_Max = 13\n");
 				
 				
 				bw_properties.write("Est_Ind_PerPool = 1000000\n");

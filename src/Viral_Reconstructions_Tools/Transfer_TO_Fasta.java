@@ -81,64 +81,108 @@ public class Transfer_TO_Fasta {
 	public void output_to_fasta_quasirecomb() throws IOException, InterruptedException{
 		BufferedReader br_ref_file = new BufferedReader(new FileReader(
 				referece_seqence ));
-		ArrayList<String> ref_seq_list = new ArrayList<String>();
+		BufferedWriter bw_fasta_file = new BufferedWriter(new FileWriter(
+					final_output_dir + fasta_file_name + ".fasta"));
+		bw_fasta_file.write(">Reference"+"\n");
 		String ref_line=br_ref_file.readLine();
 		ref_line=br_ref_file.readLine();
 		while(ref_line!=null) {
 			String [] each_position=ref_line.split("");
 			for(int i =0 ;i < each_position.length; i++) {
-				ref_seq_list.add(each_position[i]);
+				bw_fasta_file.write(each_position[i]);
 			}
 			ref_line=br_ref_file.readLine();
 		}
 		br_ref_file.close();
-		
+		int num_haps_per_pool = 0;
 		BufferedReader br = new BufferedReader(new FileReader(output_dir 
 				+ outfile_name));
 		String currline = br.readLine(); // read the first line
-		int num_line =0;
-		int num_file =0;
-		int num_haps_per_pool = 0;
+		int num_line=1;
 		while(currline!=null) {
+			if(num_line>100) {
+				break;
+			}
 			String[] each_position = currline.split("");
-			if(num_line%100==0) {
-				BufferedWriter bw_fasta_file = new BufferedWriter(new FileWriter(
-					final_output_dir + fasta_file_name +"_" + num_file + ".fasta"));
-				bw_fasta_file.write(">Reference"+"\n");
-				for(int i=0;i<ref_seq_list.size();i++) {
-					bw_fasta_file.write(ref_seq_list.get(i));
-				}
+			if(each_position[0].equals(">")) {
 				bw_fasta_file.write("\n");
 				String[] strain_fre_line=currline.split("_");
 				bw_fasta_file.write(">"+ "Hap" + num_haps_per_pool +"_" 
-						+ strain_fre_line[strain_fre_line.length-1] + "\n" );
+					+ strain_fre_line[strain_fre_line.length-1] + "\n" );
 				num_haps_per_pool++;
-				currline = br.readLine();
-				each_position = currline.split("");
-				num_line++;
-				while(num_line%100!=0 && currline!=null ) {
-					if(each_position[0].equals(">")) {
-						strain_fre_line=currline.split("_");
-						bw_fasta_file.write(">"+ "Hap" + num_haps_per_pool +"_" 
-								+ strain_fre_line[strain_fre_line.length-1] + "\n" );
-						num_haps_per_pool++;
-					}else {
-						for(int i =0; i < each_position.length; i++) {
-							bw_fasta_file.write(each_position[i]);
-						}
-						bw_fasta_file.write("\n");
-					}
-					currline = br.readLine();
-					if(currline!=null) {
-					each_position = currline.split("");
-					}
-					num_line++;
+			}else {
+				for(int i =0; i < each_position.length; i++) {
+					bw_fasta_file.write(each_position[i]);
 				}
-				bw_fasta_file.close();
-				num_file++;
+					
 			}
+		currline = br.readLine();
+		num_line++;
 		}
+		br.close();
+		bw_fasta_file.close();
 	}
+	
+//		BufferedReader br_ref_file = new BufferedReader(new FileReader(
+//				referece_seqence ));
+//		ArrayList<String> ref_seq_list = new ArrayList<String>();
+//		String ref_line=br_ref_file.readLine();
+//		ref_line=br_ref_file.readLine();
+//		while(ref_line!=null) {
+//			String [] each_position=ref_line.split("");
+//			for(int i =0 ;i < each_position.length; i++) {
+//				ref_seq_list.add(each_position[i]);
+//			}
+//			ref_line=br_ref_file.readLine();
+//		}
+//		br_ref_file.close();
+//		
+//		BufferedReader br = new BufferedReader(new FileReader(output_dir 
+//				+ outfile_name));
+//		String currline = br.readLine(); // read the first line
+//		int num_line =0;
+//		int num_file =0;
+//		int num_haps_per_pool = 0;
+//		while(currline!=null) {
+//			String[] each_position = currline.split("");
+//			if(num_line%100==0) {
+//				BufferedWriter bw_fasta_file = new BufferedWriter(new FileWriter(
+//					final_output_dir + fasta_file_name +"_" + num_file + ".fasta"));
+//				bw_fasta_file.write(">Reference"+"\n");
+//				for(int i=0;i<ref_seq_list.size();i++) {
+//					bw_fasta_file.write(ref_seq_list.get(i));
+//				}
+//				bw_fasta_file.write("\n");
+//				String[] strain_fre_line=currline.split("_");
+//				bw_fasta_file.write(">"+ "Hap" + num_haps_per_pool +"_" 
+//						+ strain_fre_line[strain_fre_line.length-1] + "\n" );
+//				num_haps_per_pool++;
+//				currline = br.readLine();
+//				each_position = currline.split("");
+//				num_line++;
+//				while(num_line%100!=0 && currline!=null ) {
+//					if(each_position[0].equals(">")) {
+//						strain_fre_line=currline.split("_");
+//						bw_fasta_file.write(">"+ "Hap" + num_haps_per_pool +"_" 
+//								+ strain_fre_line[strain_fre_line.length-1] + "\n" );
+//						num_haps_per_pool++;
+//					}else {
+//						for(int i =0; i < each_position.length; i++) {
+//							bw_fasta_file.write(each_position[i]);
+//						}
+//						bw_fasta_file.write("\n");
+//					}
+//					currline = br.readLine();
+//					if(currline!=null) {
+//					each_position = currline.split("");
+//					}
+//					num_line++;
+//				}
+//				bw_fasta_file.close();
+//				num_file++;
+//			}
+//		}
+//	}
 	
 	
 	public void output_to_fasta_predicthaplo() throws IOException, InterruptedException{

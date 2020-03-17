@@ -7,13 +7,13 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 
-public class ScriptForTool_arc {
+public class ScriptForQR_arc {
 	
 	int[] pools = new  int [] {25, 50};
 //	double[] mut_rates = new  double [] { 1e-6, 1e-7, 1e-8, 1e-9};
 	int[] depths = new  int  [] { 50, 100, 250, 500};
 //	int[] num_haps = new  int  [] { 15, 30};
-	int[] freq_cutoff = new int [] {0,1,2,4,8};
+	int[] freq_cutoff = new int [] {1,2,4,8};
 	
 	String slim_script; 
 	
@@ -21,7 +21,7 @@ public class ScriptForTool_arc {
 	String genome_path ="/home/jingni.he1/project/Viral_reconstruction/SLiM/Reference/HIV_HXB2.fa"; 
 	
 	
-	public ScriptForTool_arc(String prefix_folder, String phx_folder_prefix, String tool_name) throws IOException {
+	public ScriptForQR_arc(String prefix_folder, String phx_folder_prefix, String tool_name) throws IOException {
 		
 		new File(prefix_folder + "/cmd/").mkdir();
 		for (int i =0; i< this.pools.length; i++) {
@@ -78,7 +78,10 @@ public class ScriptForTool_arc {
 					bw1.close();
 				}
 				
-				BufferedWriter bw = new BufferedWriter(new FileWriter(prefix_folder + "/cmd/"+project_name+".cmd"));
+			for(int p=0;p<this.pools[i];p++) {
+				String pool_name = project_name +"_p"+p;
+				
+				BufferedWriter bw = new BufferedWriter(new FileWriter(prefix_folder + "/cmd/"+pool_name+".cmd"));
 //				#!/bin/sh
 //				#SBATCH --job-name=Qpne50_500c
 //				#SBATCH --workdir=/export/home/jhe/project/Viral_reconstruction/QuasiRecomb/output/SLiM/negative_fitness/50_pool/non_migration/50_loci/500_cov
@@ -93,15 +96,13 @@ public class ScriptForTool_arc {
 //				#SBATCH --nodes=1
 //				#SBATCH --exclude=node[029-033]
 				bw.write("#!/bin/bash\n");
-				bw.write("#SBATCH --job-name="+ tool_name + project_name+"\n");
-				bw.write("#SBATCH --workdir="+ prefix_folder + "/"+ project_name +"\n");
-				bw.write("#SBATCH --error=p_"+Integer.toString(this.pools[i])
-				+ "_d_"+ Integer.toString(this.depths[j])+"_"+k+".error\n" );
-				bw.write("#SBATCH --output=p_"+Integer.toString(this.pools[i])
-				+ "_d_"+ Integer.toString(this.depths[j])+"_"+k+".out\n" );
+				bw.write("#SBATCH --job-name="+ tool_name + pool_name+"\n");
+				bw.write("#SBATCH --workdir="+ prefix_folder + "/"+ project_name +"/"+pool_name +"\n");
+				bw.write("#SBATCH --error= "+ pool_name+".error\n" );
+				bw.write("#SBATCH --output= "+ pool_name+".out\n" );
 				bw.write("##SBATCH --mem=30gb\n");
 				bw.write("#SBATCH --ntasks=1\n");
-				bw.write("#SBATCH --cpus-per-task=5\n");
+				bw.write("#SBATCH --cpus-per-task=4\n");
 				bw.write("#SBATCH --time=4-0\n");
 				bw.write("#SBATCH --nodes=1\n");
 				
@@ -116,8 +117,8 @@ public class ScriptForTool_arc {
 
 				
 				bw.write("start=$SECONDS\n");
-				for (int p=0;p < this.pools[i];p ++) {
-					String pool_name = project_name +"_p"+p;
+				//for (int p=0;p < this.pools[i];p ++) {
+				//	String pool_name = project_name +"_p"+p;
 					String pool_folder = prefix_folder + "/"+ project_name +"/"+pool_name+"/";
 					bw.write("prefix="+pool_folder+pool_name+"\n");
 					bw.write("inbam="+ phx_folder_prefix + "/"+ project_name+"/input/bam/"
@@ -151,7 +152,7 @@ public class ScriptForTool_arc {
 						bw.write("$python /home/jingni.he1/project/Viral_reconstruction/programs/TenSQR.py $prefix\\.config\n");
 						
 					}else if(tool_name.equals("CliqueSNV")) {
-						bw.write("$java -Xmx30G -jar /home/jingni.he1/project/Viral_reconstruction/programs/clique-snv.jar -m snv-illumina -tf "
+						bw.write("$java -Xmx20G -jar /home/jingni.he1/project/Viral_reconstruction/programs/clique-snv.jar -m snv-illumina -tf "
 								+ "0.000000001 -in $inbam -log\n");
 					}else if(tool_name.equals("PredictHaplo")) {
 						BufferedWriter bw_config = new BufferedWriter(new FileWriter(pool_folder+pool_name+".config"));
@@ -204,11 +205,12 @@ public class ScriptForTool_arc {
 						bw.write("$bwa mem $ref $fastq_prefix\\.bwa.read1.fastq $fastq_prefix\\.bwa.read2.fastq > $prefix\\.sam"+"\n");
 						bw.write("$PredictHaplo_Paired $prefix\\.config > $prefix\\.out"+"\n");
 					}
-				}//end of p_for_loop
-				bw.write("end=$SECONDS\n"); 
-				bw.write("\n");
-				bw.write("echo \"duration_runing: $((end-start)) seconds.\""+"\n");
-				bw.close();
+					
+					bw.write("end=$SECONDS\n"); 
+					bw.write("\n");
+					bw.write("echo \"duration_runing: $((end-start)) seconds.\""+"\n");
+					bw.close();
+					}//end of p_for_loop
 					}
 				}	
 			}
@@ -220,7 +222,7 @@ public class ScriptForTool_arc {
 		String prefix_folder= args[0];//
 		String phx_folder_prefix = args[1];
 		String tool_name = args[2];
-		ScriptForTool_arc cs = new ScriptForTool_arc(prefix_folder,phx_folder_prefix,tool_name);
+		ScriptForQR_arc cs = new ScriptForQR_arc(prefix_folder,phx_folder_prefix,tool_name);
 		System.out.println("Done, Enjoy!");
 	}	
 }
