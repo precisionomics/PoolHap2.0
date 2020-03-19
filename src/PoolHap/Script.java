@@ -46,8 +46,8 @@ public class Script
         this.Rscript_path = prop.getProperty("Rscript_Path");
         this.fastq_file = prop.getProperty("Fastq_File");
         is.close();
-        System.out.println(this.fastq_file);
-        System.out.println(this.fastq_file);
+//        System.out.println(this.fastq_file);
+//        System.out.println(this.fastq_file);
         final BufferedReader br = new BufferedReader(new FileReader(this.fastq_file));
         for (String currline = br.readLine(); currline != null; currline = br.readLine()) {
             final String[] tmpcurrpos = currline.split("\t");

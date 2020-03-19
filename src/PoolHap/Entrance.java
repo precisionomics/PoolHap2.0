@@ -130,7 +130,7 @@ public class Entrance
         final String function = args[0];
         if (!supported_functions.contains(function)) {
             System.out.println("Function " + function + " is not supported. A typo?");
-            System.exit(0);
+            System.exit(0); 
         }
         if (function.equals("script")) {
             final String config_path = args[1];
