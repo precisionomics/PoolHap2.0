@@ -28,6 +28,9 @@ public class Script
     public String Rscript_path;
     public String species;
     public ArrayList<String> sample_name_list;
+    public String seq_tech; 
+    public String longranger; 
+    public String longranger_ref_folder;
     
     public Script(final String config_path) throws IOException {
         this.sample_name_list = new ArrayList<String>();
@@ -39,20 +42,28 @@ public class Script
         this.java = prop.getProperty("Java");
         this.phx_jar = prop.getProperty("PHX_JAR");
         this.bwa = prop.getProperty("bwa");
+        this.longranger= prop.getProperty("longranger");
         this.samtools = prop.getProperty("samtools");
         this.gatk = prop.getProperty("gatk");
         this.fastq_path = prop.getProperty("Fastq_Path");
         this.ref_path = prop.getProperty("Ref_Path");
+        this.longranger_ref_folder = prop.getProperty("Longranger_Ref_Folder");
         this.Rscript_path = prop.getProperty("Rscript_Path");
         this.fastq_file = prop.getProperty("Fastq_File");
+        this.seq_tech= prop.getProperty("Sequencing_Technology");
         is.close();
 //        System.out.println(this.fastq_file);
 //        System.out.println(this.fastq_file);
         final BufferedReader br = new BufferedReader(new FileReader(this.fastq_file));
         for (String currline = br.readLine(); currline != null; currline = br.readLine()) {
-            final String[] tmpcurrpos = currline.split("\t");
-            final String curr_sample_name = tmpcurrpos[0].split(".read1.fastq")[0];
-            this.sample_name_list.add(curr_sample_name);
+        	if (this.seq_tech.equals("paired-end_reads")) {
+	            final String[] tmpcurrpos = currline.split("\t");
+	            final String curr_sample_name = tmpcurrpos[0].split(".read1.fastq")[0];
+	            this.sample_name_list.add(curr_sample_name);
+        	}
+        	if (this.seq_tech.equals("10x_linked-reads")) {
+        		this.sample_name_list.add(currline);
+        	}
         }
         br.close();
     }
@@ -69,6 +80,8 @@ public class Script
         bw.write("samtools=" + this.samtools + "\n");
         bw.write("gatk=" + this.gatk + "\n");
         bw.write("ref=" + this.ref_path + "\n");
+        bw.write("longranger=" + this.longranger + "\n"); 
+        bw.write("longranger_ref_folder=" + this.longranger_ref_folder + "\n"); 
         bw.write("mkdir " + this.main_dir + "/" + project_name + "/input/bam\n");
         bw.write("mkdir " + this.main_dir + "/" + project_name + "/input/vcf\n");
         bw.write("mkdir " + this.main_dir + "/" + project_name + "/input/sam\n");
@@ -81,9 +94,21 @@ public class Script
             bw.write("inbam=" + this.main_dir + "/" + project_name + "/input/bam/" + sample_name + ".rg.bam\n");
             bw.write("prefix_vcf=" + this.main_dir + "/" + project_name + "/input/vcf/" + sample_name + "\n");
             bw.write("outgvcf=$prefix_vcf\\.raw.g.vcf\n");
-            bw.write("$bwa mem $ref $prefix_fastq\\.read1.fastq $prefix_fastq\\.read2.fastq | $samtools view -Shub - > $prefix_bam\\.bam\n");
-            bw.write("$samtools sort -o  $prefix_bam\\.srt.bam  $prefix_bam\\.bam\n");
-            bw.write("$gatk  AddOrReplaceReadGroups -I  $prefix_bam\\.srt.bam -O $inbam -R $ref -ID " + sample_name + " -LB NPD -PL Illumina -PU NPD -SM " + sample_name + "\n");
+//            /export/qlong/PoolHapX/longranger-2.2.2/longranger  align --id=freq_4_pool_50_dep_250_p4  --reference=/export/qlong/chencao/Work/poolhapx/slim/ref/plasmodium/refdata-plasmodium  --fastqs=$prefix
+            if (this.seq_tech.equals("10x_linked-reads")) {
+            	bw.write("cd $prefix_fastq\n");
+            	bw.write("$longranger align --id="+sample_name+" --reference=$longranger_ref_folder --fastqs=$prefix_fastq\n");            	
+            	bw.write("$samtools sort -o  $prefix_bam\\.srt.bam  $prefix_fastq"+"\\/"+ sample_name + "/outs/possorted_bam.bam\n");
+            	bw.write("$gatk  AddOrReplaceReadGroups -I  $prefix_bam\\.srt.bam -O $inbam -R $ref -ID " + sample_name + " -LB NPD -PL Illumina -PU NPD -SM " + sample_name + "\n");
+            }
+            
+            if (this.seq_tech.equals("paired-end_reads")) {
+            	bw.write("$bwa mem $ref $prefix_fastq\\.read1.fastq $prefix_fastq\\.read2.fastq | $samtools view -Shub - > $prefix_bam\\.bam\n");
+            	bw.write("$samtools sort -o  $prefix_bam\\.srt.bam  $prefix_bam\\.bam\n");
+            	bw.write("$gatk  AddOrReplaceReadGroups -I  $prefix_bam\\.srt.bam -O $inbam -R $ref -ID " + sample_name + " -LB NPD -PL Illumina -PU NPD -SM " + sample_name + "\n");
+            }
+
+            
             bw.write("$samtools index $inbam\n");
             bw.write("$gatk  HaplotypeCaller -R  $ref -I $inbam -ERC  GVCF -ploidy 8 --heterozygosity 0.01  --max-alternate-alleles 1 -O $outgvcf\n");
         }
@@ -137,13 +162,20 @@ public class Script
         bw_properties.write("Regression_One_Vector_Weight = 5.0\n");
         bw_properties.write("Regression_Hap_MAF_Weight = 2.0\n");
         bw_properties.write("Regression_Hap_LD_Weight = 1.0\n");
-        bw_properties.write("Regression_Mismatch_Tolerance = 7\n");
+        bw_properties.write("Regression_Mismatch_Tolerance =7\n");
         bw_properties.write("Maximum_Selected_HapSetSize = 25\n");
         bw_properties.write("Regression_Gamma_Min = 0.0001\n");
         bw_properties.write("Regression_Gamma_Max = 0.1\n");
         bw_properties.write("Regression_n_Gamma = 10\n");
         bw_properties.write("Regression_Maximum_Regions = 3\n");
-        bw_properties.write("Sequencing_Technology = paired-end reads\n");
+        
+        if (this.seq_tech.equals("paired-end_reads")) {
+        	bw_properties.write("Sequencing_Technology=paired-end_reads\n");
+        }
+        if (this.seq_tech.equals("10x_linked-reads")) {
+        	bw_properties.write("Sequencing_Technology=10x_linked-reads\n");
+        }
+        
         bw_properties.write("Number_Threads = 3\n");
         bw_properties.close();
         bw.write("properties=" + this.main_dir + "/" + project_name + "/input/PHX.properties\n");

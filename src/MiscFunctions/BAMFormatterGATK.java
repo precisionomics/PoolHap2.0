@@ -268,7 +268,7 @@ public class BAMFormatterGATK {
 			// readCount++; 
 			QNAME = BAMScanner.next();
 			String QNAME_tmp = QNAME;
-			if (seq_tech.equals("10X_linked_reads")) {
+			if (seq_tech.equals("10x_linked-reads")) {
 //				System.out.println(seq_tech);
 				QNAME="";
 			}
@@ -425,7 +425,7 @@ public class BAMFormatterGATK {
 			}
 			// System.out.println(readInfo);
 			int flag=0;
-			if (seq_tech.equals("10X_linked_reads")) {
+			if (seq_tech.equals("10x_linked-reads")) {
 			
 
 				String DM= "";
@@ -456,7 +456,7 @@ public class BAMFormatterGATK {
 				String hap = x_arr[0]+"_"+ x_arr[1]+ "_"+ x_arr[2];
 				VEFFile.println(QNAME+"_"+hap + ":\t" + readInfo +"\t"+QNAME_tmp+ "\t"+ startPOS+"\t" + endPOS);
 			} 
-			if (!seq_tech.equals("10X_linked_reads")) {
+			if (!seq_tech.equals("10x_linked-reads")) {
 				VEFFile.println(QNAME + ":\t" + readInfo +"\t"+QNAME_tmp+ "\t"+ startPOS+"\t" + endPOS);
 			}
 			

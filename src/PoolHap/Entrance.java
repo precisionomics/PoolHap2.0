@@ -136,6 +136,7 @@ public class Entrance
             final String config_path = args[1];
             final Script sc = new Script(config_path);
             sc.ComparisonSim();
+            System.out.println("Now, you can run the file in the cmd folder!");
             System.exit(0);
         }
         final String parameter_file = args[1];
