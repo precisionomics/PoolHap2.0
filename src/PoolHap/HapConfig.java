@@ -2,6 +2,7 @@ package PoolHap;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -331,45 +332,58 @@ public class HapConfig {
     		HashMap<Integer, String> index_var_prefix_dict ) throws IOException {
     	ArrayList<String >  final_haps= new ArrayList<String>();
     	ArrayList<Double >  final_freq= new ArrayList<Double>();
-    	BufferedReader bufferedreader = new BufferedReader(new FileReader(regression_in_file));
-    	String line = "";
-    	double freq_count=0;
-        while ((line = bufferedreader.readLine()) != null) {
-        	if (!line.substring(0, 1).equals("#")) {
-	        	line= line.replace("\n", "").replace("\r", "");
-	        	String[] tmp = line.split("\t");
-	        	if (Double.parseDouble(tmp[1]) >0 ) {
-	        		final_haps.add(tmp[2]); 
-	        		final_freq.add(Double.parseDouble(tmp[1]));
-	        		freq_count+=Double.parseDouble(tmp[1]);
+    	File file = new File(regression_in_file); 
+    	if (file.exists() ) {
+	    	BufferedReader bufferedreader = new BufferedReader(new FileReader(regression_in_file));
+	    	String line = "";
+	    	double freq_count=0.00001;
+	    	boolean is_write= true;
+	        while ((line = bufferedreader.readLine()) != null) {
+	        	if (!line.substring(0, 1).equals("#")) {
+		        	line= line.replace("\n", "").replace("\r", "");
+		        	String[] tmp = line.split("\t");
+		        	if ((tmp[1].equals("NA") ) || (tmp[1].equals("") )) {
+		        		is_write =false;
+		        	}
+		        	if (is_write ) {
+			        	if    (Double.parseDouble(tmp[1]) >0 ) {
+			        		final_haps.add(tmp[2]); 
+			        		final_freq.add(Double.parseDouble(tmp[1]));
+			        		freq_count+=Double.parseDouble(tmp[1]);
+			        	}
+		        	}
 	        	}
-        	}
-        }
-        freq_count= 1.0;
-        bufferedreader.close();
-        for (int i=0;i< final_freq.size();i++) {
-        	final_freq.set(i, final_freq.get(i)/freq_count);
-        }
-        BufferedWriter bw = new BufferedWriter(new FileWriter(hap_out_file));
-        bw.write("Hap_ID");
-        for (int h = 0; h < final_haps.size(); h++) {
-            bw.write("\th" + Integer.toString(h));
-        }
-
-        bw.write("\nFreq");
-        for (int h = 0; h < final_haps.size(); h++) {
-            bw.write("\t" + final_freq.get(h) );
-        }
-        bw.write("\n");
-        for (int l = 0; l < final_haps.get(0).length(); l++) {
-            bw.write(index_var_prefix_dict.get(l) );
-            for (int h = 0; h < final_haps.size(); h++) {
-                bw.write("\t" + final_haps.get(h).substring(l,l+1));
-            }
-            bw.write("\n");
-        }
-        
-        bw.close();
+	        }
+	        bufferedreader.close();
+	        
+	        if (is_write ) {
+//		        freq_count= 1.0;
+		        
+		        for (int i=0;i< final_freq.size();i++) {
+		        	final_freq.set(i, final_freq.get(i)/freq_count);
+		        }
+		        BufferedWriter bw = new BufferedWriter(new FileWriter(hap_out_file));
+		        bw.write("Hap_ID");
+		        for (int h = 0; h < final_haps.size(); h++) {
+		            bw.write("\th" + Integer.toString(h));
+		        }
+		
+		        bw.write("\nFreq");
+		        for (int h = 0; h < final_haps.size(); h++) {
+		            bw.write("\t" + final_freq.get(h) );
+		        }
+		        bw.write("\n");
+		        for (int l = 0; l < final_haps.get(0).length(); l++) {
+		            bw.write(index_var_prefix_dict.get(l) );
+		            for (int h = 0; h < final_haps.size(); h++) {
+		                bw.write("\t" + final_haps.get(h).substring(l,l+1));
+		            }
+		            bw.write("\n");
+		        }
+		        
+		        bw.close();
+	        }
+    	} 
     	
     }
 
