@@ -107,6 +107,16 @@ For 10x linked reads, the folder name for each pool should be listed in the file
 
 config file included in the package is configured to sample set
 
+####Generate the script
+
+Command:
+
+`> java -jar PoolHapX.jar script <config file>`
+
+The script for running PoolHapX will be generated under “/PATH/TO/Working_dir/cmd/”. The name of the file will be “<project_name>.cmd”
+
+
+
 
 
 
