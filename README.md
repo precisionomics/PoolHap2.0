@@ -71,6 +71,8 @@ Please put all FASTQ files under the same directory. All paired-end fastq files 
 *sample10.read1.fastq \tab sample10.read2.fastq<br>*
 Each row is an observation(sample), and each name is separated by tab.
 
+For 10x linked reads, the folder name for each pool should be listed in the file:
+
 
 
 
