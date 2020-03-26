@@ -161,31 +161,31 @@ circumstances, the default parameters work well when compared with other existin
 ##Maximum number of gaps in a window. [Default 2: Range: 1 – 20]<br>
 **Num_Gap_Window**=2<br>
 
-#############Divide-and-Conquer: divide the genome into multiple regions based on linkage uncertainty.
-##Proportion of raw GC-haplotypes that contain the gap in the pool. [Default: 0.6, Range: 0 - 1]
-**In-pool_Gap_Support_Min**=1
-##Proportion of raw GC-haplotypes that contain the gap across all pools. [Default: 0.1, Range: 0 - 1]
-**All-pool_Gap_Support_Min**=1
-##Minimum number of SNPs in a Level 1 region. [Default: 10, Range: 8 - 12]
-**Level_1_Region_Size_Min**=10
-##Maximum number of SNPs in a Level 1 region. [Default: 14, Range: 10 - 14]
-**Level_1_Region_Size_Max**=12
-##Minimum number of SNPs in a Level 1 tiling region. [Default: 10, Range: 8 - 12]
-**Level_1T_Region_Size_Min**=10
-##Maximum number of SNPs in a Level 1 tiling region. [Default: 14, Range: 10 - 14]
-**Level_1T_Region_Size_Max**=12
-##Estimated number of individuals in a pool. [Default: 1000000, Range: 1000 - 1000000]
-**Est_Ind_PerPool**=1000000
-##Number of maximum mismatch positions in constructing Level 2. [Default: 1: Range: 0 - 2]
-**Level_1_2_Region_Mismatch_Tolerance**=1
-##Number of maximum mismatch positions in constructing Level 3. [Default 2: Range: 1 - 3]
-**Level_2_3_Region_Mismatch_Tolerance**=2
-##Number of maximum mismatch positions in constructing Level 4. [Default 2: Range: 3 - 7]
-**Level_3_4_Region_Mismatch_Tolerance**=5
-##Number of AEM levels. [Default 4: Range: 1 - 4]
-**AEM_Maximum_Level**=4
-##Number of maximum mismatch positions in BFS. [Default 6: Range: 4 - 8]
-**BFS_Mismatch_Tolerance**=6
+#############Divide-and-Conquer: divide the genome into multiple regions based on linkage uncertainty.<br>
+##Proportion of raw GC-haplotypes that contain the gap in the pool. [Default: 0.6, Range: 0 - 1]<br>
+**In-pool_Gap_Support_Min**=1<br>
+##Proportion of raw GC-haplotypes that contain the gap across all pools. [Default: 0.1, Range: 0 - 1]<br>
+**All-pool_Gap_Support_Min**=1<br>
+##Minimum number of SNPs in a Level 1 region. [Default: 10, Range: 8 - 12]<br>
+**Level_1_Region_Size_Min**=10<br>
+##Maximum number of SNPs in a Level 1 region. [Default: 14, Range: 10 - 14]<br>
+**Level_1_Region_Size_Max**=12<br>
+##Minimum number of SNPs in a Level 1 tiling region. [Default: 10, Range: 8 - 12]<br>
+**Level_1T_Region_Size_Min**=10<br>
+##Maximum number of SNPs in a Level 1 tiling region. [Default: 14, Range: 10 - 14]<br>
+**Level_1T_Region_Size_Max**=12<br>
+##Estimated number of individuals in a pool. [Default: 1000000, Range: 1000 - 1000000]<br>
+**Est_Ind_PerPool**=1000000<br>
+##Number of maximum mismatch positions in constructing Level 2. [Default: 1: Range: 0 - 2]<br>
+**Level_1_2_Region_Mismatch_Tolerance**=1<br>
+##Number of maximum mismatch positions in constructing Level 3. [Default 2: Range: 1 - 3]<br>
+**Level_2_3_Region_Mismatch_Tolerance**=2<br>
+##Number of maximum mismatch positions in constructing Level 4. [Default 2: Range: 3 - 7]<br>
+**Level_3_4_Region_Mismatch_Tolerance**=5<br>
+##Number of AEM levels. [Default 4: Range: 1 - 4]<br>
+**AEM_Maximum_Level**=4<br>
+##Number of maximum mismatch positions in BFS. [Default 6: Range: 4 - 8]<br>
+**BFS_Mismatch_Tolerance**=6<br>
 
 
 
