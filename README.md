@@ -53,6 +53,22 @@ Then go to the folder of /PATH/TO/Working_dir/cmd and run:
 Users will then generate the final haplotype results for each pool at the “output” folder
 under their working directory.
 
+### Full Manual
+### Data Preparation
+#### Check fastq_name file format
+
+
+
+
+
+
+
+
+
+
+
+-----------------------------------------------------------------------------------
+
 
 This is specifically for PoolHapX developers who are working directly with the code to expand its applicability on different types of data. For all applications to real data, see https://github.com/theLongLab/PoolHapX. The `TenSQR_Testing/` directory contains all of the programs needed to convert the TenSQR output format into the PoolHapX standard output format, and the `external_jars` directory contains all executables (mostly for the LASSO regression part) needed to compile PoolHapX.jar.
 
