@@ -142,16 +142,16 @@ We provide default parameters for users (“/PATH/TO/Working_dir/<project_name>/
 circumstances, the default parameters work well when compared with other existing tools. However, in the event that users may want to make change to the parameters themselves, the properties file is located under input directory, named as
 “PHX.properties”. We list the meaning for all the parameters below (explanation of each parameters as well as their ranges). Users can modify these parameters according to their needs.
 
-#PoolHapX Parameters
-##########
-##The name of the project, will be the prefix of names of cross-pool files.
-Proj_Name = project_name
-##File locations: input directory; output files directory; intermediate files directory; gold standard files directory.
-Input_Dir = /PATH/TO/Input_Dir
-Intermediate_Dir = /PATH/TO/Intermediate_Dir
-Output_Dir = /PATH/TO/Output_Dir
-##If users do not have the gold standard files, please just leave the parameter blank
-Gold_Dir = /home/chencao/Desktop/PoolHap/freq_0_pool_25_dep_100/gold_standard
+#PoolHapX Parameters<br>
+##########<br>
+##The name of the project, will be the prefix of names of cross-pool files.<br>
+Proj_Name = project_name<br>
+##File locations: input directory; output files directory; intermediate files directory; gold standard files directory.<br>
+Input_Dir = /PATH/TO/Input_Dir<br>
+Intermediate_Dir = /PATH/TO/Intermediate_Dir<br>
+Output_Dir = /PATH/TO/Output_Dir<br>
+##If users do not have the gold standard files, please just leave the parameter blank<br>
+Gold_Dir = /home/chencao/Desktop/PoolHap/freq_0_pool_25_dep_100/gold_standard<br>
 
 
 
