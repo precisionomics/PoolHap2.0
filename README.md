@@ -130,10 +130,14 @@ The output for each step, i.e., graph coloring, aem and l0l1 regression, is gene
 *Hap_ID　 　　　h0　　　　h1　　　　h2　　　　h3　　　　h4　　　　...<br>*
 *Freq 　 　 　　0.028 　　  0.022 　   　0.031　 　  0.061　　　    0.124　  　 ...<br>* 
 *0;211;211;0:1　 0　　　  　　1　　 　　1　　 　　1　　 　　0　  　 　　 ...<br>* 
-*0;211;211;0:1　 1　　　  　　0　　 　　0　　 　　0　　 　　0　  　 　　 ...<br>* 
-*0;211;211;0:1　 0　　　  　　1　　 　　1　　 　　1　　 　　0　  　 　　 ...<br>* 
+*0;231;231;0:1　 1　　　  　　0　　 　　0　　 　　0　　 　　0　  　 　　 ...<br>* 
+*0;310;310;0:1　 0　　　  　　1　　 　　1　　 　　1　　 　　0　  　 　　 ...<br>* 
 *... ...* 
 `———————————————————————————————————————————————————————————————`<br>
+The first row lists the haplotype IDs. The second row lists the frequencies of each haplotype. The first column denotes the ID of the genetic variants in the format of chromosome-ID; start-position; end-position; alleles. In the event of some viruses that have not chromosome number, PoolHapX will use 0 to denote the chromosome ID. For SNPs, the start-position and end-position are the same. In the rest of the file, each column represents the composition of the haplotypes, i.e., the alleles at each location.
+
+
+#### PoolHapX properties file
 
 
 
