@@ -22,10 +22,10 @@ PoolHapX is a batteries-included JAR executable. All needed external jar package
 expected to have java (version: 1.8) on their platform.Longranger (version: 2.2.2) should be installed if processing 10x linked-reads.
 
 Several other tools are prerequisites for running. PoolHapX. Users can download and install them from the websites:
-bwa (if using paired-end reads): https://github.com/lh3/bwa
-samtools 0.1.19+: http://www.htslib.org/download/
-GATK 4.1: https://software.broadinstitute.org/gatk/download/index
-longranger (if using 10x linked-reads): https://support.10xgenomics.com/genome-exome/software/pipelines/latest/installation
+* bwa (if using paired-end reads): https://github.com/lh3/bwa
+* samtools 0.1.19+: http://www.htslib.org/download/
+* GATK 4.1: https://software.broadinstitute.org/gatk/download/index
+* longranger (if using 10x linked-reads): https://support.10xgenomics.com/genome-exome/software/pipelines/latest/installation
 
 ### Functions
 * script: the “script” function generates a script which contains all commands. Users can run the project_name.cmd to get the final results calculated by PoolHapX from the initial FASTQ files.
