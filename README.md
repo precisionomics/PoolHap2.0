@@ -84,6 +84,9 @@ For 10x linked reads, the folder name for each pool should be listed in the file
 *sample9<br>*
 *sample10<br>*
 
+#### Check config file format (configure to your setting)
+
+
 
 
 
