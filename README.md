@@ -61,7 +61,7 @@ Please put all FASTQ files under the same directory. All paired-end fastq files 
 *#header information such as project name<br>*
 *sample1.read1.fastq\tsample1..read2.fastq<br>*
 *sample2.read1.fastq\tsample2.read2.fastq<br>*
-*sample3.read1.fastq     sample3.read2.fastq<br>*
+*sample3.read1.fastq&tabsample3.read2.fastq<br>*
 sample4.read1.fastq     sample4.read2.fastq<br>
 sample5.read1.fastq     sample5.read2.fastq<br>
 sample6.read1.fastq     sample6.read2.fastq<br>
