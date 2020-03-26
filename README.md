@@ -161,7 +161,8 @@ circumstances, the default parameters work well when compared with other existin
 ##Maximum number of gaps in a window. [Default 2: Range: 1 – 20]<br>
 **Num_Gap_Window**=2<br>
 
-#############Divide-and-Conquer: divide the genome into multiple regions based on linkage uncertainty.<br>
+##########<br>
+###Divide-and-Conquer: divide the genome into multiple regions based on linkage uncertainty.<br>
 ##Proportion of raw GC-haplotypes that contain the gap in the pool. [Default: 0.6, Range: 0 - 1]<br>
 **In-pool_Gap_Support_Min**=1<br>
 ##Proportion of raw GC-haplotypes that contain the gap across all pools. [Default: 0.1, Range: 0 - 1]<br>
@@ -187,6 +188,24 @@ circumstances, the default parameters work well when compared with other existin
 ##Number of maximum mismatch positions in BFS. [Default 6: Range: 4 - 8]<br>
 **BFS_Mismatch_Tolerance**=6<br>
 
+##########<br>
+###Approximate Expectation-Maximization: generate regional haplotype sets and their frequencies.<br>
+##Maximum number of iterations regardless of convergence. [Default: 200, Range: 50 - 1000]<br>
+**AEM_Iterations_Max**=200<br>
+##The epsilon that controls the stop criteria of AEM (i.e. convergence). [Default: 0.00001, Range: 0 - 0.000001]<br>
+**AEM_Convergence_Cutoff**=0.00001<br>
+##For each iteration of AEM, some very rare haplotypes with frequencies below this parameter will be set to a frequency of zero. [Default: 0.00001, Range: 0.0 - 0.000001]<br>
+**AEM_Zero_Cutoff**=0.00001<br>
+##Initial value for regional cross-pool frequency cutoff immediately after AEM. [Default: 0.01, Range: 0.0 - 0.05]<br>
+**AEM_Regional_Cross_Pool_Freq_Cutoff**=0.01<br>
+##Maximum number of regional haplotypes in a region for AEM. [Default: 50, Range: 1-200]<br>
+**AEM_Regional_HapSetSize_Max**=50<br>
+##Minimum number of regional haplotypes in a region for AEM. [Default: 5, Range: 1-20]<br>
+**AEM_Regional_HapSetSize_Min**=3<br>
+##If both denominator and numerator are very close to zero, the Importance Factor (IF) value. [Default: 5.0, Range: 1.0-10.0]<br>
+**IF_0_0=0.1<br>
+##if the denominator is close to zero but the numerator is not, the IF value. [Default: 50.0, Range: 10.0-1000.0]<br>
+**IF_Denominator_0 = 10.0**<br>
 
 
 
