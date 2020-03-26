@@ -28,15 +28,17 @@ GATK 4.1: https://software.broadinstitute.org/gatk/download/index
 longranger (if using 10x linked-reads): https://support.10xgenomics.com/genome-exome/software/pipelines/latest/installation
 
 ### Functions
-script: the “script” function generates a script which contains all commands. Users can run the project_name.cmd to get the final results calculated by PoolHapX from the initial FASTQ files.
+* script: the “script” function generates a script which contains all commands. Users can run the project_name.cmd to get the final results calculated by PoolHapX from the initial FASTQ files.
 
-format: the “format” function generates the vef file (vef file contains variant sites linking information extracted from BAM files) and calculates the variant frequency at different sites for different pools from the VCF/SAM files.
+* format: the “format” function generates the vef file (vef file contains variant sites linking information extracted from BAM files) and calculates the variant frequency at different sites for different pools from the VCF/SAM files.
 
-gc: the “gc” function generates the graph coloring result from the vef file.
+* gc: the “gc” function generates the graph coloring result from the vef file.
 
-aem: the “aem” function first divides the variation sites into several regions from the graph coloring result; after that the aem function infers haplotypes in local regions for different levels using hierarchical AEM algorithm.
+* aem: the “aem” function first divides the variation sites into several regions from the graph coloring result; after that the aem function infers haplotypes in local regions for different levels using hierarchical AEM algorithm.
 
-l0l1: the “l0l1” function finalizes the identity and frequency of the global haplotypes using L0L1 regulated regression.
+* l0l1: the “l0l1” function finalizes the identity and frequency of the global haplotypes using L0L1 regulated regression.
+
+### Quick start with included example data
 
 
 This is specifically for PoolHapX developers who are working directly with the code to expand its applicability on different types of data. For all applications to real data, see https://github.com/theLongLab/PoolHapX. The `TenSQR_Testing/` directory contains all of the programs needed to convert the TenSQR output format into the PoolHapX standard output format, and the `external_jars` directory contains all executables (mostly for the LASSO regression part) needed to compile PoolHapX.jar.
