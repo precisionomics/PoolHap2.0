@@ -1,3 +1,22 @@
+## Users’ Manual of PoolHapX (Version 1.0)
+### Preamble
+The PoolHapX program reconstructs haplotypes within-host from pooled-sequencing data by integrating population genetic models (statistical linkage disequilibrium) with genomics reads (physical linkage). It approximate the resolution of single-cell sequencing using only pooled sequencing data, enabling within-host evolution analyses.
+
+The workflow of PoolHapX is briefed as follows: (A) PoolHapX first determines locations
+of physical linkage uncertainty using sequencing reads, and then divides the full
+genome into smaller regions. (B) Regional haplotypes are solved for and joined together
+using a statistical model for a parsimonious global distribution of haplotypes. C) The
+within-pool frequency of each haplotype is estimated by regularized regression to solve
+for each within-pool haplotype distribution.
+
+Installation and a simple example are described below. Users can get the final within-
+host (or within-pool) frequencies of each haplotype by running the functions step by step:
+“script”, “format”, “gc”, “aem”, “l0l1”. ScriptForPHX.jar generates all commands required
+by PoolHapX in a script so users can run the script easily. More description and
+benchmarking of PoolHapX can be found in our publication:
+
+URL of the bioariv.
+
 This is specifically for PoolHapX developers who are working directly with the code to expand its applicability on different types of data. For all applications to real data, see https://github.com/theLongLab/PoolHapX. The `TenSQR_Testing/` directory contains all of the programs needed to convert the TenSQR output format into the PoolHapX standard output format, and the `external_jars` directory contains all executables (mostly for the LASSO regression part) needed to compile PoolHapX.jar.
 
 ## Getting Started
