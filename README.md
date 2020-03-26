@@ -58,7 +58,7 @@ under their working directory.
 #### Check fastq_name file format
 Please put all FASTQ files under the same directory. All paired-end fastq files have to be named as: sample_id.read1.fastq and sample_id.read2.fastq. Write the name of all your fastq files into a single file following the format below:
 
-`———————————————————————————————————————————————————`
+`———————————————————————————————————————————————————<br>*`
 *#header information such as project name<br>*
 *sample1.read1.fastq　　　sample1..read2.fastq<br>*
 *sample2.read1.fastq　　　sample2.read2.fastq<br>*
@@ -71,10 +71,10 @@ Please put all FASTQ files under the same directory. All paired-end fastq files 
 *sample9.read1.fastq　　　sample9.read2.fastq<br>*
 *sample10.read1.fastq　　 sample10.read2.fastq<br>*
 `———————————————————————————————————————————————————`
-
 Each row is an observation(sample), and each name is separated by tab.
 
 For 10x linked reads, the folder name for each pool should be listed in the file:<br>
+`———————————————————————————————————————————————————<br>*`
 *#header information such as project name<br>*
 *sample1<br>*
 *sample2<br>*
@@ -86,6 +86,7 @@ For 10x linked reads, the folder name for each pool should be listed in the file
 *sample8<br>*
 *sample9<br>*
 *sample10<br>*
+`———————————————————————————————————————————————————`
 
 #### Check config file format (configure to your setting)
 *#config_file
