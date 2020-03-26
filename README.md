@@ -89,6 +89,7 @@ For 10x linked reads, the folder name for each pool should be listed in the file
 `———————————————————————————————————————————————————`
 
 #### Check config file format (configure to your setting)
+`———————————————————————————————————————————————————`<br>
 *#config_file
 *Main_Dir = /PATH/TO/PoolHapX_work_dir<br>*
 *Project_Name = Test<br>*
@@ -107,7 +108,7 @@ For 10x linked reads, the folder name for each pool should be listed in the file
 *Ref_Path = /PATH/TO/HIV_HXB2.fa<br>*
 *Rscript_Path = /PATH/TO/Rscript<br>*
 *Sequencing_Technology= 10x_linked-reads or paired-end_reads<br>*
-
+`———————————————————————————————————————————————————`<br>
 config file included in the package is configured to sample set
 
 #### Generate the script
