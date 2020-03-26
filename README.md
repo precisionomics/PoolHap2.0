@@ -17,6 +17,12 @@ benchmarking of PoolHapX can be found in our publication:
 
 URL of the bioariv.
 
+### Installation
+PoolHapX is a batteries-included JAR executable. All needed external jar packages are included in the downloadable, PoolHapX.jar. However, as we used an R package L0Learn, the users have to install R and L0Learn (https://cran.r-
+project.org/web/packages/L0Learn/index.html). The versions of R and R package L0Learn that we have used on our platform are: version 1.2.0 for L0Learn and version 3.6.1 for R. Other versions are not tested, although they may work. Users are also
+expected to have java (version: 1.8) on their platform.Longranger (version: 2.2.2) should be installed if processing 10x linked-reads.
+
+
 This is specifically for PoolHapX developers who are working directly with the code to expand its applicability on different types of data. For all applications to real data, see https://github.com/theLongLab/PoolHapX. The `TenSQR_Testing/` directory contains all of the programs needed to convert the TenSQR output format into the PoolHapX standard output format, and the `external_jars` directory contains all executables (mostly for the LASSO regression part) needed to compile PoolHapX.jar.
 
 ## Getting Started
