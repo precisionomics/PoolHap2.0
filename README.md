@@ -57,7 +57,7 @@ under their working directory.
 ### Data Preparation
 #### Check fastq_name file format
 Please put all FASTQ files under the same directory. All paired-end fastq files have to be named as: sample_id.read1.fastq and sample_id.read2.fastq. Write the name of all your fastq files into a single file following the format below:
-
+<pre>
 *#header information such as project name<br>*
 *sample1.read1.fastq\tsample1..read2.fastq<br>*
 *sample2.read1.fastq\tsample2.read2.fastq<br>*
@@ -69,7 +69,7 @@ sample7.read1.fastq     sample7.read2.fastq<br>
 sample8.read1.fastq     sample8.read2.fastq<br>
 sample9.read1.fastq     sample9.read2.fastq<br>
 sample10.read1.fastq    sample10.read2.fastq<br>
-
+<pre>
 
 
 
