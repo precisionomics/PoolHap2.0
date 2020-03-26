@@ -145,13 +145,14 @@ circumstances, the default parameters work well when compared with other existin
 #PoolHapX Parameters<br>
 ##########<br>
 ##The name of the project, will be the prefix of names of cross-pool files.<br>
-Proj_Name = project_name<br>
+**Proj_Name**=project_name<br>
+
 ##File locations: input directory; output files directory; intermediate files directory; gold standard files directory.<br>
-Input_Dir = /PATH/TO/Input_Dir<br>
-Intermediate_Dir = /PATH/TO/Intermediate_Dir<br>
-Output_Dir = /PATH/TO/Output_Dir<br>
+**Input_Dir**=/PATH/TO/Input_Dir<br>
+**Intermediate_Dir**=/PATH/TO/Intermediate_Dir<br>
+**Output_Dir**=/PATH/TO/Output_Dir<br>
 ##If users do not have the gold standard files, please just leave the parameter blank<br>
-Gold_Dir = /home/chencao/Desktop/PoolHap/freq_0_pool_25_dep_100/gold_standard<br>
+**Gold_Dir**=/home/chencao/Desktop/PoolHap/freq_0_pool_25_dep_100/gold_standard<br>
 
 
 
