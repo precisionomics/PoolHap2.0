@@ -154,6 +154,15 @@ circumstances, the default parameters work well when compared with other existin
 ##If users do not have the gold standard files, please just leave the parameter blank<br>
 **Gold_Dir**=/home/chencao/Desktop/PoolHap/freq_0_pool_25_dep_100/gold_standard<br>
 
+##########<br>
+###Graph-Colouring: link all reads to generate candidate global haplotypes based on physical linkage.
+##Maximum number of positions in a window. [Default 20: Range: 1 - 100]<br>
+**Num_Pos_Window**=20<br>
+##Maximum number of gaps in a window. [Default 2: Range: 1 – 20]<br>
+**Num_Gap_Window**=2<br>
+
+
+
 
 
 
