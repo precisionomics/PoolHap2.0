@@ -107,13 +107,23 @@ For 10x linked reads, the folder name for each pool should be listed in the file
 
 config file included in the package is configured to sample set
 
-####Generate the script
+#### Generate the script
 
 Command:
 
 `> java -jar PoolHapX.jar script <config file>`
 
 The script for running PoolHapX will be generated under “/PATH/TO/Working_dir/cmd/”. The name of the file will be “<project_name>.cmd”
+
+#### Run PoolHapX
+
+`> ./<project_name>.cmd`
+
+Output format:
+
+The output for each step, i.e., graph coloring, aem and l0l1 regression, is generated under “/PATH/TO/Working_dir/<project_name>/intermediate/”. The final output is generated under “/PATH/TO/Working_dir/<project_name>/output/”. Under the folder “output”, each pool (host) has a folder. Within its folder, one can find the haplotype frequencies in this pool the file named as “final_freq_haps.txt”. The format of the frequencies is exampled below:
+
+
 
 
 
