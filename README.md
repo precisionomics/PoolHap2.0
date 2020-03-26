@@ -123,6 +123,8 @@ Output format:
 
 The output for each step, i.e., graph coloring, aem and l0l1 regression, is generated under “/PATH/TO/Working_dir/<project_name>/intermediate/”. The final output is generated under “/PATH/TO/Working_dir/<project_name>/output/”. Under the folder “output”, each pool (host) has a folder. Within its folder, one can find the haplotype frequencies in this pool the file named as “final_freq_haps.txt”. The format of the frequencies is exampled below:
 
+a  b  c  d  ee 
+
 
 
 
