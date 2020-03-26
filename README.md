@@ -68,7 +68,7 @@ Please put all FASTQ files under the same directory. All paired-end fastq files 
 *sample7.read1.fastq　　　sample7.read2.fastq<br>*
 *sample8.read1.fastq　　　sample8.read2.fastq<br>*
 *sample9.read1.fastq　　　sample9.read2.fastq<br>*
-*sample10.read1.fastq　　sample10.read2.fastq<br>*
+*sample10.read1.fastq　　 sample10.read2.fastq<br>*
 
 Each row is an observation(sample), and each name is separated by tab.
 
