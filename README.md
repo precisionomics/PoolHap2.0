@@ -44,11 +44,11 @@ Example data is provided. After decompressing the downloadable, users can see th
 
 Usage:
 
-> java -jar PoolHapX.jar script config.properties
+`java -jar PoolHapX.jar script config.properties
 
 Then go to the folder of /PATH/TO/Working_dir/cmd and run:
 
-> ./<project_name>.cmd
+`./<project_name>.cmd
 
 Users will then generate the final haplotype results for each pool at the “output” folder
 under their working directory.
