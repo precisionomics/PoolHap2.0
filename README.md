@@ -238,82 +238,10 @@ circumstances, the default parameters work well when compared with other existin
 ##Number of threads used for parallelly running L0L1 regulated regression. [Default 3: Range: >=1]<br>
 **Number_Threads**=3<br>
 
+### Copyright License (MIT Open Source)
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-
-
-
-
-
------------------------------------------------------------------------------------
-
-
-This is specifically for PoolHapX developers who are working directly with the code to expand its applicability on different types of data. For all applications to real data, see https://github.com/theLongLab/PoolHapX. The `TenSQR_Testing/` directory contains all of the programs needed to convert the TenSQR output format into the PoolHapX standard output format, and the `external_jars` directory contains all executables (mostly for the LASSO regression part) needed to compile PoolHapX.jar.
-
-## Getting Started
-
-### Installation
-Create a PoolHapX directory and download the source code from repository. 
-
-### Prerequisites
-Java 1.8+: https://www.java.com/en/download/
-
-If there is no data-specific variant-caller needed:
-
-* bwa: https://github.com/lh3/bwa
-
-* samtools 0.1.19+: http://www.htslib.org/download/
-
-* GATK 4+: https://software.broadinstitute.org/gatk/download/index
-
-* ms: https://uchicago.app.box.com/s/l3e5uf13tikfjm7e1il1eujitlsjdx13
-
-* DWGSIM: https://github.com/nh13/DWGSIM (**Note**: do NOT use the Bioconda version, that one is currently bugged)
-
-* A job scheduler capable of running job arrays and job dependencies (ex. Slurm). Makes it easy to run simulations in parallel. 
-
-## How to Use
-
-**PoolHapX input:** Allele-annotated reads and observed allele frequencies. For examples, see 0_0_p0.vef and 0_0_vars.intra_freq.txt in sample_io_files/. 
-
-**PoolHapX output:** Within-pool haplotype distributions (allelic compositions, within-pool and across-pool frequencies). For examples, see 0_0.inter_freq_vars.txt and 0_0.intra_freq.txt in sample_io_files/. 
-
-The basic command for running PoolHapX. if the sample prefix is "prefix" and there are 10 pools...
-
-`java -jar PoolHapX.jar PHX.properties prefix 10`
-
-Because PoolHapX requires specific input in the variant-encoded format (VEF), raw sequencing data must be processed one of the subsequently described pipelines, or a variation thereof. 
-
-#### What is a VEF file?
-
-The input data for PoolHapX is a modified version of the BAM file, termed the variant encoded (VEF) file. Each line of the VEF contains information about allele at each segregating site in sequence region spanned by the read. For example, if a read called ReadName spanned positions 100 to 200 relative to the reference sequence, and carried the reference allele at position 50 and the alternate allele at position 150, the VEF file would contain the line...
-
-`ReadName 50=0;150=1; // 100 200`
-
-One VEF file is generated per pool. In terms of biological applications, a single sample could be the NGS reads of a patient’s HIV population, or a single microbiome sample.
-
-### What is your input data? 
-
-#### Option 1:
-You have real data, in the form of raw sequencing reads (FASTQ) or aligned sequencing reads (BAM) and segregating sites called from data-specific variant-caller. Please see https://github.com/theLongLab/PoolHapX for all instructions.
-
-#### Option 2:
-You want to simulate 'perfect' sequencing data and evaluate PoolHapX's performance on a completely idealized dataset (perfect annotation of alleles on reads, perfectly observed alternate alternate allele frequencies). 
-
-#### Option 3:
-You want to simulate 'non-perfect' sequencing data and evaluate PoolHapX's performance on a partially idealized dataset (variant-calling-based annotation of alleles on reads, variant-caller-observed alternate alternate allele frequencies). 
-
-### Running Options 2 or 3:
-0. Find the option-specific executables in the similarly-named directories.
-1. Make the subdirectories `input/`, `programs/`, `intermediate/`, `output/` and `gold_standard/` in the main working directory. These will correspond to the organizational structures referred to in all of the scripts.  
-2. PHX.properties is a JSON-like file setting parameters for PoolHapX.jar. Update the absolute paths of the directories. For an explanation of each parameter, see below. 
-3. Similarly, FS\*.properties sets the simulation parameters for the simulation wrapper program FullSimulator (FS2.jar for 'perfect' or FSFQ.jar for 'non-perfect'). Update the absolute paths of the directories and programs. Place this in `input/`. 
-4. Place your reference sequence in `input/`. Index it with BWA, Samtools, and Picard.
-5. Place FS2/3.jar, O2R2/3.jar, and PoolHapX.jar in the `programs/` directory. If you're going with **Option 3**, also place BF3.jar in the `programs/` directory. 
-6. If you only want to make one set of simulation data, use \*PD_Step2-4.\*. If you want to make multiple sets of simulation data, use \*PD_Step1.\* to submit \*PD_Step2-4.\* in parallel. 
-	* All scripts will all require some degree of customization since I have tailored them to work on my HIV data. 
-7. The result files (allele composition and within/across-pool frequencies) will show up in `output/`. The gold-standard files, which are generated by FS2/FQ.jar, will be in `gold_standard/`. 
-8. When all of your simulations and PoolHapX runs have finished, compare the the result files in `output/` to the answers in `gold_standard/`. The script **O2R3_submit.pl** automates this comparison across many simulated datasets. The command inside can easily be applied to single sets of data. 
-9. Use the output of O2R2/3.jar to analyze reconstruction accuracy. It will output...
-	* One full-detail multi-pool results file containing the following columns: the pool ID, the original haplotype ID, the index of the closest reconstructed haplotype, the number of variants different between the closest RH and the OH, the difference in frequency between the closest RH and OH, and the number of haplotypes globally that are close enough to be 'quasispecies'. 
-	* One line of multi-pool-aggregated summary statistics about PoolHapX performance across the dataset. It contains the following columns: The fraction of accurately reconstructed OH, the average reconstruction error per OH, the average difference between the frequencies of the closest RH and the OH, and the proportion of the population that was accurately constructed (sum(quasispecies frequencies)).
-		* If there is more than one dataset being evaluated at once, each evaluation will generate the one line of aggregated summary statistics into the same file for easy comparison across the multiple datasets.
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
