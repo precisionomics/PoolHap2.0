@@ -203,10 +203,40 @@ circumstances, the default parameters work well when compared with other existin
 ##Minimum number of regional haplotypes in a region for AEM. [Default: 5, Range: 1-20]<br>
 **AEM_Regional_HapSetSize_Min**=3<br>
 ##If both denominator and numerator are very close to zero, the Importance Factor (IF) value. [Default: 5.0, Range: 1.0-10.0]<br>
-**IF_0_0=0.1<br>
+**IF_0_0**=0.1<br>
 ##if the denominator is close to zero but the numerator is not, the IF value. [Default: 50.0, Range: 10.0-1000.0]<br>
 **IF_Denominator_0 = 10.0**<br>
 
+##########
+###L0L1 Regulated Regression: reduce the number of full-length haplotypes and estimate their frequency using L0L1 regulated regression.
+##Path for rscript binary file
+**Rscript_path**=/PATH/TO/Rscript
+##The maximum weight for the longest distance between two SNPs. [Default: 2.0, Range: >= 1]
+**Regression_Distance_Max_Weight**=2.0
+##The max weight for the highest coverage. [Default: 2.0, Range: >= 1]
+**Regression_Coverage_Weight**=2.0
+##The weight of the constraint Sigma freq_i = 1, where freq_i is in the in-pool frequency for haplotype_i. [Default: 5.0, Range: >= 1]
+**Regression_One_Vector_Weight**=5.0
+##The weight of the constraints Sigma freq_i * h_ij = MAF_j (j is the SNP index and i is the haplotype index). [Default: 2.0, Range: >= 1]
+**Regression_Hap_MAF_Weight**=2.0
+##The weight for LD (specifically, the probability for both SNP_k and SNP_j being the alternate allele). [Default: 1.0, Range: >= 1]
+**Regression_Hap_LD_Weight**=1.0
+##Number of maximum mismtach positions for linking regression regional regions using AEM level. [Default 7: Range: 2 - 12]
+**Regression_Mismatch_Tolerance**=7
+##Number of maximum selected haplotypes to generate higher level potential haplotypes for following regression. [Default 25, Range: 10 - 50]
+**Maximum_Selected_HapSetSize**=25
+##The minimum regularization gamma penalty for L0L1 regression. [Default: 0.0001, Range: 0 - 1]
+**Regression_Gamma_Min**=0.0001
+##The maximum regularization gamma penalty for L0L1 regression. [Default: 0.1, Range: 0 - 1]
+**Regression_Gamma_Max**=0.1
+##The number of gamma values beween Regression_Gamma_Min and Regression_Gamma_Max for L0L1 regression. [Default 10: Range: 2 - 20]
+**Regression_n_Gamma**=10
+##Number of maximum regions for each step of L0L1 regulated regression divide and conquer. [Default 3, Range: 2, 3]
+**Regression_Maximum_Regions**=3
+##Sequencing Technology [10x_linked_reads / paired-end_reads]
+**Sequencing_Technology**=paired-end_reads
+##Number of threads used for parallelly running L0L1 regulated regression. [Default 3: Range: >=1]
+**Number_Threads**=3
 
 
 
