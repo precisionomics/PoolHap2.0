@@ -70,10 +70,13 @@ public class Script
     
     public void ComparisonSim() throws IOException {
         new File(String.valueOf(this.main_dir) + "/cmd/").mkdir();
+        
         final String project_name = this.project_name;
         new File(String.valueOf(this.main_dir) + "/" + project_name).mkdir();
         new File(String.valueOf(this.main_dir) + "/" + project_name + "/input/").mkdir();
+        
         final BufferedWriter bw = new BufferedWriter(new FileWriter(String.valueOf(this.main_dir) + "/cmd/" + project_name + ".cmd"));
+        
         bw.write("java=" + this.java + "\n");
         bw.write("poolhapx=" + this.phx_jar + "\n");
         bw.write("bwa=" + this.bwa + "\n");
@@ -127,7 +130,7 @@ public class Script
             final String sample_name2 = this.sample_name_list.get(j);
             bw.write("prefix_sam=" + this.main_dir + "/" + project_name + "/input/sam/" + sample_name2 + "\n");
             bw.write("prefix_bam=" + this.main_dir + "/" + project_name + "/input/bam/" + sample_name2 + "\n");
-            bw.write("samtools view -ho $prefix_sam\\.sam $prefix_bam\\.srt.bam\n");
+            bw.write("$samtools view -ho $prefix_sam\\.sam $prefix_bam\\.srt.bam\n");
         }
         final BufferedWriter bw_properties = new BufferedWriter(new FileWriter(String.valueOf(this.main_dir) + "/" + project_name + "/input/PHX.properties"));
         bw_properties.write("Proj_Name = " + project_name + "\n");
@@ -185,5 +188,8 @@ public class Script
         bw.write("$java -jar $poolhapx aem $properties\n");
         bw.write("$java -jar $poolhapx l0l1 $properties\n");
         bw.close();
+        
+        Process ps = Runtime.getRuntime().exec("chmod 777 "+String.valueOf(this.main_dir) + "/cmd/" + 
+        		project_name + ".cmd");
     }
 }

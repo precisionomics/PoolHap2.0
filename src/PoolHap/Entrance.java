@@ -122,6 +122,11 @@ public class Entrance
     }
     
     public static void main(final String[] args) throws Exception {
+    	
+    	
+    	
+        
+        
         final String[] supported_functions_array = { "non_perfect", "format", "gc", "aem", "lasso", "split", "clustering", "evaluate", "analysis", "l0l1", "Comparison_bacteria", "Comparison_metagenomics", "Comparison_human", "hippo", "complete_analysis", "script" };
         final HashSet<String> supported_functions = new HashSet<String>();
         for (int k = 0; k < supported_functions_array.length; ++k) {
