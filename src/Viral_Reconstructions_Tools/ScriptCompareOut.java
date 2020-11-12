@@ -11,7 +11,7 @@ public class ScriptCompareOut {
 	
 	int[] pools = new  int [] {25, 50};
 //	double[] mut_rates = new  double [] { 1e-6, 1e-7, 1e-8, 1e-9};
-	int[] depths = new  int  [] { 1000};
+	int[] depths = new  int  [] { 2500,5000,10000};
 //	int[] num_haps = new  int  [] { 15, 30};
 	int[] freq_cutoff = new int [] {0,2};
 	
@@ -27,7 +27,7 @@ public class ScriptCompareOut {
 		for (int i =0; i< this.pools.length; i++) {
 			for (int j =0; j< this.depths.length; j++) {
 				for(int h=0;h<this.freq_cutoff.length;h++) {
-					for (int k=1;k<15;k++) {
+					for (int k=1;k<8;k++) {
 				
 				
 				String project_name = "freq_"+this.freq_cutoff[h]+"_pool_"+ Integer.toString(this.pools[i])
@@ -62,7 +62,7 @@ public class ScriptCompareOut {
 				bw.write("clustalo=/export/home/jhe/.local/bin/clustalo\n");
 				bw.write("TransferToFasta = /export/home/jhe/project/Viral_reconstruction/Other_Tools/programs/TransferToFasta.jar\n");
 				bw.write("TransferOutput = /export/home/jhe/project/Viral_reconstruction/Other_Tools/programs/Transfer_Output.jar\n");
-				bw.write("poolhapx=/export/qlong/PoolHapX/PoolHapX.jar\n");
+				bw.write("poolhapx=/export/qlong/PoolHapX/old_version/PoolHapX/PoolHapX.jar\n");
 				
 				bw.write("start=$SECONDS\n");
 				for(int p=0;p<this.pools[i];p++) {

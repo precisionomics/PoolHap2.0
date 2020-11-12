@@ -11,29 +11,30 @@ import spire.optional.intervalGeometricPartialOrder;
 
 
 
-public class ComparisonSim_island {
+public class ComparisonSim_island_arc {
 	
 	int[] pools = new  int [] {25,50};
 //	double[] mut_rates = new  double [] { 1e-6, 1e-7, 1e-8, 1e-9};
-//	int[] depths = new  int  [] {100,250,1000};
+	int[] depths = new  int  [] { 50, 100, 250, 500};
 //	int[] num_haps = new  int  [] { 15, 30};
-	int[] freq_cutoff = new int [] {0,2};
-	int[] depths = new  int  [] {2500,5000,10000};
-//	int[] num_haps = new  int  [] { 15, 30};
+	int[] freq_cutoff = new int [] {0,1,2,4};
 	
 	String slim_script; 
 	
 	int genome_len = 9719;
-	String genome_path ="/export/home/jhe/project/Viral_reconstruction/SLiM/SLiM/Reference/HIV_HXB2.fa"; 
+	String genome_path ="/home/jingni.he1/project/"
+			+ "Viral_reconstruction/SLiM/Reference/HIV_HXB2.fa"; 
 	
 	
-	public ComparisonSim_island(String prefix_folder, String slimout_folder) throws IOException {
+	public ComparisonSim_island_arc(String prefix_folder, String slimout_folder) throws IOException {
 		
 		new File(prefix_folder + "/cmd/").mkdir();
 		for (int i =0; i< this.pools.length; i++) {
 			for (int j =0; j< this.depths.length; j++) {
 				for(int h=0;h<this.freq_cutoff.length;h++) {
-					for (int k=1;k<10;k++) {	
+					for (int k=1;k<16;k++) {
+
+				
 				
 				String project_name = "freq_"+this.freq_cutoff[h]+"_pool_"+ Integer.toString(this.pools[i])
 						+ "_dep_"+ Integer.toString(this.depths[j])+"_"+k;
@@ -73,7 +74,7 @@ public class ComparisonSim_island {
 				
 				bw1.write("Is_Single_Population = false\n");
 				bw1.write("Is_Ms_Output = false\n");
-				bw1.write("DWGSIM = /export/home/jhe/download/DWGSIM-master/dwgsim\n");
+				bw1.write("DWGSIM = /home/jingni.he1/download/DWGSIM-master/dwgsim\n");
 				bw1.write("Num_Pools = " + Integer.toString(this.pools[i])+ "\n");
 				bw1.write("Ref_Seq_Len = "+ Integer.toString(this.genome_len)+"\n");
 				bw1.write("Reference_Seq= " + this.genome_path+"\n");
@@ -86,8 +87,8 @@ public class ComparisonSim_island {
 				bw1.write("Weak_Length = 550\n");
 				bw1.write("Num_Haps_Pool = 30\n");
 				bw1.close();
-				
-				BufferedWriter bw = new BufferedWriter(new FileWriter(prefix_folder + "/cmd/"+ project_name +"_phx.cmd"));
+
+				BufferedWriter bw = new BufferedWriter(new FileWriter(prefix_folder + "/cmd/"+ project_name +".cmd"));
 				
 //				#!/bin/sh
 //				#SBATCH --job-name=muse
@@ -99,32 +100,32 @@ public class ComparisonSim_island {
 //				#SBATCH --time=99-00:00:00
 //				#SBATCH --nodes=1
 //				#SBATCH --exclude=node[029-033]
-				new File(prefix_folder + "/cmd/log/").mkdir();
-				
 				bw.write("#!/bin/bash\n");
 				bw.write("#SBATCH --job-name="+ project_name +"\n");
-				bw.write("#SBATCH --workdir="+ prefix_folder + "/cmd/log/" +"\n");
-				bw.write("#SBATCH --error="+project_name+"_phx.error\n" );
-				bw.write("#SBATCH --output="+project_name+"_phx.out\n" );
+				bw.write("#SBATCH --workdir="+ prefix_folder + "/"+ project_name +"\n");
+				bw.write("#SBATCH --error="+project_name+".error\n" );
+				bw.write("#SBATCH --output="+project_name+".out\n" );
+				bw.write("##SBATCH --mem=30gb\n");
 				bw.write("#SBATCH --ntasks=1\n");
-				bw.write("#SBATCH --cpus-per-task=8\n");
-				bw.write("#SBATCH --time=99-00:00:00\n");
+				bw.write("#SBATCH --cpus-per-task=3\n");
+				bw.write("#SBATCH --time=7-00:00:00\n");
 				bw.write("#SBATCH --nodes=1\n");
+				bw.write("#SBATCH --partition=theia\n");
 				
-				bw.write("java=/export/home/jhe/download/java_jdk_8u201/jdk1.8.0_201/bin/java\n");
-				bw.write("poolhapx=/export/qlong/PoolHapX/old_version/PoolHapX/PoolHapX.jar\n\n");
 				
 //				java=/home/jingni.he1/download/java_jdk_8u201/jdk1.8.0_201/bin/java
 //				slim=/home/jingni.he1/download/SliM/build/slim
-				bw.write("source /export/home/jhe/download/anaconda/anaconda3/bin/activate Regress_Haplo\n");
-				bw.write("java=/export/home/jhe/download/java_jdk_8u201/jdk1.8.0_201/bin/java\n");
-				bw.write("slim=/export/home/jhe/download/SliM/build/slim\n");
-				bw.write("poolhapx=/export/qlong/PoolHapX/old_version/PoolHapX/PoolHapX.jar\n");
-				bw.write("poolsim=/export/home/jhe/project/Viral_reconstruction/SLiM/SLiM/programs/PoolSimulator_SLiM.jar\n");
-				bw.write("rewrite_vars=/export/home/jhe/project/Viral_reconstruction/SLiM/programs/Rewrite_VarsFile.jar\n");
-				bw.write("bwa=/export/home/jhe/download/bwa-0.7.17/bwa\n");
+				bw.write("source /home/jingni.he1/anaconda3/bin/activate R\n");
+				bw.write("java=/home/jingni.he1/download/java_jdk_8u201/jdk1.8.0_201/bin/java\n");
+				bw.write("slim=/home/jingni.he1/download/SliM/build/slim\n");
+				bw.write("poolhapx=/home/jingni.he1/project/Viral_reconstruction/SLiM/programs/PoolHapX.jar\n");
+				bw.write("poolsim=/home/jingni.he1/project/Viral_reconstruction/SLiM/programs/PoolSimulator_SLiM.jar\n");
+				bw.write("rewrite_vars=/home/jingni.he1/project/Viral_reconstruction/SLiM/programs/Rewrite_VarsFile.jar\n");
+				bw.write("bwa=/home/jingni.he1/download/bwa-0.7.17/bwa\n");
+				bw.write("samtools=/home/jingni.he1/download/samtools-1.9/samtools\n");
 				bw.write("ref="+ this.genome_path+"\n");
-				bw.write("gatk=/export/qlong/chencao/Work/poolhapx/software/gatk-4.0.0.0/gatk-package-4.0.0.0-local.jar\n");
+				bw.write("gatk=/home/jingni.he1/download/gatk-4.0.0.0/"
+						+ "gatk-package-4.0.0.0-local.jar\n");
 				
 //				/home/jingni.he1/project/Viral_reconstruction/SLiM/programs/PoolSimulator_SLiM.jar	
 //$java -jar /home/jingni.he1/project/Viral_reconstruction/SLiM/programs/
@@ -160,20 +161,20 @@ public class ComparisonSim_island {
 					bw.write("gunzip   $prefix\\.bwa.read1.fastq\n");
 					bw.write("gunzip   $prefix\\.bwa.read2.fastq\n");
 					bw.write("$bwa mem $ref $prefix\\.bwa.read1.fastq $prefix\\.bwa.read2.fastq "
-							+ "| samtools view -Shub - > $prefix_bam\\.bam\n");
-					bw.write("samtools sort -o  " +	"$prefix_bam\\.srt.bam  $prefix_bam\\.bam\n");
+							+ "| $samtools view -Shub - > $prefix_bam\\.bam\n");
+					bw.write("$samtools sort -o  " +	"$prefix_bam\\.srt.bam  $prefix_bam\\.bam\n");
 					
 					
 // Step 3: For each pool, call variants using GATK HaplotypeCaller in gVCF mode.	
 					
 					bw.write("inbam="+ prefix_folder + "/"+ project_name +"/input/bam/"+project_name+
-							"_p"+ Integer.toString(p) +".rg.bam\n");
+									"_p"+ Integer.toString(p) +".rg.bam\n");
 								
 					bw.write("$java -jar $gatk  AddOrReplaceReadGroups -I  $prefix_bam\\.srt.bam -O $inbam"
-							+ " -R $ref -ID " +  project_name +  "_p"+ Integer.toString(p)
+							+ " -R $ref -ID " +  project_name + "_p"+ Integer.toString(p)
 							+" -LB NPD -PL Illumina -PU NPD -SM "+ project_name + "_p"+ Integer.toString(p)+ "\n");
 					
-					bw.write("samtools index $inbam\n");
+					bw.write("$samtools index $inbam\n");
 										
 					bw.write("prefix_vcf="+ prefix_folder + "/"+ project_name +"/input/vcf/"+project_name+
 							"_p"+ Integer.toString(p) +"\n");
@@ -203,6 +204,7 @@ public class ComparisonSim_island {
 				
 				bw.write("prefix_vcf="+ prefix_folder + "/"+ project_name +"/input/"
                         +project_name+"\n");
+
 				
 				bw.write( "$java -jar $gatk  SelectVariants -R $ref -V  $prefix\\.raw.vcf" + 
 						" -O $prefix_vcf\\.vcf\n");
@@ -218,7 +220,7 @@ public class ComparisonSim_island {
 							+ project_name +
 							"_p"+ Integer.toString(p) +"\n");
 					
-					bw.write("samtools view -ho $prefix_sam\\.sam $prefix_bam\\.srt.bam\n");
+					bw.write("$samtools view -ho $prefix_sam\\.sam $prefix_bam\\.srt.bam\n");
 					
 				}
 				
@@ -266,7 +268,7 @@ public class ComparisonSim_island {
 				
 				bw_properties.write("Hc_Similarity_Cutoff =0.95\n");
 				bw_properties.write("MCC_Freq_Cutoff = 0.01\n");
-				bw_properties.write("Rscript_path = /export/home/jhe/download/anaconda/anaconda3/envs/Regress_Haplo/bin/Rscript\n");
+				bw_properties.write("Rscript_path = /home/jingni.he1/anaconda3/envs/Regress_Haplo/bin/Rscript\n");
 				bw_properties.write("Regression_Distance_Max_Weight = 2.5\n");
 				bw_properties.write("Regression_Coverage_Weight = 1.0\n");
 				bw_properties.write("Regression_Mismatch_Tolerance= 7\n");
@@ -288,9 +290,9 @@ public class ComparisonSim_island {
 															
 				bw_properties.close();
 				
-
-				bw.write("poolhapx=/export/qlong/PoolHapX/old_version/PoolHapX/PoolHapX.jar\n");
-				bw.write("properties="+prefix_folder + "/"+ project_name+"/input/PHX.properties\n\n");
+				
+				bw.write("properties="+prefix_folder + "/"+ project_name+"/input/PHX.properties\n");
+				bw.write("poolhapx=/home/jingni.he1/project/Viral_reconstruction/SLiM/programs/PoolHapX.jar\n");
 				bw.write("start=$SECONDS\n");
 				bw.write("$java -jar $poolhapx format $properties\n");
 				bw.write("$java -jar $rewrite_vars "+ prefix_folder + "/"
@@ -300,12 +302,9 @@ public class ComparisonSim_island {
 						+ project_name+ "/intermediate/"
 						+ project_name
 						+"_vars.intra_freq.txt\n");
-						
-								
-				
-				bw.write("/usr/bin/python2.7  /export/qlong/PoolHapX/old_version/PoolHapX/make_gc.py "
-						+ prefix_folder + "/"+ project_name+ "/intermediate "+ project_name +"\n");
-				//bw.write("$java -jar $poolhapx gc $properties\n");
+				//bw.write("/usr/bin/python2.7  /home/jingni.he1/project/Viral_reconstruction/SLiM/programs/make_gc.py "
+				//		+ prefix_folder + "/"+ project_name+ "/intermediate "+ project_name +"\n");
+				bw.write("$java -jar $poolhapx gc $properties\n");
 				bw.write("$java -jar $poolhapx aem $properties\n");
 				bw.write("$java -jar $poolhapx evaluate $properties\n");
 				bw.write("end=$SECONDS\n" + 
@@ -323,7 +322,7 @@ public class ComparisonSim_island {
 		System.out.println("PoolHapX Comparison Simulation... ...");
 		String prefix_folder= args[0];//"/export/qlong/chencao/Work/poolhapx/slim/sim/";
 		String slimout_folder = args[1];
-		ComparisonSim_island cs = new ComparisonSim_island(prefix_folder,slimout_folder);
+		ComparisonSim_island_arc cs = new ComparisonSim_island_arc(prefix_folder,slimout_folder);
 		System.out.println("Done, Enjoy!");
 		
 	}	

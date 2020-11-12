@@ -40,10 +40,8 @@ public class ScriptForPHX {
 	    this.fastq_path=prop.getProperty("Fastq_Path");
 	    this.ref_path=prop.getProperty("Ref_Path");
 	    this.Rscript_path=prop.getProperty("Rscript_Path");
-	    this.fastq_file=prop.getProperty("Fastq_Name");	    
+	    this.fastq_file=prop.getProperty("Fastq_File");	    
 	    is.close();
-	    System.out.println(this.fastq_file);
-	    System.out.println(this.fastq_file);
 	    BufferedReader br = new BufferedReader(new FileReader(this.fastq_file)); 
 	    String currline=br.readLine();
 	    while(currline!=null) {
