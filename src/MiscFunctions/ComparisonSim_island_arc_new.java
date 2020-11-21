@@ -14,8 +14,8 @@ import spire.optional.intervalGeometricPartialOrder;
 public class ComparisonSim_island_arc_new {
 
 	// project_name = "1_1,1_2..1_9;2_1,2_2...2_9...5_1,5_2...5_9"
-	int[] project_idx1= new int[] {1,2,3,4,5};
-	int[] project_idx2= new int[] {1,2,3,4,5,6,7,8,9};
+	int[] project_idx1= new int[] {5};
+	//int[] project_idx2= new int[] {1,2,3,4,5,6,7,8,9};
 	int num_pool = 25;
 	int num_coverage = 5000;
 	String slim_script; 
@@ -29,9 +29,9 @@ public class ComparisonSim_island_arc_new {
 		
 		new File(prefix_folder + "/cmd/").mkdir();
 		for (int i =0; i< this.project_idx1.length; i++) {
-			for (int j =0; j< this.project_idx2.length; j++) {
+			for (int j =1; j< 41; j++) {
 				
-				String project_name = this.project_idx1[i]+"_"+ this.project_idx2[j];
+				String project_name = this.project_idx1[i]+"_"+ j;
 						
 				new File(prefix_folder +"/"+ project_name).mkdir();
 				
@@ -71,7 +71,7 @@ public class ComparisonSim_island_arc_new {
 				bw.write("#SBATCH --workdir="+ prefix_folder + "/"+ project_name +"\n");
 				bw.write("#SBATCH --error="+project_name+".error\n" );
 				bw.write("#SBATCH --output="+project_name+".out\n" );
-				bw.write("#SBATCH --mem=40gb\n");
+				bw.write("#SBATCH --mem=30gb\n");
 				bw.write("#SBATCH --ntasks=1\n");
 				bw.write("#SBATCH --cpus-per-task=3\n");
 				bw.write("#SBATCH --time=7-00:00:00\n");
@@ -231,7 +231,7 @@ public class ComparisonSim_island_arc_new {
 				
 				bw_properties.write("Hc_Similarity_Cutoff =0.95\n");
 				bw_properties.write("MCC_Freq_Cutoff = 0.01\n");
-				bw_properties.write("Rscript_path = /home/jingni.he1/anaconda3/envs/Regress_Haplo/bin/Rscript\n");
+				bw_properties.write("Rscript_path = /home/jingni.he1/anaconda3/envs/R/bin/Rscript\n");
 				bw_properties.write("Regression_Distance_Max_Weight = 2.5\n");
 				bw_properties.write("Regression_Coverage_Weight = 1.0\n");
 				bw_properties.write("Regression_Mismatch_Tolerance= 7\n");

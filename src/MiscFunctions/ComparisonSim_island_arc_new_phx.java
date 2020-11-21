@@ -95,7 +95,7 @@ public class ComparisonSim_island_arc_new_phx {
 					
 					bw_properties.write("Hc_Similarity_Cutoff =0.95\n");
 					bw_properties.write("MCC_Freq_Cutoff = 0.01\n");
-					bw_properties.write("Rscript_path = /home/jingni.he1/anaconda3/envs/Regress_Haplo/bin/Rscript\n");
+					bw_properties.write("Rscript_path = /home/jingni.he1/anaconda3/envs/R/bin/Rscript\n");
 					bw_properties.write("Regression_Distance_Max_Weight = 2.5\n");
 					bw_properties.write("Regression_Coverage_Weight = 1.0\n");
 					bw_properties.write("Regression_Mismatch_Tolerance= 7\n");
@@ -109,7 +109,7 @@ public class ComparisonSim_island_arc_new_phx {
 					bw_properties.write("Regression_Gamma_Min = 0.01\n");
 					bw_properties.write("Regression_n_Gamma = 10\n");
 					bw_properties.write("Regression_Gamma_Max = 0.2\n");
-					bw_properties.write("Regression_Maximum_Regions = 2\n");
+					bw_properties.write("Regression_Maximum_Regions = 3\n");
 					bw_properties.write("Maximum_Selected_HapSet = 15\n");
 					bw_properties.write("Sequencing_Technology = paired-end reads\n");
 					bw_properties.write("Number_Threads = 5\n");
