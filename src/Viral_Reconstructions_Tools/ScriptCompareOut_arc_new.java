@@ -10,8 +10,8 @@ import java.io.IOException;
 public class ScriptCompareOut_arc_new {
 	
 	// project_name = "1_1,1_2..1_9;2_1,2_2...2_9...5_1,5_2...5_9"
-	int[] project_idx1= new int[] {1,2,3,4,5};
-	int[] project_idx2= new int[] {1,2,3,4,5,6,7,8,9};
+	//int[] project_idx1= new int[] {1,2,3,4,5};
+	//int[] project_idx2= new int[] {1,2,3,4,5,6,7,8,9};
 	int num_pool = 25;
 	int num_coverage = 5000;
 
@@ -25,12 +25,12 @@ public class ScriptCompareOut_arc_new {
 	
 	public ScriptCompareOut_arc_new(String prefix_folder, String phx_folder_prefix, String tool_name) throws IOException {
 		new File(prefix_folder + "/cmd_out/").mkdir();
-		for (int i =0; i< this.project_idx1.length; i++) {
-			for (int j =0; j< this.project_idx2.length; j++) {
+		//for (int i =0; i< this.project_idx1.length; i++) {
+		//	for (int j =0; j< this.project_idx2.length; j++) {
 				
 				
-				String project_name = this.project_idx1[i]+"_"+ this.project_idx2[j];
-				
+		//		String project_name = this.project_idx1[i]+"_"+ this.project_idx2[j];
+				String project_name="5_15";
 				BufferedWriter bw = new BufferedWriter(new FileWriter(prefix_folder + "/cmd_out/"+project_name+".cmd"));
 //				#!/bin/sh
 //				#SBATCH --job-name=Qpne50_500c
@@ -50,7 +50,7 @@ public class ScriptCompareOut_arc_new {
 				bw.write("#SBATCH --workdir="+ prefix_folder + "/"+ project_name +"\n");
 				bw.write("#SBATCH --error="+ project_name+"finalout.error\n" );
 				bw.write("#SBATCH --output="+project_name+"finalout.out\n" );
-				bw.write("##SBATCH --mem=20gb\n");
+				bw.write("#SBATCH --mem=20gb\n");
 				bw.write("#SBATCH --ntasks=1\n");
 				bw.write("#SBATCH --cpus-per-task=4\n");
 				bw.write("#SBATCH --time=7-00:00:00\n");
@@ -161,8 +161,8 @@ public class ScriptCompareOut_arc_new {
 					bw.write("\n");
 					bw.close();
 					
-				}
-			}
+				
+			
 		
 	}
 

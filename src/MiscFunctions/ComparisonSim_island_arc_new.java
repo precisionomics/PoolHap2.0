@@ -14,7 +14,7 @@ import spire.optional.intervalGeometricPartialOrder;
 public class ComparisonSim_island_arc_new {
 
 	// project_name = "1_1,1_2..1_9;2_1,2_2...2_9...5_1,5_2...5_9"
-	int[] project_idx1= new int[] {5};
+	int[] project_idx1= new int[] {4};
 	//int[] project_idx2= new int[] {1,2,3,4,5,6,7,8,9};
 	int num_pool = 25;
 	int num_coverage = 5000;
@@ -29,7 +29,7 @@ public class ComparisonSim_island_arc_new {
 		
 		new File(prefix_folder + "/cmd/").mkdir();
 		for (int i =0; i< this.project_idx1.length; i++) {
-			for (int j =1; j< 41; j++) {
+			for (int j =1; j< 44; j++) {
 				
 				String project_name = this.project_idx1[i]+"_"+ j;
 						
@@ -71,9 +71,9 @@ public class ComparisonSim_island_arc_new {
 				bw.write("#SBATCH --workdir="+ prefix_folder + "/"+ project_name +"\n");
 				bw.write("#SBATCH --error="+project_name+".error\n" );
 				bw.write("#SBATCH --output="+project_name+".out\n" );
-				bw.write("#SBATCH --mem=30gb\n");
+				bw.write("#SBATCH --mem=25gb\n");
 				bw.write("#SBATCH --ntasks=1\n");
-				bw.write("#SBATCH --cpus-per-task=3\n");
+				bw.write("#SBATCH --cpus-per-task=2\n");
 				bw.write("#SBATCH --time=7-00:00:00\n");
 				bw.write("#SBATCH --nodes=1\n");
 				bw.write("#SBATCH --partition=theia\n");
@@ -273,8 +273,6 @@ public class ComparisonSim_island_arc_new {
 				bw.write("end=$SECONDS\n" + 
 						"echo \"duration: $((end-start)) seconds.\"");
 				bw.write("\n");
-				
-				
 	        	bw.close();	        	
 					
 				}
